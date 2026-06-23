@@ -6,6 +6,3 @@ dist/
 !jest*.js
 coverage/
 .turbo/
-.expo/
-*.tsbuildinfo
-.next/

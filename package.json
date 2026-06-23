@@ -1,0 +1,22 @@
+{
+  "name": "fit-app",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "api:dev": "npm run dev -w apps/api",
+    "api:build": "npm run build -w apps/api",
+    "mobile:dev": "npm run dev -w apps/mobile",
+    "db:generate": "npm run prisma:generate -w apps/api",
+    "db:migrate": "npm run prisma:migrate -w apps/api",
+    "db:push": "npm run prisma:push -w apps/api",
+    "lint": "npm run lint -w apps/api && npm run lint -w apps/mobile",
+    "test": "npm run test -w apps/api && npm run test -w apps/mobile"
+  },
+  "dependencies": {
+    "@nestjs/schedule": "^6.1.3"
+  }
+}
