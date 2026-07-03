@@ -1,10 +1,10 @@
 # Fit App — Plataforma de Ranking de Gimnasio
 
 ## Descripción
-Aplicación móvil (Expo/React Native) + PWA donde usuarios crean grupos de gimnasio, registran su progreso en ejercicios y compiten en rankings. Incluye autenticación con Auth0 (Google SSO + email/password), sistema de disputas por mayoría simple, y panel de super admin.
+Aplicación móvil (Expo/React Native) + PWA donde usuarios crean grupos de gimnasio, registran su progreso en ejercicios y compiten en rankings. Incluye autenticación local (JWT + bcrypt, email/password), sistema de disputas por mayoría simple, y panel de super admin.
 
 ## Funcionalidades core
-1. **Auth**: Login/registro con Auth0 (Google + email/password). Datos: nombre, email, celular, contraseña.
+1. **Auth**: Login/registro local (JWT + bcrypt, email/password). Datos: nombre, email, celular, contraseña.
 2. **Grupos**: CRUD de grupos, avatar del grupo, invitar miembros, un usuario puede pertenecer a N grupos.
 3. **Ejercicios**: Solo el dueño del grupo crea ejercicios dentro del grupo.
 4. **Progreso**: Upsert de marca por ejercicio — un usuario solo puede tener 1 marca por ejercicio, la actualiza.
@@ -14,8 +14,8 @@ Aplicación móvil (Expo/React Native) + PWA donde usuarios crean grupos de gimn
 8. **PWA**: Instalable desde el navegador, funciona offline parcialmente.
 
 ## Dependencias externas
-- Auth0: Sí (email/password + Google SSO)
-- Cloudflare R2: Sí (avatares de usuarios y grupos)
+- Auth: Local (JWT + bcrypt, email/password)
+- Storage: Local (uploads en disco servidos por Nginx)
 - Firebase Cloud Messaging: Sí (notificaciones de invitación y disputas)
 - Redis + Bull: Sí (colas para procesamiento de disputas y notificaciones)
 
@@ -29,7 +29,7 @@ Aplicación móvil (Expo/React Native) + PWA donde usuarios crean grupos de gimn
 ## Bounded contexts (DDD)
 | Contexto | Módulo NestJS | Descripción |
 |---|---|---|
-| Identity | `auth` | Auth0 integración, registro, perfil |
+| Identity | `auth` | Autenticación local (JWT + bcrypt), registro, perfil |
 | Users | `users` | Perfil de usuario, avatar, roles |
 | Groups | `groups` | CRUD grupos, membresías, invitaciones |
 | Exercises | `exercises` | Definición de ejercicios por grupo |

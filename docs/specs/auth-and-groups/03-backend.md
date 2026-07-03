@@ -83,22 +83,20 @@ apps/api/src/modules/
 ## AuthService
 
 ### register(input: RegisterInput): AuthPayload
-1. Verificar que email no exista en Auth0 ni en DB local.
-2. Crear usuario en Auth0 (email + password).
-3. Crear `User` en DB local con `auth0Id` del paso anterior.
+1. Verificar que email no exista en DB local.
+2. Hashear password con bcrypt (salt rounds = 10).
+3. Crear `User` en DB con `auth0Id = local|${email}`, `passwordHash` hasheado.
 4. Generar JWT y devolver `AuthPayload`.
 
 ### login(input: LoginInput): AuthPayload
-1. Autenticar contra Auth0 con Resource Owner Password flow.
-2. Buscar `User` por `auth0Id`.
-3. Generar JWT y devolver.
+1. Buscar `User` por `email`.
+2. Verificar que `passwordHash` exista.
+3. Comparar password con bcrypt.
+4. Generar JWT y devolver.
 
-### loginWithGoogle(idToken: string): AuthPayload
-1. Verificar idToken con Google (biblioteca `google-auth-library`).
-2. Extraer email, name, avatar.
-3. Si no existe `User` con ese email → crear usuario en Auth0 + DB.
-4. Si existe → login directo.
-5. Devolver JWT.
+### loginWithEmailOnly(email: string): AuthPayload
+1. Buscar `User` por `email`.
+2. Si existe → generar JWT y devolver (útil para desarrollo/testing).
 
 ### validateUser(payload: JwtPayload): User
 1. Buscar `User` por `auth0Id` del payload.
@@ -110,7 +108,7 @@ apps/api/src/modules/
 
 ### GqlAuthGuard (NestJS + Passport)
 - Estrategia JWT: extraer token del header `Authorization: Bearer <token>`.
-- Validar con Auth0 JWKS endpoint.
+- Validar con `JWT_SECRET` local.
 - Inyectar `@CurrentUser()`.
 
 ### RolesGuard
@@ -126,7 +124,7 @@ apps/api/src/modules/
 ### createGroup(userId, input): Group
 1. Crear `Group` con `ownerId = userId`.
 2. Crear `GroupMember` con `userId`, `groupId`, `role: OWNER`.
-3. Si hay `avatarUrl` (Upload) → subir a R2 y guardar URL.
+3. Si hay `avatarUrl` (Upload) → guardar en disco local, Nginx sirve el archivo.
 
 ### updateGroup(userId, groupId, input): Group
 - Solo `OWNER` o `SUPER_ADMIN` (validado por guard + service check).
@@ -222,10 +220,12 @@ apps/api/src/modules/
 
 ---
 
-## UploadService (R2)
-- Subir archivos a Cloudflare R2 (S3 SDK).
-- Generar URL pública firmada o prefirmada.
-- Usar `sharp` para redimensionar avatares a 256x256.
+## UploadService (Local)
+- Guardar archivos en disco (`<UPLOAD_DIR>/avatars/`).
+- Nombre de archivo: `uuid + extension` (ej: `550e8400-e29b-41d4-a716-446655440000.jpg`).
+- Nginx sirve archivos estáticos desde `/uploads/`.
+- Endpoint REST: `POST /upload/avatar` (multipart, campo `file`, máx 5MB).
+- Se actualiza automáticamente `User.avatarUrl` con la ruta `/uploads/avatars/<filename>`.
 
 ---
 

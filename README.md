@@ -8,8 +8,8 @@ Plataforma de ranking de gimnasio. Usuarios crean grupos, registran su progreso 
 |------|-----------|
 | Backend | NestJS, TypeScript, GraphQL (code-first), Prisma, PostgreSQL |
 | Frontend | React Native, Expo, Apollo Client, Zustand, NativeWind |
-| Auth | Auth0 (email/password + Google SSO) |
-| Storage | Cloudflare R2 (avatares) |
+| Auth | Local (JWT + bcrypt, email/password) |
+| Storage | Local (uploads en disco servidos por Nginx) |
 | Queue | Redis + Bull (disputas) |
 | PWA | Workbox, expo-pwa |
 
@@ -80,10 +80,28 @@ fit-app/
 - Node.js 20+
 - PostgreSQL 15+
 - Redis 7+ (para Bull queue)
-- Auth0 tenant (producción)
-- Cuenta de Cloudflare R2 (producción)
+- Redis 7+ (para Bull queue)
 
-## Ejecutar en local
+## Infraestructura (producción)
+
+Todo corre en Docker vía `/srv/infra/docker-compose.yml`:
+
+```bash
+cd /srv/infra
+docker compose up -d
+```
+
+Servicios:
+- `postgres:5432` — PostgreSQL 17
+- `redis:6379` — Redis 7
+- `api:4000` — API GraphQL + REST
+- `nginx:80` — Reverse proxy + archivos estáticos
+
+### Uploads
+
+Los avatares se suben vía `POST /upload/avatar` (multipart, requiere JWT) y se almacenan en el volumen Docker `uploads`. Nginx los sirve en `/uploads/avatars/*`.
+
+## Ejecutar en local (desarrollo)
 
 ```bash
 # 1. Clonar e instalar
@@ -97,10 +115,10 @@ cp apps/api/.env.example apps/api/.env
 
 # 3. Iniciar PostgreSQL (ejemplo con Docker)
 docker run -d --name fit-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=fit_app \
-  -p 5432:5432 postgres:16
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=12345678 \
+  -e POSTGRES_DB=proyectos \
+  -p 5432:5432 postgres:17
 
 # 4. Correr migraciones Prisma
 npm run db:migrate -w apps/api
@@ -128,13 +146,23 @@ npm run mobile:dev       # Expo dev server
 npm run mobile:test -w apps/mobile  # Tests frontend
 ```
 
-## API GraphQL
+## API
+
+### GraphQL
 
 El schema se genera automáticamente en `apps/api/src/schema.gql` al iniciar el servidor. Endpoint:
 
 ```
 http://localhost:4000/graphql
 ```
+
+### REST (uploads)
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `POST` | `/upload/avatar` | JWT (Bearer) | Subir avatar (multipart, campo `file`, máx 5MB) |
+
+El archivo se guarda en disco y se actualiza `avatarUrl` del usuario automáticamente.
 
 ### Queries principales
 

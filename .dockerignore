@@ -1,0 +1,8 @@
+node_modules
+.git
+.github
+.gitignore
+*.md
+.opencode
+opencode.json
+apps/mobile

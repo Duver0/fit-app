@@ -29,11 +29,11 @@ Garantizar la calidad de cada capa mediante unit tests, integration tests y E2E 
 ### AuthService
 | Test | Descripción |
 |---|---|
-| `register: crea usuario en Auth0 y DB` | Mock Auth0 Management API, verificar que se crea User |
-| `register: error si email ya existe` | Mock que Auth0 devuelve error de duplicado → lanza ConflictException |
-| `login: devuelve token válido` | Mock Auth0 OK, verificar que JWT se genera con auth0Id |
-| `loginWithGoogle: crea usuario nuevo si no existe` | Mock Google verifyIdToken, verificar creación en Auth0 + DB |
-| `loginWithGoogle: login si ya existe` | Mock Google → usuario existe → login directo sin crear |
+| `register: crea usuario con password hasheado` | Mock bcrypt.hash, verificar passwordHash en DB |
+| `register: error si email ya existe` | Mock findUnique devuelve usuario → lanza ConflictException |
+| `login: devuelve token válido` | Mock bcrypt.compare true, verificar JWT generado |
+| `login: error si password incorrecto` | Mock bcrypt.compare false → UnauthorizedException |
+| `login: error si no existe passwordHash` | Usuario sin passwordHash → UnauthorizedException |
 | `validateUser: retorna usuario si existe` | Buscar por auth0Id → retorna User |
 | `validateUser: lanza si no existe` | auth0Id no encontrado → UnauthorizedException |
 
@@ -41,7 +41,7 @@ Garantizar la calidad de cada capa mediante unit tests, integration tests y E2E 
 | Test | Descripción |
 |---|---|
 | `createGroup: crea grupo + owner membership` | Verificar Group y GroupMember creados |
-| `createGroup: con avatar sube a R2` | Mock R2Service → verificar upload llamado |
+| `createGroup: con avatar sube a disco` | Mock UploadService → verificar upload llamado |
 | `updateGroup: owner puede editar` | Usuario es owner → éxito |
 | `updateGroup: member NO puede editar` | Usuario es member → ForbiddenException |
 | `deleteGroup: owner elimina su grupo` | Cascade check |
@@ -139,7 +139,7 @@ Garantizar la calidad de cada capa mediante unit tests, integration tests y E2E 
 | Test | Descripción |
 |---|---|
 | `Register → Login flow` | Llenar formulario, submit, redirect a groups list |
-| `Google SSO flow` | Mock de redirect Auth0 |
+| `Register → Login flow` | Llenar formulario, submit, redirect a groups list |
 | `Create group → se ve en lista` | Crear grupo, verificar que aparece |
 | `Invite user → accept → se ve en miembros` | Flujo completo de invitación |
 | `Owner crea ejercicio → se ve en dashboard` | Crear ejercicio, verificar top 3 empty |

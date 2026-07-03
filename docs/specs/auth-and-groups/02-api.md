@@ -35,7 +35,7 @@ input LoginInput {
 extend type Mutation {
   register(input: RegisterInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
-  loginWithGoogle(idToken: String!): AuthPayload!
+  loginWithEmailOnly(email: String!): AuthPayload!
 }
 ```
 
@@ -75,7 +75,7 @@ extend type Query {
 input UpdateProfileInput {
   name: String
   phone: String
-  avatarUrl: Upload  # multipart → R2
+  avatarUrl: String  # URL del avatar servido por Nginx
 }
 
 extend type Mutation {

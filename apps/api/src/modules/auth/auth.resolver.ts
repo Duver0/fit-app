@@ -18,7 +18,7 @@ export class AuthResolver {
   }
 
   @Mutation(() => AuthPayload)
-  async loginWithGoogle(@Args('idToken') idToken: string) {
-    return this.authService.loginWithGoogle(idToken)
+  async loginWithEmailOnly(@Args('email') email: string) {
+    return this.authService.loginWithEmailOnly(email)
   }
 }

@@ -12,6 +12,7 @@ Definir el esquema de datos completo en Prisma que soporte autenticación, grupo
 model User {
   id            String    @id @default(uuid()) @db.Uuid
   auth0Id       String    @unique @map("auth0_id")
+  passwordHash  String?   @map("password_hash")
   email         String    @unique
   phone         String?   @map("phone")
   name          String

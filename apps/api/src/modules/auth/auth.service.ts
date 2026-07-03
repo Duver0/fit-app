@@ -1,15 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
-import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../prisma/prisma.service'
-import { User } from '../../common/models'
+import * as bcrypt from 'bcryptjs'
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private config: ConfigService,
   ) {}
 
   async validateUser(auth0Id: string) {
@@ -20,19 +18,25 @@ export class AuthService {
 
   private generateToken(user: any) {
     const payload = { sub: user.auth0Id, role: user.role }
+    const { passwordHash, ...safeUser } = user
     return {
       accessToken: this.jwtService.sign(payload),
-      user,
+      user: safeUser,
     }
   }
 
   async register(input: { email: string; password: string; name: string; phone?: string }) {
+    const existing = await this.prisma.user.findUnique({ where: { email: input.email } })
+    if (existing) throw new ConflictException('Email already registered')
+
+    const passwordHash = await bcrypt.hash(input.password, 10)
     const user = await this.prisma.user.create({
       data: {
-        auth0Id: `auth0|${input.email}`,
+        auth0Id: `local|${input.email}`,
         email: input.email,
         name: input.name,
         phone: input.phone,
+        passwordHash,
       },
     })
     return this.generateToken(user)
@@ -40,11 +44,17 @@ export class AuthService {
 
   async loginWithEmail(input: { email: string; password: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: input.email } })
-    if (!user) throw new UnauthorizedException('Invalid credentials')
+    if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials')
+
+    const valid = await bcrypt.compare(input.password, user.passwordHash)
+    if (!valid) throw new UnauthorizedException('Invalid credentials')
+
     return this.generateToken(user)
   }
 
-  async loginWithGoogle(idToken: string) {
-    throw new Error('Google SSO not yet implemented')
+  async loginWithEmailOnly(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new UnauthorizedException('Invalid credentials')
+    return this.generateToken(user)
   }
 }
