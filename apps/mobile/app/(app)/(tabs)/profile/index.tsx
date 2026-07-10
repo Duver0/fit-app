@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
-import { useTheme } from '../../../src/theme/ThemeProvider'
-import { useAuthStore } from '../../../src/stores/authStore'
-import { useThemeStore } from '../../../src/stores/themeStore'
+import { useTheme } from '../../../../src/theme/ThemeProvider'
+import { useAuthStore } from '../../../../src/stores/authStore'
+import { useThemeStore } from '../../../../src/stores/themeStore'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()

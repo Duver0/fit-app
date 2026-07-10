@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal } from 'react-native'
 import { useLocalSearchParams, Stack } from 'expo-router'
-import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { useRanking } from '../../../../../src/hooks/useRanking'
+import { useTheme } from '../../../../../../src/theme/ThemeProvider'
+import { useRanking } from '../../../../../../src/hooks/useRanking'
 import { useQuery } from '@apollo/client'
-import { GROUP_QUERY } from '../../../../../src/lib/graphql'
+import { GROUP_QUERY } from '../../../../../../src/lib/graphql'
 
 export default function ExerciseDetailScreen() {
   const { colors } = useTheme()

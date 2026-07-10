@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
-import { GroupConnection, UserConnection, ExerciseConnection } from '../../common/models'
+import { Group, GroupConnection, UserConnection, ExerciseConnection } from '../../common/models'
 import { UpdateGroupInput } from '../groups/dto/group.input'
 
 @Resolver()
@@ -50,12 +50,11 @@ export class AdminResolver {
     return this.adminService.deleteExercise(id)
   }
 
-  @Mutation(() => String)
+  @Mutation(() => Group)
   async adminUpdateGroup(
     @Args('id') id: string,
     @Args('input') input: UpdateGroupInput,
   ) {
-    const group = await this.adminService.updateGroup(id, input)
-    return JSON.stringify(group)
+    return this.adminService.updateGroup(id, input)
   }
 }

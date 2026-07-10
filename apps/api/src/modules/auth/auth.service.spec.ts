@@ -91,7 +91,7 @@ describe('AuthService', () => {
         },
       })
       expect(result.accessToken).toBe('mock-jwt-token')
-      expect(result.user.passwordHash).toBeUndefined()
+      expect(result.user).not.toHaveProperty('passwordHash')
     })
 
     it('should throw ConflictException when email already exists', async () => {
@@ -114,7 +114,7 @@ describe('AuthService', () => {
         password: 'password123',
       })
       expect(result.accessToken).toBe('mock-jwt-token')
-      expect(result.user.passwordHash).toBeUndefined()
+      expect(result.user).not.toHaveProperty('passwordHash')
     })
 
     it('should throw for invalid email', async () => {
@@ -144,16 +144,4 @@ describe('AuthService', () => {
     })
   })
 
-  describe('loginWithEmailOnly', () => {
-    it('should return token for existing email', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
-      const result = await service.loginWithEmailOnly('test@test.com')
-      expect(result.accessToken).toBe('mock-jwt-token')
-    })
-
-    it('should throw for nonexistent email', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null)
-      await expect(service.loginWithEmailOnly('nope@test.com')).rejects.toThrow(UnauthorizedException)
-    })
-  })
 })

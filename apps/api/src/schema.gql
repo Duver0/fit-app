@@ -1,0 +1,233 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuthPayload {
+  accessToken: String!
+  user: User!
+}
+
+input CreateDisputeInput {
+  performanceId: String!
+  reason: String!
+}
+
+input CreateExerciseInput {
+  groupId: String!
+  name: String!
+  unit: String
+}
+
+input CreateGroupInput {
+  description: String
+  name: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Dispute {
+  createdAt: DateTime!
+  expiresAt: DateTime!
+  groupMemberCount: Int!
+  id: ID!
+  initiatedBy: User!
+  performance: PerformanceRecord!
+  reason: String!
+  status: DisputeStatus!
+  voteCount: Int!
+  votes: [DisputeVote!]!
+}
+
+enum DisputeStatus {
+  APPROVED
+  OPEN
+  REJECTED
+}
+
+type DisputeVote {
+  createdAt: DateTime!
+  id: ID!
+  user: User!
+  vote: Boolean!
+}
+
+type Exercise {
+  createdAt: DateTime!
+  createdBy: User!
+  groupId: String!
+  id: ID!
+  name: String!
+  unit: ExerciseUnit!
+  updatedAt: DateTime!
+}
+
+type ExerciseConnection {
+  currentPage: Float!
+  items: [Exercise!]!
+  totalCount: Float!
+  totalPages: Float!
+}
+
+type ExerciseRankingPreview {
+  exercise: Exercise!
+  top: [PerformanceRecord!]!
+}
+
+enum ExerciseUnit {
+  KG
+  M
+  MIN
+  REPS
+  SEC
+}
+
+type Group {
+  avatarUrl: String
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  memberCount: Float!
+  members: [GroupMember!]!
+  name: String!
+  owner: User!
+  updatedAt: DateTime!
+}
+
+type GroupConnection {
+  currentPage: Float!
+  items: [Group!]!
+  totalCount: Float!
+  totalPages: Float!
+}
+
+type GroupMember {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  user: User!
+}
+
+type Invitation {
+  createdAt: DateTime!
+  group: Group!
+  id: ID!
+  inviteeEmail: String!
+  inviter: User!
+  status: InviteStatus!
+}
+
+enum InviteStatus {
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  PENDING
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  acceptInvitation(invitationId: String!): Boolean!
+  adminDeleteExercise(id: String!): Boolean!
+  adminDeleteGroup(id: String!): Boolean!
+  adminDeleteUser(id: String!): Boolean!
+  adminUpdateGroup(id: String!, input: UpdateGroupInput!): Group!
+  createDispute(input: CreateDisputeInput!): Dispute!
+  createExercise(input: CreateExerciseInput!): Exercise!
+  createGroup(input: CreateGroupInput!): Group!
+  declineInvitation(invitationId: String!): Boolean!
+  deleteExercise(id: String!): Boolean!
+  deleteGroup(id: String!): Boolean!
+  inviteToGroup(groupId: String!, inviteeEmail: String!): Invitation!
+  leaveGroup(groupId: String!): Boolean!
+  login(input: LoginInput!): AuthPayload!
+  register(input: RegisterInput!): AuthPayload!
+  removeMember(groupId: String!, userId: String!): Boolean!
+  updateGroup(id: String!, input: UpdateGroupInput!): Group!
+  updateProfile(name: String, phone: String): User!
+  upsertPerformance(input: UpsertPerformanceInput!): PerformanceRecord!
+  voteOnDispute(disputeId: String!, vote: Boolean!): Dispute!
+}
+
+type PerformanceRecord {
+  exercise: Exercise!
+  groupId: String!
+  id: ID!
+  rank: Int
+  recordedAt: DateTime!
+  updatedAt: DateTime!
+  user: User!
+  value: Float!
+}
+
+type Query {
+  adminExercises(limit: Int, page: Int): ExerciseConnection!
+  adminGroups(limit: Int, page: Int): GroupConnection!
+  adminUsers(limit: Int, page: Int): UserConnection!
+  disputes(performanceId: String!): [Dispute!]!
+  exercise(id: String!): Exercise!
+  exercises(groupId: String!): [Exercise!]!
+  group(id: String!): Group!
+  groupMembers(groupId: String!): [Group!]!
+  me: User!
+  myDisputes: [Dispute!]!
+  myGroups: [Group!]!
+  myInvitations: [Invitation!]!
+  myPerformance(exerciseId: String!): PerformanceRecord
+  ranking(exerciseId: String!, limit: Int, page: Int): RankingConnection!
+  top3Ranking(groupId: String!): [ExerciseRankingPreview!]!
+}
+
+type RankingConnection {
+  currentPage: Float!
+  items: [PerformanceRecord!]!
+  totalCount: Float!
+  totalPages: Float!
+}
+
+input RegisterInput {
+  email: String!
+  name: String!
+  password: String!
+  phone: String
+}
+
+input UpdateGroupInput {
+  avatarUrl: String
+  description: String
+  name: String
+}
+
+input UpsertPerformanceInput {
+  exerciseId: String!
+  value: Float!
+}
+
+type User {
+  auth0Id: String!
+  avatarUrl: String
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  phone: String
+  role: UserRole!
+  updatedAt: DateTime!
+}
+
+type UserConnection {
+  currentPage: Float!
+  items: [User!]!
+  totalCount: Float!
+  totalPages: Float!
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  USER
+}

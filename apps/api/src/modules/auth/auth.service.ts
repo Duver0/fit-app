@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { PrismaService } from '../../prisma/prisma.service'
+import { User as PrismaUser } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 
 @Injectable()
@@ -10,15 +11,25 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(auth0Id: string) {
-    const user = await this.prisma.user.findUnique({ where: { auth0Id } })
+  async validateUser(localId: string) {
+    const user = await this.prisma.user.findUnique({ where: { auth0Id: localId } })
     if (!user) throw new UnauthorizedException()
     return user
   }
 
-  private generateToken(user: any) {
+  private generateToken(user: PrismaUser) {
     const payload = { sub: user.auth0Id, role: user.role }
-    const { passwordHash, ...safeUser } = user
+    const safeUser = {
+      id: user.id,
+      auth0Id: user.auth0Id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }
     return {
       accessToken: this.jwtService.sign(payload),
       user: safeUser,
@@ -52,9 +63,4 @@ export class AuthService {
     return this.generateToken(user)
   }
 
-  async loginWithEmailOnly(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } })
-    if (!user) throw new UnauthorizedException('Invalid credentials')
-    return this.generateToken(user)
-  }
 }

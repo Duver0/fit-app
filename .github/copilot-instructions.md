@@ -1,4 +1,4 @@
-# Gym Ranking Platform — Copilot Instructions
+# Fit App — Copilot Instructions
 
 ## Project Overview
 React Native (Expo) + NestJS monorepo for a gym ranking platform where users create groups, log exercise performance, and compete on leaderboards.
@@ -6,17 +6,16 @@ React Native (Expo) + NestJS monorepo for a gym ranking platform where users cre
 ## Tech Stack
 - Frontend: React Native, Expo, TypeScript, Apollo GraphQL, Zustand, NativeWind
 - Backend: NestJS, TypeScript, Prisma, PostgreSQL, GraphQL (code-first)
-- Auth: Auth0 (email/password + Google SSO)
-- Storage: Cloudflare R2 (S3-compatible)
-- Push: Firebase Cloud Messaging
-- Queue/Cache: Redis + Bull
+- Auth: Local auth (JWT + bcrypt)
+- Storage: Local disk (`./uploads/`)
+- Queue/Cache: Redis + Bull (optional, for future use)
 - PWA: Workbox, expo-pwa, expo-updates
 
 ## Architecture Principles
-1. **Clean Architecture**: Resolver/Controller → Service → Repository → Prisma
+1. **Clean Architecture**: Resolver → Service → Prisma
 2. **Feature-based modules**: Each feature is self-contained (module, service, resolver, DTOs, tests)
 3. **DDD**: Bounded contexts — Identity, Users, Groups, Exercises, Performance, Ranking, Disputes
-4. **RBAC**: 4 roles — SUPER_ADMIN, GROUP_OWNER, GROUP_MEMBER, USER
+4. **RBAC**: 3 roles — SUPER_ADMIN, OWNER (group), MEMBER (group), USER
 5. **Type safety**: Strict TypeScript, shared types in `packages/shared/`
 
 ## Key Conventions
@@ -26,17 +25,16 @@ React Native (Expo) + NestJS monorepo for a gym ranking platform where users cre
 - All mutations need auth guard (GqlAuthGuard) by default
 - State-changing operations log to AuditService
 - DTOs validated with class-validator decorators
-- Prisma access through repository layer
-- Rankings use raw SQL with window functions (ROW_NUMBER)
+- Rankings use Prisma ORM with `orderBy` and pagination
 
 ### Frontend
 - File-based routing via Expo Router
 - Screens are default exports in `app/` directory
-- All screens handle: loading (Skeleton), error (ErrorState), empty (EmptyState)
-- Custom hooks for data fetching (useRanking, useGroup, etc.)
+- All screens handle: loading, error, and empty states
+- Custom hooks for data fetching (useRanking, useGroups, useAuth)
 - Zustand for client state (auth, theme, UI), Apollo for server state
-- Theme via ThemeProvider + useTheme hook
-- Minimum 44x44pt touch targets
+- Theme via ThemeProvider + useTheme hook (light/dark mode)
+- Minimum 44×44pt touch targets
 
 ### Database
 - UUID primary keys
@@ -49,9 +47,8 @@ React Native (Expo) + NestJS monorepo for a gym ranking platform where users cre
 - Backend modules: `apps/api/src/modules/{feature}/`
 - Frontend screens: `apps/mobile/app/(app)/{feature}/`
 - Frontend components: `apps/mobile/src/components/{category}/`
-- Shared types: `packages/shared/src/types/`
+- Shared types: `packages/shared/src/`
 - Prisma schema: `apps/api/prisma/schema.prisma`
-- Architecture docs: `docs/architecture/`
 - OpenCode agents: `.opencode/agents/`
 - OpenCode skills: `.opencode/skills/`
 
@@ -63,13 +60,11 @@ React Native (Expo) + NestJS monorepo for a gym ranking platform where users cre
 
 ## Testing
 - Jest for backend unit/integration tests
-- Vitest for frontend tests
-- Cypress for E2E tests
-- TestContainers for integration test databases
-- Goal: 85%+ overall coverage
+- Vitest for frontend tests (planned)
+- Goal: 80%+ overall coverage
 
 ## API Patterns
-- Queries: `ranking(exerciseId, groupId, page, limit): RankingResult`
+- Queries: `ranking(exerciseId, page, limit): RankingConnection`
 - Mutations: `upsertPerformance(input: UpsertPerformanceInput!): PerformanceRecord`
 - Auth: Bearer JWT in Authorization header
 - Pagination: `{ items, totalCount, currentPage, totalPages }`

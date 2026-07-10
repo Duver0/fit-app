@@ -73,7 +73,16 @@ export class GroupsService {
   }
 
   async adminUpdate(id: string, data: { name?: string; description?: string }) {
-    return this.prisma.group.update({ where: { id }, data })
+    const group = await this.prisma.group.update({
+      where: { id },
+      data,
+      include: {
+        owner: true,
+        members: { include: { user: true } },
+        _count: { select: { members: true } },
+      },
+    })
+    return { ...group, memberCount: group._count.members }
   }
 
   async adminDelete(id: string) {

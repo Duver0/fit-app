@@ -16,13 +16,13 @@ export class User {
   @Field()
   email: string
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   phone?: string | null
 
   @Field()
   name: string
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   avatarUrl?: string | null
 
   @Field(() => UserRole)

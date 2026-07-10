@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common'
 import { GroupsService } from './groups.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
-import { Group, GroupConnection } from '../../common/models'
+import { Group } from '../../common/models'
 import { CreateGroupInput, UpdateGroupInput } from './dto/group.input'
 import { User } from '../../common/models'
 

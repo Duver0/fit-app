@@ -24,10 +24,10 @@ export class Group {
   @Field()
   name: string
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   description?: string | null
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   avatarUrl?: string | null
 
   @Field(() => User)
