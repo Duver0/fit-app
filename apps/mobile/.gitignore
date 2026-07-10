@@ -4,3 +4,9 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# build output
+dist/
+
+# environment variables
+.env

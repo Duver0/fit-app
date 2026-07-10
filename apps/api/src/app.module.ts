@@ -12,6 +12,7 @@ import { PerformanceModule } from './modules/performance/performance.module'
 import { RankingModule } from './modules/ranking/ranking.module'
 import { DisputesModule } from './modules/disputes/disputes.module'
 import { AdminModule } from './modules/admin/admin.module'
+import { HealthModule } from './health/health.module'
 import { CommonServicesModule } from './common/services/common-services.module'
 import { join } from 'path'
 
@@ -29,6 +30,7 @@ import { join } from 'path'
     }),
     PrismaModule,
     CommonServicesModule,
+    HealthModule,
     AuthModule,
     UsersModule,
     GroupsModule,

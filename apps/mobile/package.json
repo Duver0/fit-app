@@ -10,7 +10,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
-    "test": "vitest"
+    "test": "vitest",
+    "build:web": "expo export --platform web",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@apollo/client": "^3.9.0",

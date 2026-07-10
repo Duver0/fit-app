@@ -9,3 +9,10 @@ coverage/
 .expo/
 *.tsbuildinfo
 .next/
+
+# Environment files
+.env.local
+.env.production
+
+# infra
+infra/.env
