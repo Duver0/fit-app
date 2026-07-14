@@ -37,7 +37,22 @@ jobs:
         run: npm run build:web -w apps/mobile
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
+          EXPO_PUBLIC_BASE_URL: /fit-app/
+          PUBLIC_URL: /fit-app/
           NODE_ENV: production
+
+      - name: Fix asset paths for GitHub Pages subpath
+        run: |
+          # Ensure all asset paths in index.html use relative paths
+          cd apps/mobile/dist
+          for f in $(find . -name "*.html"); do
+            echo "Fixing paths in $f"
+            sed -i 's|src="/_expo|src="./_expo|g' "$f"
+            sed -i 's|href="/_expo|href="./_expo|g' "$f"
+            sed -i 's|href="/assets|href="./assets|g' "$f"
+          done
+          echo "Fixed paths in HTML files:"
+          grep -o 'src="[^"]*\|href="[^"]*' index.html | head -20
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

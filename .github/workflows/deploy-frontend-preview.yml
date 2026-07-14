@@ -23,6 +23,16 @@ jobs:
       - run: npm run build:web -w apps/mobile
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
+          EXPO_PUBLIC_BASE_URL: /fit-app/
+          PUBLIC_URL: /fit-app/
+      - name: Fix asset paths for GitHub Pages subpath
+        run: |
+          cd apps/mobile/dist
+          for f in $(find . -name "*.html"); do
+            sed -i 's|src="/_expo|src="./_expo|g' "$f"
+            sed -i 's|href="/_expo|href="./_expo|g' "$f"
+            sed -i 's|href="/assets|href="./assets|g' "$f"
+          done
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
