@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - run: npm run build:web -w apps/mobile
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
