@@ -36,7 +36,7 @@ jobs:
       - name: Build web
         run: npm run build:web -w apps/mobile
         env:
-          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fitapp.duckdns.org/graphql' }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
           NODE_ENV: production
 
       - name: Setup Pages

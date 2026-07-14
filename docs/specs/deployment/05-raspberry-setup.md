@@ -71,7 +71,7 @@ docker ps  # debe funcionar sin sudo
 
 ### Tarea 5.3: Configurar DuckDNS
 
-**Qué**: Crear una cuenta en DuckDNS, registrar un subdominio (e.g., `fitapp.duckdns.org`), obtener el token, y configurar la actualización automática de IP cada 5 minutos.
+**Qué**: Crear una cuenta en DuckDNS, registrar un subdominio (e.g., `dbfitapp.duckdns.org`), obtener el token, y configurar la actualización automática de IP cada 5 minutos.
 
 **Por qué**: La IP pública del hogar puede cambiar. DuckDNS mantiene el DNS actualizado automáticamente.
 
@@ -95,7 +95,7 @@ sudo crontab -e
 # Probar actualización manual
 /usr/local/bin/duckdns-update.sh fitapp TU_TOKEN_DUCKDNS
 # Verificar DNS
-nslookup fitapp.duckdns.org
+nslookup dbfitapp.duckdns.org
 # Debe devolver tu IP pública
 ```
 
@@ -138,15 +138,15 @@ docker compose stop nginx
 
 # 2. Obtener certificado con certbot standalone
 sudo certbot certonly --standalone \
-  -d fitapp.duckdns.org \
+  -d dbfitapp.duckdns.org \
   --non-interactive \
   --agree-tos \
   --email TU_EMAIL@example.com
 
 # 3. Copiar certificados a la carpeta de Nginx
 sudo mkdir -p /srv/fit-app/nginx/ssl
-sudo cp /etc/letsencrypt/live/fitapp.duckdns.org/fullchain.pem /srv/fit-app/nginx/ssl/
-sudo cp /etc/letsencrypt/live/fitapp.duckdns.org/privkey.pem /srv/fit-app/nginx/ssl/
+sudo cp /etc/letsencrypt/live/dbfitapp.duckdns.org/fullchain.pem /srv/fit-app/nginx/ssl/
+sudo cp /etc/letsencrypt/live/dbfitapp.duckdns.org/privkey.pem /srv/fit-app/nginx/ssl/
 
 # 4. Iniciar Docker Compose
 docker compose up -d nginx
@@ -172,8 +172,8 @@ docker compose up -d nginx
 sudo certbot renew --quiet --no-self-upgrade
 
 # Copiar certificados renovados a Nginx
-sudo cp /etc/letsencrypt/live/fitapp.duckdns.org/fullchain.pem /srv/fit-app/nginx/ssl/
-sudo cp /etc/letsencrypt/live/fitapp.duckdns.org/privkey.pem /srv/fit-app/nginx/ssl/
+sudo cp /etc/letsencrypt/live/dbfitapp.duckdns.org/fullchain.pem /srv/fit-app/nginx/ssl/
+sudo cp /etc/letsencrypt/live/dbfitapp.duckdns.org/privkey.pem /srv/fit-app/nginx/ssl/
 
 # Recargar Nginx
 cd /srv/fit-app && docker compose exec nginx nginx -s reload
@@ -223,8 +223,8 @@ services:
 
 - [ ] Raspberry Pi tiene Docker y Docker Compose instalados
 - [ ] `docker compose up -d` levanta todos los servicios sin errores
-- [ ] `fitapp.duckdns.org` resuelve a la IP pública del hogar
+- [ ] `dbfitapp.duckdns.org` resuelve a la IP pública del hogar
 - [ ] Puerto 80 y 443 están abiertos desde internet
-- [ ] Certificado SSL Let's Encrypt es válido (`curl -I https://fitapp.duckdns.org`)
+- [ ] Certificado SSL Let's Encrypt es válido (`curl -I https://dbfitapp.duckdns.org`)
 - [ ] La renovación automática de SSL está configurada (sin caducidad esperada)
 - [ ] DuckDNS se actualiza automáticamente cada 5 minutos

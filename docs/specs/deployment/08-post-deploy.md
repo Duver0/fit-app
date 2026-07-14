@@ -96,7 +96,7 @@ import { HealthController } from './health/health.controller'
 1. Crear cuenta en https://uptimerobot.com (plan gratuito: 50 monitores)
 2. Agregar monitor:
    - Tipo: HTTP(s)
-   - URL: `https://fitapp.duckdns.org/health`
+    - URL: `https://dbfitapp.duckdns.org/health`
    - Interval: 5 minutos
 3. Configurar alertas por email
 

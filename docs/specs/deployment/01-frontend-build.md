@@ -95,10 +95,10 @@ Preparar el frontend Expo/React Native Web para ser compilado como SPA estática
 **Contenido**:
 
 ```env
-EXPO_PUBLIC_API_URL=https://fitapp.duckdns.org/graphql
+EXPO_PUBLIC_API_URL=https://dbfitapp.duckdns.org/graphql
 ```
 
-> **Nota**: Reemplazar `fitapp.duckdns.org` por el subdominio DuckDNS real.
+> **Nota**: Reemplazar `dbfitapp.duckdns.org` por el subdominio DuckDNS real.
 
 ---
 

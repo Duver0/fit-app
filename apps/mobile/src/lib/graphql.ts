@@ -233,13 +233,30 @@ export const DECLINE_INVITATION_MUTATION = gql`
 `
 
 export const UPDATE_PROFILE_MUTATION = gql`
-  mutation UpdateProfile($name: String, $phone: String) {
-    updateProfile(name: $name, phone: $phone) {
+  mutation UpdateProfile($name: String, $phone: String, $avatarUrl: String) {
+    updateProfile(name: $name, phone: $phone, avatarUrl: $avatarUrl) {
       id
       name
       phone
       avatarUrl
     }
+  }
+`
+
+export const UPDATE_GROUP_MUTATION = gql`
+  mutation UpdateGroup($id: ID!, $input: UpdateGroupInput!) {
+    updateGroup(id: $id, input: $input) {
+      id
+      name
+      description
+      avatarUrl
+    }
+  }
+`
+
+export const DELETE_GROUP_MUTATION = gql`
+  mutation DeleteGroup($id: ID!) {
+    deleteGroup(id: $id)
   }
 `
 
@@ -249,6 +266,92 @@ export const CREATE_EXERCISE_MUTATION = gql`
       id
       name
       unit
+    }
+  }
+`
+
+export const LEAVE_GROUP_MUTATION = gql`
+  mutation LeaveGroup($groupId: ID!) {
+    leaveGroup(groupId: $groupId)
+  }
+`
+
+export const REMOVE_MEMBER_MUTATION = gql`
+  mutation RemoveMember($groupId: ID!, $userId: ID!) {
+    removeMember(groupId: $groupId, userId: $userId)
+  }
+`
+
+export const DISPUTES_QUERY = gql`
+  query Disputes($performanceId: ID!) {
+    disputes(performanceId: $performanceId) {
+      id
+      status
+      reason
+      createdAt
+      expiresAt
+      initiatedBy {
+        id
+        name
+      }
+      votes {
+        id
+        vote
+        user {
+          id
+          name
+        }
+      }
+      performance {
+        id
+        value
+      }
+    }
+  }
+`
+
+export const MY_DISPUTES_QUERY = gql`
+  query MyDisputes {
+    myDisputes {
+      id
+      status
+      reason
+      createdAt
+      expiresAt
+      initiatedBy {
+        id
+        name
+      }
+      votes {
+        id
+        vote
+        user {
+          id
+          name
+        }
+      }
+      performance {
+        id
+        value
+        exercise {
+          id
+          name
+        }
+      }
+    }
+  }
+`
+
+export const EXERCISES_QUERY = gql`
+  query Exercises($groupId: ID!) {
+    exercises(groupId: $groupId) {
+      id
+      name
+      unit
+      createdBy {
+        id
+        name
+      }
     }
   }
 `

@@ -17,4 +17,9 @@ export class AuthResolver {
     return this.authService.loginWithEmail(input)
   }
 
+  @Mutation(() => AuthPayload)
+  async loginWithEmailOnly(@Args('email') email: string) {
+    return this.authService.loginWithEmailOnly(email)
+  }
+
 }

@@ -1,0 +1,19 @@
+FROM node:20 AS builder
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY apps/mobile/package.json ./apps/mobile/package.json
+COPY apps/api/package.json ./apps/api/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
+RUN npm ci
+
+COPY . .
+ENV EXPO_PUBLIC_API_URL=/graphql
+RUN cd apps/mobile && \
+    npx expo install react-native-web react-dom && \
+    npx expo export --platform web --output-dir /dist
+
+FROM busybox:1.36
+COPY --from=builder /dist /dist

@@ -19,8 +19,8 @@ Especificación completa para el despliegue en producción de **fit-app** con la
 | Recurso | URL |
 |---|---|
 | Frontend (prod) | `https://duver0.github.io/fit-app/` |
-| Backend API (prod) | `https://fitapp.duckdns.org` |
-| GraphQL Playground | `https://fitapp.duckdns.org/graphql` |
+| Backend API (prod) | `https://dbfitapp.duckdns.org` |
+| GraphQL Playground | `https://dbfitapp.duckdns.org/graphql` |
 
 ## Dependencias externas
 
@@ -57,7 +57,7 @@ Fase 5: Post-Deploy
 ## Notas generales
 
 - **Raspberry Pi 3 (ARMv7)** tiene recursos limitados (1GB RAM, CPU quad-core ARM Cortex-A53). Las imágenes Docker deben ser multi-arch con soporte `linux/arm/v7`.
-- El frontend se despliega en GitHub Pages **sin servidor propio** — es una SPA estática. El API_URL debe apuntar al dominio DuckDNS.
+- El frontend se despliega en GitHub Pages **sin servidor propio** — es una SPA estática. El API_URL debe apuntar a `https://dbfitapp.duckdns.org/graphql`.
 - No hay Auth0 en producción — la autenticación es JWT local con email/password y bcrypt.
 - Los uploads (avatares) se almacenan en un volumen Docker en el Pi y Nginx los sirve.
 - No hay CDN para assets estáticos — GitHub Pages sirve el frontend directamente.

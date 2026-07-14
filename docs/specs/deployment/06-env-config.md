@@ -51,6 +51,7 @@ DUCKDNS_TOKEN=your-duckdns-token-here
 # --- Opcionales (generalmente no necesitan cambio) ---
 # API_PORT=4000
 # CORS_ORIGIN=https://duver0.github.io
+# EXPO_PUBLIC_API_URL=https://dbfitapp.duckdns.org/graphql
 # NODE_ENV=production
 # UPLOAD_DIR=/app/uploads
 ```

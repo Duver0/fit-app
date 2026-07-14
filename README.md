@@ -95,7 +95,7 @@ Servicios:
 - `postgres:5432` — PostgreSQL 17
 - `redis:6379` — Redis 7
 - `api:4000` — API GraphQL + REST
-- `nginx:80` — Reverse proxy + archivos estáticos
+- `nginx:80` — Reverse proxy + archivos estáticos (dominio: dbfitapp.duckdns.org)
 
 ### Uploads
 
@@ -155,6 +155,8 @@ El schema se genera automáticamente en `apps/api/src/schema.gql` al iniciar el 
 ```
 http://localhost:4000/graphql
 ```
+
+Producción: `https://dbfitapp.duckdns.org/graphql`
 
 ### REST (uploads)
 

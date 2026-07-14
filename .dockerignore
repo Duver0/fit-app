@@ -5,4 +5,5 @@ node_modules
 *.md
 .opencode
 opencode.json
-apps/mobile
+.DS_Store
+dist

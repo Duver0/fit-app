@@ -73,7 +73,7 @@ jobs:
       - name: Build web
         run: npm run build:web -w apps/mobile
         env:
-          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fitapp.duckdns.org/graphql' }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
           NODE_ENV: production
 
       - name: Setup Pages
@@ -97,7 +97,7 @@ jobs:
 
 **Por qué**: Para que el workflow use la URL correcta del backend sin hardcodearla en el YAML.
 
-**Valor**: `https://fitapp.duckdns.org/graphql` (o el subdominio DuckDNS real)
+**Valor**: `https://dbfitapp.duckdns.org/graphql` (o el subdominio DuckDNS real)
 
 **Categoría**: **B** (manual — configuración en GitHub UI)
 
@@ -154,7 +154,7 @@ jobs:
       - run: npm ci
       - run: npm run build:web -w apps/mobile
         env:
-          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fitapp.duckdns.org/graphql' }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql' }}
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
@@ -180,4 +180,4 @@ jobs:
 - [ ] El artifact se despliega correctamente a GitHub Pages
 - [ ] La URL `https://duver0.github.io/fit-app/` carga la SPA
 - [ ] Las rutas internas funcionan (e.g., navegar a `/groups/abc` sin 404)
-- [ ] La API_URL usada en el build corresponde a `https://fitapp.duckdns.org/graphql`
+- [ ] La API_URL usada en el build corresponde a `https://dbfitapp.duckdns.org/graphql`

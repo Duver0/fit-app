@@ -160,7 +160,7 @@ curl -s http://localhost/health
 # Esperado: {"status":"ok","timestamp":"..."}
 
 # 2. GraphQL endpoint (desde internet)
-curl -s https://fitapp.duckdns.org/graphql \
+curl -s https://dbfitapp.duckdns.org/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ __typename }"}'
 # Esperado: {"data":{"__typename":"Query"}}

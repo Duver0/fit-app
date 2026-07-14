@@ -63,4 +63,10 @@ export class AuthService {
     return this.generateToken(user)
   }
 
+  async loginWithEmailOnly(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new UnauthorizedException()
+    return this.generateToken(user)
+  }
+
 }

@@ -174,13 +174,13 @@ http {
 # HTTP -> HTTPS redirect (solo en producción con SSL)
 server {
     listen 80;
-    server_name fitapp.duckdns.org;
+    server_name dbfitapp.duckdns.org;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name fitapp.duckdns.org;
+    server_name dbfitapp.duckdns.org;
 
     # SSL (configurado por certbot)
     ssl_certificate /etc/nginx/ssl/fullchain.pem;
