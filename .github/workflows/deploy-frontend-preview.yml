@@ -33,6 +33,11 @@ jobs:
             sed -i 's|href="/_expo|href="./_expo|g' "$f"
             sed -i 's|href="/assets|href="./assets|g' "$f"
           done
+      - name: Setup SPA routing for GitHub Pages
+        run: |
+          cp apps/mobile/dist/index.html apps/mobile/dist/404.html
+          touch apps/mobile/dist/.nojekyll
+
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:

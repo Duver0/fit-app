@@ -54,6 +54,11 @@ jobs:
           echo "Fixed paths in HTML files:"
           grep -o 'src="[^"]*\|href="[^"]*' index.html | head -20
 
+      - name: Setup SPA routing for GitHub Pages
+        run: |
+          cp apps/mobile/dist/index.html apps/mobile/dist/404.html
+          touch apps/mobile/dist/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

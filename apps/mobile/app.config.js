@@ -33,7 +33,7 @@ module.exports = {
   },
   extra: {
     router: {
-      origin: `https://duver0.github.io${BASE_URL}`,
+      origin: `https://duver0.github.io${BASE_URL}`.replace(/\/$/, ''),
     },
   },
   plugins: ['expo-router'],
