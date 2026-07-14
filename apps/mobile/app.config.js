@@ -1,4 +1,5 @@
 const { EXPO_PUBLIC_BASE_URL } = process.env
+const BASE_URL = EXPO_PUBLIC_BASE_URL || '/'
 
 /** @type {import('expo/config').ExpoConfig} */
 module.exports = {
@@ -28,7 +29,12 @@ module.exports = {
     favicon: './assets/favicon.png',
     output: 'single',
     name: 'Fit App',
-    publicPath: EXPO_PUBLIC_BASE_URL || '/',
+    publicPath: BASE_URL,
+  },
+  extra: {
+    router: {
+      origin: `https://duver0.github.io${BASE_URL}`,
+    },
   },
   plugins: ['expo-router'],
   experiments: {
