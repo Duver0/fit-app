@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fit-app-api
+    env: docker
+    dockerfilePath: apps/api/Dockerfile
+    repo: https://github.com/Duver0/fit-app
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:ELbEtvPNkLRlGmsw@db.dnxqwvjyxcnbpvcvrslj.supabase.co:5432/postgres
+      - key: REDIS_HOST
+        value: discovery-swim-ultraclean-41976.db.redis.io
+      - key: REDIS_PORT
+        value: "12571"
+      - key: REDIS_PASSWORD
+        value: UIdocmTtLMAgTpbwzCfslJuXdIDRpDuO
+      - key: JWT_SECRET
+        value: Ne9vfL3AJk0mlZQOJ+Bv9Qs/TAHpNzipP7ao0B2TMVM=
+      - key: CORS_ORIGIN
+        value: https://duver0.github.io
+      - key: NODE_ENV
+        value: production
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      # PORT is auto-set by Render
