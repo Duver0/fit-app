@@ -42,14 +42,18 @@ export default function GroupDashboardScreen() {
   const handleCreateExercise = async () => {
     if (!exerciseName.trim()) return
     try {
-      await createExercise({
+      const result = await createExercise({
         variables: { input: { groupId, name: exerciseName.trim(), unit: exerciseUnit } },
       })
+      if (result.errors?.[0]) {
+        Alert.alert('Error', result.errors[0].message)
+        return
+      }
       setShowCreateModal(false)
       setExerciseName('')
       setExerciseUnit('KG')
     } catch (e: any) {
-      const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al crear ejercicio'
+      const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error de red'
       Alert.alert('Error', msg)
     }
   }
