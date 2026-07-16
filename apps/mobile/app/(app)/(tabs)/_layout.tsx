@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { View, Text } from 'react-native'
+import { View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../src/stores/authStore'

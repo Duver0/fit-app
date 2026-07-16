@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
-import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -189,15 +188,6 @@ export default function ProfileScreen() {
                   alignSelf: isDark ? 'flex-end' : 'flex-start',
                 }} />
               </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push('/(app)/invitations')} style={{
-              backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12,
-              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-              borderWidth: 1, borderColor: colors.border,
-            }}>
-              <Text style={{ color: colors.text, fontSize: 16 }}>Invitaciones pendientes</Text>
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>Ver</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={logout} style={{
