@@ -18,9 +18,9 @@ export class ExercisesService {
 
   async create(userId: string, data: { groupId: string; name: string; unit?: string }) {
     const membership = await this.prisma.groupMember.findFirst({
-      where: { groupId: data.groupId, userId, role: 'OWNER' },
+      where: { groupId: data.groupId, userId },
     })
-    if (!membership) throw new ForbiddenException('Only the group owner can create exercises')
+    if (!membership) throw new ForbiddenException('You must be a group member to create exercises')
 
     return this.prisma.exercise.create({
       data: {

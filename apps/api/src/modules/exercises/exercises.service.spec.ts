@@ -71,7 +71,7 @@ describe('ExercisesService', () => {
       })
       expect(result).toEqual(mockExercise)
       expect(prisma.groupMember.findFirst).toHaveBeenCalledWith({
-        where: { groupId: 'group-1', userId: 'user-1', role: 'OWNER' },
+        where: { groupId: 'group-1', userId: 'user-1' },
       })
       expect(prisma.exercise.create).toHaveBeenCalledWith({
         data: {
@@ -80,6 +80,20 @@ describe('ExercisesService', () => {
           createdBy: 'user-1',
           unit: ExerciseUnit.KG,
         },
+      })
+    })
+
+    it('should create exercise when user is a regular member', async () => {
+      jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(mockMemberMembership as any)
+      jest.spyOn(prisma.exercise, 'create').mockResolvedValue(mockExercise)
+
+      const result = await service.create('user-2', {
+        groupId: 'group-1',
+        name: 'Push Ups',
+      })
+      expect(result).toEqual(mockExercise)
+      expect(prisma.groupMember.findFirst).toHaveBeenCalledWith({
+        where: { groupId: 'group-1', userId: 'user-2' },
       })
     })
 
@@ -103,15 +117,15 @@ describe('ExercisesService', () => {
       })
     })
 
-    it('should throw ForbiddenException when user is not the owner', async () => {
+    it('should throw ForbiddenException when user is not a member', async () => {
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
 
       await expect(
-        service.create('user-2', { groupId: 'group-1', name: 'Bench Press' }),
+        service.create('user-3', { groupId: 'group-1', name: 'Bench Press' }),
       ).rejects.toThrow(ForbiddenException)
       await expect(
-        service.create('user-2', { groupId: 'group-1', name: 'Bench Press' }),
-      ).rejects.toThrow('Only the group owner can create exercises')
+        service.create('user-3', { groupId: 'group-1', name: 'Bench Press' }),
+      ).rejects.toThrow('You must be a group member to create exercises')
     })
   })
 
@@ -186,11 +200,9 @@ describe('ExercisesService', () => {
       expect(prisma.exercise.delete).toHaveBeenCalledWith({ where: { id: 'exercise-1' } })
     })
 
-    it('should throw NotFoundException when exercise does not exist', async () => {
-      jest.spyOn(prisma.exercise, 'delete').mockRejectedValue({ code: 'P2025', meta: { cause: 'Record to delete does not exist.' } })
+    it('should throw when exercise does not exist', async () => {
+      jest.spyOn(prisma.exercise, 'delete').mockRejectedValue(new Error('Record to delete does not exist.'))
 
-      // Prisma throws a known request error when record not found on delete
-      // We wrap in try/catch to verify error propagation
       await expect(service.adminDelete('nonexistent')).rejects.toThrow()
     })
   })
