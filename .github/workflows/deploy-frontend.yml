@@ -41,23 +41,24 @@ jobs:
           PUBLIC_URL: /fit-app/
           NODE_ENV: production
 
-      - name: Fix asset paths for GitHub Pages subpath
+      - name: Setup SPA routing for GitHub Pages
         run: |
-          # Ensure all asset paths in index.html use relative paths
           cd apps/mobile/dist
+
+          # Add <base> tag so relative assets resolve correctly on sub-routes
           for f in $(find . -name "*.html"); do
-            echo "Fixing paths in $f"
+            echo "Fixing $f"
+            # Add <base href="/fit-app/"> after <head>
+            sed -i 's|<head>|<head><base href="/fit-app/">|' "$f"
+            # Make asset paths relative to the base
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
             sed -i 's|href="/_expo|href="./_expo|g' "$f"
             sed -i 's|href="/assets|href="./assets|g' "$f"
           done
-          echo "Fixed paths in HTML files:"
-          grep -o 'src="[^"]*\|href="[^"]*' index.html | head -20
 
-      - name: Setup SPA routing for GitHub Pages
-        run: |
-          cp apps/mobile/dist/index.html apps/mobile/dist/404.html
-          touch apps/mobile/dist/.nojekyll
+          # SPA: serve index.html on 404 so client-side routing works on all paths
+          cp index.html 404.html
+          touch .nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
