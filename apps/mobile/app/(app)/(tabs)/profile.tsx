@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
+import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -11,7 +12,11 @@ export default function ProfileScreen() {
   const { colors } = useTheme()
   const user = useAuthStore(state => state.user)
   const updateUser = useAuthStore(state => state.updateUser)
-  const logout = useAuthStore(state => state.clearAuth)
+  const clearAuth = useAuthStore(state => state.clearAuth)
+  const handleLogout = () => {
+    clearAuth()
+    router.replace('/(auth)/login')
+  }
   const { isDark, toggle } = useThemeStore()
 
   const [isEditing, setIsEditing] = useState(false)
@@ -190,7 +195,7 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={logout} style={{
+            <TouchableOpacity onPress={handleLogout} style={{
               backgroundColor: colors.error + '20', borderRadius: 16, padding: 16, marginTop: 24,
               alignItems: 'center',
             }}>
