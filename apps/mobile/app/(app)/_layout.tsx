@@ -1,10 +1,16 @@
 import { View } from 'react-native'
-import { Tabs } from 'expo-router'
+import { Tabs, Redirect } from 'expo-router'
 import { useTheme } from '../../src/theme/ThemeProvider'
+import { useAuthStore } from '../../src/stores/authStore'
 import InvitationBell from '../../src/components/InvitationBell'
 
 export default function AppLayout() {
   const { colors } = useTheme()
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />
+  }
 
   return (
     <View style={{ flex: 1 }}>

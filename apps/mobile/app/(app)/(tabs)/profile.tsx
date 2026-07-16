@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
-import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -12,11 +11,7 @@ export default function ProfileScreen() {
   const { colors } = useTheme()
   const user = useAuthStore(state => state.user)
   const updateUser = useAuthStore(state => state.updateUser)
-  const clearAuth = useAuthStore(state => state.clearAuth)
-  const handleLogout = () => {
-    clearAuth()
-    router.replace('/(auth)/login')
-  }
+  const handleLogout = useAuthStore(state => state.clearAuth)
   const { isDark, toggle } = useThemeStore()
 
   const [isEditing, setIsEditing] = useState(false)
