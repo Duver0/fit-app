@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert } from 'react-native'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -49,7 +49,8 @@ export default function GroupDashboardScreen() {
       setExerciseName('')
       setExerciseUnit('KG')
     } catch (e: any) {
-      console.error(e)
+      const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al crear ejercicio'
+      Alert.alert('Error', msg)
     }
   }
 
