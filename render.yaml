@@ -8,7 +8,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:ELbEtvPNkLRlGmsw@db.dnxqwvjyxcnbpvcvrslj.supabase.co:5432/postgres
+        value: postgresql://neondb_owner:npg_qlvf5X1LUmEg@ep-young-moon-awpk5tqy-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - key: DIRECT_URL
+        value: postgresql://neondb_owner:npg_qlvf5X1LUmEg@ep-young-moon-awpk5tqy.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require
       - key: REDIS_HOST
         value: discovery-swim-ultraclean-41976.db.redis.io
       - key: REDIS_PORT
