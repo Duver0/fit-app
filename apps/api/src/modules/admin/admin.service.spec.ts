@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
+import { UserRole } from '@prisma/client'
 
 describe('AdminService', () => {
   let service: AdminService
@@ -34,7 +35,7 @@ describe('AdminService', () => {
     phone: null,
     avatarUrl: null,
     passwordHash: null,
-    role: 'SUPER_ADMIN',
+    role: UserRole.SUPER_ADMIN,
     createdAt: new Date(),
     updatedAt: new Date(),
   }

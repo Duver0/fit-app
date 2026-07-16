@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { InvitationsService } from './invitations.service'
 import { PrismaService } from '../../prisma/prisma.service'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { UserRole } from '@prisma/client'
 
 describe('InvitationsService', () => {
   let service: InvitationsService
@@ -36,7 +37,7 @@ describe('InvitationsService', () => {
     phone: null,
     avatarUrl: null,
     passwordHash: null,
-    role: 'USER',
+    role: UserRole.USER,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -74,6 +75,7 @@ describe('InvitationsService', () => {
 
   describe('invite', () => {
     it('should create invitation with PENDING status', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
@@ -87,6 +89,7 @@ describe('InvitationsService', () => {
     })
 
     it('should throw BadRequestException when user is already a member', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(mockMember as any)
 
       await expect(
@@ -98,6 +101,7 @@ describe('InvitationsService', () => {
     })
 
     it('should throw BadRequestException when pending invitation exists', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(mockInvitation as any)
 
@@ -109,7 +113,19 @@ describe('InvitationsService', () => {
       ).rejects.toThrow('Invitation already sent')
     })
 
+    it('should throw NotFoundException when invitee email has no account', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null)
+
+      await expect(
+        service.invite('group-1', 'unknown@test.com', 'user-1'),
+      ).rejects.toThrow(NotFoundException)
+      await expect(
+        service.invite('group-1', 'unknown@test.com', 'user-1'),
+      ).rejects.toThrow('No existe una cuenta con ese correo electrónico')
+    })
+
     it('should search for existing membership by email', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
@@ -121,6 +137,7 @@ describe('InvitationsService', () => {
     })
 
     it('should search for existing pending invitation', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)

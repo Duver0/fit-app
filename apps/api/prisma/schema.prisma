@@ -136,7 +136,7 @@ model Exercise {
   creator      User                @relation(fields: [createdBy], references: [id])
   performances PerformanceRecord[]
 
-  @@unique([groupId, name])
+  @@unique([groupId, name, unit])
   @@index([groupId])
   @@map("exercises")
 }

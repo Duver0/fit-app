@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { UsersService } from './users.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { UserRole } from '@prisma/client'
 
 describe('UsersService', () => {
   let service: UsersService
@@ -14,7 +15,7 @@ describe('UsersService', () => {
     phone: null,
     avatarUrl: null,
     passwordHash: null,
-    role: 'USER',
+    role: UserRole.USER,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
   }

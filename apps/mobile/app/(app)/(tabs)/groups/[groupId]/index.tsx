@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert } from 'react-native'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { GROUP_QUERY, TOP3_RANKING_QUERY, CREATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { EXERCISES_QUERY, TOP3_RANKING_QUERY, CREATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -12,15 +12,15 @@ export default function GroupDashboardScreen() {
   const { colors } = useTheme()
   const { groupId } = useLocalSearchParams<{ groupId: string }>()
 
-  const { data: groupData, loading: groupLoading, refetch: refetchGroup } = useQuery(GROUP_QUERY, {
-    variables: { id: groupId },
+  const { data: exercisesData, loading: exercisesLoading, refetch: refetchExercises } = useQuery(EXERCISES_QUERY, {
+    variables: { groupId },
   })
   const { data: rankingData, loading: rankingLoading, refetch: refetchRanking } = useQuery(TOP3_RANKING_QUERY, {
     variables: { groupId },
   })
   const [createExercise, { loading: creating }] = useMutation(CREATE_EXERCISE_MUTATION, {
     refetchQueries: [
-      { query: GROUP_QUERY, variables: { id: groupId } },
+      { query: EXERCISES_QUERY, variables: { groupId } },
       { query: TOP3_RANKING_QUERY, variables: { groupId } },
     ],
   })
@@ -29,13 +29,33 @@ export default function GroupDashboardScreen() {
   const [exerciseName, setExerciseName] = useState('')
   const [exerciseUnit, setExerciseUnit] = useState<string>('KG')
 
-  const group = groupData?.group
-  const exercises = group?.exercises || []
-  const top3Data = rankingData?.top3Ranking || []
-  const isLoading = groupLoading || rankingLoading
+  const exercises: any[] = exercisesData?.exercises || []
+  const top3Data: any[] = rankingData?.top3Ranking || []
+
+  // Build a map from exercise id to ranking data
+  const rankingByExerciseId = useMemo(() => {
+    const map: Record<string, any> = {}
+    for (const item of top3Data) {
+      map[item.exercise.id] = item
+    }
+    return map
+  }, [top3Data])
+
+  // Merge exercises with ranking data
+  const mergedList = useMemo(() => {
+    return exercises.map((ex: any) => {
+      const rankInfo = rankingByExerciseId[ex.id]
+      return {
+        exercise: ex,
+        top: rankInfo?.top || [],
+      }
+    })
+  }, [exercises, rankingByExerciseId])
+
+  const isLoading = exercisesLoading || rankingLoading
 
   const handleRefetch = () => {
-    refetchGroup()
+    refetchExercises()
     refetchRanking()
   }
 
@@ -60,42 +80,17 @@ export default function GroupDashboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: group?.name || 'Grupo' }} />
+      <Stack.Screen options={{ title: 'Grupo' }} />
 
       <FlatList
-        data={top3Data}
+        data={mergedList}
         keyExtractor={(item: any) => item.exercise.id}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={handleRefetch} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            {/* Group header */}
-            <View style={{ padding: 24, paddingBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{
-                    width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary,
-                    justifyContent: 'center', alignItems: 'center', marginRight: 12,
-                  }}>
-                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text }}>
-                      {group?.name?.charAt(0)?.toUpperCase()}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text }}>{group?.name}</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-                      {group?.memberCount} miembros
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => router.push(`/(app)/(tabs)/groups/${groupId}/members`)}>
-                  <Text style={{ color: colors.primary, fontWeight: '600' }}>Miembros</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Create exercise button */}
-            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            {/* Create exercise button at top */}
+            <View style={{ padding: 16, paddingBottom: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowCreateModal(true)}
                 style={{
@@ -114,35 +109,23 @@ export default function GroupDashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Ranking section title */}
-            <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-              <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 12 }}>
-                Ranking por ejercicio
+            <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
+                Ejercicios
               </Text>
             </View>
           </View>
         }
         ListEmptyComponent={
-          <View style={{ paddingHorizontal: 16 }}>
-            {exercises.length === 0 ? (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
-                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 8 }}>
-                  No hay ejercicios en este grupo aún
-                </Text>
-                <Text style={{ color: colors.textSecondary, textAlign: 'center', fontSize: 13 }}>
-                  Creá el primer ejercicio para empezar a competir
-                </Text>
-              </View>
-            ) : (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
-                <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>
-                  Sin marcas registradas aún
-                </Text>
-                <Text style={{ color: colors.textSecondary, textAlign: 'center', fontSize: 13, marginTop: 4 }}>
-                  Tocá un ejercicio para registrar tu marca
-                </Text>
-              </View>
-            )}
+          <View style={{ padding: 16 }}>
+            <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 8 }}>
+                No hay ejercicios en este grupo aún
+              </Text>
+              <Text style={{ color: colors.textSecondary, textAlign: 'center', fontSize: 13 }}>
+                Creá el primer ejercicio para empezar a competir
+              </Text>
+            </View>
           </View>
         }
         renderItem={({ item }: any) => (
@@ -150,13 +133,41 @@ export default function GroupDashboardScreen() {
             onPress={() => router.push(`/(app)/(tabs)/groups/${groupId}/exercises/${item.exercise.id}`)}
             style={{ marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
           >
+            {/* Exercise header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>{item.exercise.name}</Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{UNIT_LABELS[item.exercise.unit] || item.exercise.unit}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={{
+                  width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary + '20',
+                  justifyContent: 'center', alignItems: 'center', marginRight: 12,
+                }}>
+                  <Text style={{ fontSize: 16, color: colors.primary, fontWeight: '700' }}>
+                    {item.exercise.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }} numberOfLines={1}>
+                    {item.exercise.name}
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                    {UNIT_LABELS[item.exercise.unit] || item.exercise.unit}
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>
+                {item.top.length > 0 ? 'Ver ranking ›' : 'Registrar marca ›'}
+              </Text>
             </View>
 
+            {/* Top performers or CTA */}
             {item.top.length === 0 ? (
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Sin marcas registradas</Text>
+              <View style={{ backgroundColor: colors.background, borderRadius: 12, padding: 16, alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 4 }}>
+                  Sin marcas registradas
+                </Text>
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '500' }}>
+                  Tocá para registrar tu primera marca
+                </Text>
+              </View>
             ) : (
               <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 80 }}>
                 {item.top.slice(0, 3).map((record: any, index: number) => {
@@ -171,7 +182,7 @@ export default function GroupDashboardScreen() {
                         borderRadius: 8,
                         marginVertical: 4,
                       }} />
-                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{record.user.name}</Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{record.user.name}</Text>
                     </View>
                   )
                 })}

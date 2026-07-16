@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { RankingService } from './ranking.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { ExerciseUnit } from '@prisma/client'
 
 describe('RankingService', () => {
   let service: RankingService
@@ -10,7 +11,7 @@ describe('RankingService', () => {
     id: 'exercise-1',
     groupId: 'group-1',
     name: 'Bench Press',
-    unit: 'KG',
+    unit: ExerciseUnit.KG,
     createdBy: 'user-1',
     createdAt: new Date(),
     updatedAt: new Date(),

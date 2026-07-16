@@ -6,6 +6,9 @@ export class InvitationsService {
   constructor(private prisma: PrismaService) {}
 
   async invite(groupId: string, inviteeEmail: string, inviterId: string) {
+    const userExists = await this.prisma.user.findUnique({ where: { email: inviteeEmail } })
+    if (!userExists) throw new NotFoundException('No existe una cuenta con ese correo electrónico')
+
     const existing = await this.prisma.groupMember.findFirst({
       where: { groupId, user: { email: inviteeEmail } },
     })
