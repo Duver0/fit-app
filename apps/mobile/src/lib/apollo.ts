@@ -3,7 +3,7 @@ import { setContext } from '@apollo/client/link/context'
 import { useAuthStore } from '../stores/authStore'
 
 const httpLink = createHttpLink({
-  uri: process.env.EXPO_PUBLIC_API_URL || 'https://dbfitapp.duckdns.org/graphql',
+  uri: process.env.EXPO_PUBLIC_API_URL || 'https://fit-app-api-3zds.onrender.com/graphql',
 })
 
 const authLink = setContext((_, { headers }) => {
