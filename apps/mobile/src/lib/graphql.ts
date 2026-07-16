@@ -191,6 +191,16 @@ export const VOTE_DISPUTE_MUTATION = gql`
   }
 `
 
+export const SEARCH_USERS_QUERY = gql`
+  query SearchUsers($query: String!, $excludeGroupId: String) {
+    searchUsers(query: $query, excludeGroupId: $excludeGroupId) {
+      id
+      name
+      email
+    }
+  }
+`
+
 export const INVITE_TO_GROUP_MUTATION = gql`
   mutation InviteToGroup($groupId: ID!, $inviteeEmail: String!) {
     inviteToGroup(groupId: $groupId, inviteeEmail: $inviteeEmail) {

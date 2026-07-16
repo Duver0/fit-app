@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { UsersService } from './users.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
@@ -13,6 +13,14 @@ export class UsersResolver {
   @Query(() => User)
   async me(@CurrentUser() user: User) {
     return this.usersService.findById(user.id)
+  }
+
+  @Query(() => [User])
+  async searchUsers(
+    @Args('query') query: string,
+    @Args('excludeGroupId', { nullable: true }) excludeGroupId?: string,
+  ) {
+    return this.usersService.search(query, excludeGroupId)
   }
 
   @Mutation(() => User)

@@ -17,6 +17,24 @@ export class UsersService {
     return this.prisma.user.update({ where: { id }, data })
   }
 
+  async search(query: string, excludeGroupId?: string) {
+    const where: any = {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } },
+        { email: { contains: query, mode: 'insensitive' } },
+      ],
+    }
+    if (query.replace(/\D/g, '').length >= 3) {
+      where.OR.push({ phone: { contains: query, mode: 'insensitive' } })
+    }
+    if (excludeGroupId) {
+      where.NOT = {
+        memberships: { some: { groupId: excludeGroupId } },
+      }
+    }
+    return this.prisma.user.findMany({ where, take: 10, select: { id: true, name: true, email: true, phone: true } })
+  }
+
   async findAll(page = 1, limit = 20) {
     const skip = (page - 1) * limit
     const [items, totalCount] = await Promise.all([
