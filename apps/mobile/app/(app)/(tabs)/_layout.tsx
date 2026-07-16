@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router'
+import { View, Text } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../src/stores/authStore'
@@ -6,6 +7,7 @@ import { useAuthStore } from '../../../src/stores/authStore'
 export default function TabsLayout() {
   const { colors } = useTheme()
   const user = useAuthStore(state => state.user)
+  const isAdmin = user?.role === 'SUPER_ADMIN'
 
   return (
     <Tabs
@@ -33,16 +35,15 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
-      {user?.role === 'SUPER_ADMIN' && (
-        <Tabs.Screen
-          name="admin"
-          options={{
-            title: 'Admin',
-            tabBarLabel: 'Admin',
-            tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarLabel: 'Admin',
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+          tabBarButton: isAdmin ? undefined : () => <View style={{ display: 'none' }} />,
+        }}
+      />
     </Tabs>
   )
 }
