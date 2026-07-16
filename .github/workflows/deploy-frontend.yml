@@ -41,11 +41,11 @@ jobs:
           PUBLIC_URL: /fit-app/
           NODE_ENV: production
 
-      - name: Setup SPA routing for GitHub Pages
+      - name: Setup SPA routing and fix asset paths for GitHub Pages
         run: |
           cd apps/mobile/dist
 
-          # Add <base> tag so relative assets resolve correctly on sub-routes
+          # Fix HTML files
           for f in $(find . -name "*.html"); do
             echo "Fixing $f"
             # Add <base href="/fit-app/"> after <head>
@@ -54,6 +54,15 @@ jobs:
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
             sed -i 's|href="/_expo|href="./_expo|g' "$f"
             sed -i 's|href="/assets|href="./assets|g' "$f"
+          done
+
+          # Fix JS bundle: Metro does NOT respect publicPath for asset httpServerLocation,
+          # so it generates "/assets/..." instead of "/fit-app/assets/...". On GitHub Pages
+          # subpath, new URL("/assets/...", bundleUrl) resolves to origin + "/assets/..."
+          # (ignoring subpath). We patch it to include the subpath explicitly.
+          for f in $(find ./_expo -name "*.js"); do
+            echo "Fixing asset paths in $f"
+            sed -i 's|httpServerLocation:"/assets|httpServerLocation:"/fit-app/assets|g' "$f"
           done
 
           # SPA: serve index.html on 404 so client-side routing works on all paths
