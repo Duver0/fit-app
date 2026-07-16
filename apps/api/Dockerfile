@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 RUN apk add --no-cache openssl && \
-    npm ci && npm install @types/multer @types/bcryptjs --save-dev
+    npm ci
 
 COPY apps/api ./apps/api
 COPY packages/shared ./packages/shared
