@@ -1,4 +1,5 @@
 import { View, Text, ViewStyle, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Button } from './Button'
 
@@ -13,9 +14,13 @@ export function ErrorState({ message, onRetry, style }: ErrorStateProps) {
 
   return (
     <View style={[styles.container, style]} accessibilityRole="alert">
-      <Text style={styles.emoji} accessibilityRole="image" accessibilityLabel="Error">
-        ⚠️
-      </Text>
+      <Ionicons
+        name="alert-circle"
+        size={48}
+        color={colors.error}
+        style={styles.icon}
+        accessibilityLabel="Error"
+      />
       <Text style={[styles.message, { color: colors.error }]}>
         {message}
       </Text>
@@ -40,8 +45,7 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 24,
   },
-  emoji: {
-    fontSize: 48,
+  icon: {
     marginBottom: 16,
   },
   message: {

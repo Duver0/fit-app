@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
 import { useRanking } from '../../../../../src/hooks/useRanking'
@@ -9,12 +10,6 @@ import { useQuery, useMutation } from '@apollo/client'
 import { GROUP_QUERY, DELETE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
-
-const MEDAL_ICONS: Record<number, string> = {
-  1: '🥇',
-  2: '🥈',
-  3: '🥉',
-}
 
 const MEDAL_COLORS: Record<number, string> = {
   1: '#FFD700',
@@ -123,7 +118,7 @@ export default function ExerciseDetailScreen() {
 
   const renderRankingItem = (item: any, index: number) => {
     const isMe = currentUser && item.user?.id === currentUser.id
-    const medal = item.rank <= 3 ? MEDAL_ICONS[item.rank] : null
+    const isPodium = item.rank <= 3
 
     return (
       <View key={item.id} style={{
@@ -138,8 +133,8 @@ export default function ExerciseDetailScreen() {
       }}>
         {/* Rank */}
         <View style={{ width: 40, alignItems: 'center' }}>
-          {medal ? (
-            <Text style={{ fontSize: 20 }}>{medal}</Text>
+          {isPodium ? (
+            <Ionicons name="trophy" size={20} color={MEDAL_COLORS[item.rank]} />
           ) : (
             <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 14 }}>
               #{item.rank}
@@ -310,9 +305,12 @@ export default function ExerciseDetailScreen() {
             {/* Top 3 destacado */}
             {top3.length > 0 && (
               <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 12 }}>
-                  🏆 Top 3 destacado
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Ionicons name="trophy" size={22} color={colors.primary} />
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
+                    Top 3 destacado
+                  </Text>
+                </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 160 }}>
                   {[2, 1, 3].map((pos) => {
                     const record = top3.find((r: any) => r.rank === pos)
@@ -320,7 +318,7 @@ export default function ExerciseDetailScreen() {
                     const barHeight = pos === 1 ? 120 : pos === 2 ? 90 : 60
                     return (
                       <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
-                        <Text style={{ fontSize: 28 }}>{MEDAL_ICONS[pos]}</Text>
+                        <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} />
                         <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700', marginVertical: 4 }}>
                           {record.value} {unitLabel}
                         </Text>

@@ -1,4 +1,5 @@
 import { View, Text, ViewStyle, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Button } from './Button'
 
@@ -21,9 +22,13 @@ export function EmptyState({
 
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.emoji} accessibilityRole="image" accessibilityLabel="Empty state">
-        📭
-      </Text>
+      <Ionicons
+        name="mail-open-outline"
+        size={48}
+        color={colors.textSecondary}
+        style={styles.icon}
+        accessibilityLabel="Empty state"
+      />
       <Text style={[styles.title, { color: colors.text }]}>
         {title}
       </Text>
@@ -53,8 +58,7 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 24,
   },
-  emoji: {
-    fontSize: 48,
+  icon: {
     marginBottom: 16,
   },
   title: {

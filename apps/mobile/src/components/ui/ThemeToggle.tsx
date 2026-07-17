@@ -1,4 +1,5 @@
-import { View, Text, Switch, StyleSheet } from 'react-native'
+import { View, Switch, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useThemeStore } from '../../stores/themeStore'
 
@@ -9,9 +10,11 @@ export function ThemeToggle() {
 
   return (
     <View style={styles.container} accessibilityLabel="Theme toggle">
-      <Text style={[styles.icon]}>
-        {isDark ? '🌙' : '☀️'}
-      </Text>
+      <Ionicons
+        name={isDark ? 'moon-outline' : 'sunny-outline'}
+        size={20}
+        color={colors.text}
+      />
       <Switch
         value={isDark}
         onValueChange={toggle}
@@ -34,8 +37,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  icon: {
-    fontSize: 20,
   },
 })

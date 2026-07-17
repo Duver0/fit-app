@@ -4,6 +4,7 @@ dist/
 *.js
 !*.config.js
 !jest*.js
+!apps/mobile/public/sw.js
 coverage/
 .turbo/
 .expo/

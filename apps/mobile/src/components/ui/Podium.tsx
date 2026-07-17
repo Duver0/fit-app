@@ -1,4 +1,5 @@
 import { View, Text, ViewStyle, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Avatar } from './Avatar'
 
@@ -14,10 +15,10 @@ interface PodiumProps {
   style?: ViewStyle
 }
 
-const MEDAL_EMOJIS: Record<number, string> = {
-  1: '🥇',
-  2: '🥈',
-  3: '🥉',
+const MEDAL_COLORS: Record<number, string> = {
+  1: '#FFD700',
+  2: '#C0C0C0',
+  3: '#CD7F32',
 }
 
 const COLUMN_HEIGHTS: Record<number, number> = {
@@ -57,9 +58,13 @@ export function Podium({ items, style }: PodiumProps) {
                 style={styles.avatar}
               />
             )}
-            <Text style={styles.medal} accessibilityLabel={`Rank ${rank}`}>
-              {MEDAL_EMOJIS[rank]}
-            </Text>
+            <Ionicons
+              name="trophy"
+              size={28}
+              color={MEDAL_COLORS[rank]}
+              style={styles.medal}
+              accessibilityLabel={`Rank ${rank}`}
+            />
             <View
               style={[
                 styles.bar,
@@ -109,7 +114,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   medal: {
-    fontSize: 28,
     marginBottom: 4,
   },
   bar: {
