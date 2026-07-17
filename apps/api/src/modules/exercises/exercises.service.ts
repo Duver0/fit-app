@@ -7,11 +7,17 @@ export class ExercisesService {
   constructor(private prisma: PrismaService) {}
 
   async findByGroup(groupId: string) {
-    return this.prisma.exercise.findMany({ where: { groupId } })
+    return this.prisma.exercise.findMany({
+      where: { groupId },
+      include: { creator: true },
+    })
   }
 
   async findById(id: string) {
-    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id },
+      include: { creator: true },
+    })
     if (!exercise) throw new NotFoundException()
     return exercise
   }

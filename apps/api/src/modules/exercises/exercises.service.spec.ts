@@ -140,6 +140,7 @@ describe('ExercisesService', () => {
       expect(result[1].name).toBe('Squat')
       expect(prisma.exercise.findMany).toHaveBeenCalledWith({
         where: { groupId: 'group-1' },
+        include: { creator: true },
       })
     })
 
@@ -148,6 +149,10 @@ describe('ExercisesService', () => {
 
       const result = await service.findByGroup('empty-group')
       expect(result).toEqual([])
+      expect(prisma.exercise.findMany).toHaveBeenCalledWith({
+        where: { groupId: 'empty-group' },
+        include: { creator: true },
+      })
     })
   })
 

@@ -30,7 +30,7 @@ export class GroupsService {
       include: {
         owner: true,
         members: { include: { user: true } },
-        exercises: true,
+        exercises: { include: { creator: true } },
         _count: { select: { members: true } },
       },
     })

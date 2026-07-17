@@ -35,7 +35,10 @@ export class RankingService {
   }
 
   async getTop3(groupId: string) {
-    const exercises = await this.prisma.exercise.findMany({ where: { groupId } })
+    const exercises = await this.prisma.exercise.findMany({
+      where: { groupId },
+      include: { creator: true },
+    })
     const result = await Promise.all(
       exercises.map(async (exercise) => {
         const top = await this.prisma.performanceRecord.findMany({
