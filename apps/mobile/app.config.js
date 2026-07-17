@@ -33,10 +33,14 @@ module.exports = {
   },
   extra: {
     router: {
-      origin: `https://duver0.github.io${BASE_URL}`.replace(/\/$/, ''),
+      origin: `${BASE_URL === '/' ? 'https://duver0.github.io' : 'https://duver0.github.io/fit-app'}`,
     },
   },
-  plugins: ['expo-router'],
+  plugins: [
+    ['expo-router', {
+      origin: `${BASE_URL === '/' ? 'https://duver0.github.io' : 'https://duver0.github.io/fit-app'}`,
+    }],
+  ],
   experiments: {
     typedRoutes: true,
   },
