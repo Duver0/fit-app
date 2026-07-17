@@ -1,5 +1,7 @@
 # Exercise Refactor — Backend (NestJS)
 
+> **Estado: ✅ COMPLETADO**
+
 ## Objetivo
 Actualizar el modelo GraphQL de Exercise, el input, el service y el resolver para soportar `imageUrl`.
 
@@ -252,11 +254,24 @@ export class ExercisesResolver {
 }
 ```
 
+### Checklist de implementación
+
+| Item | Estado |
+|------|--------|
+| `exercise.model.ts`: agregar `@Field({ nullable: true }) imageUrl?: string` | ✅ Completo |
+| `exercise.input.ts`: agregar `imageUrl` opcional con validación `@IsUrl()` a `CreateExerciseInput` | ✅ Completo |
+| `exercise.input.ts`: crear `UpdateExerciseImageInput` con `id` + `imageUrl` | ✅ Completo |
+| `exercises.service.ts`: `create()` acepta y persiste `imageUrl` | ✅ Completo |
+| `exercises.service.ts`: nuevo método `updateImage()` con validación de pertenencia al grupo | ✅ Completo |
+| `exercises.resolver.ts`: importar `UpdateExerciseImageInput` | ✅ Completo |
+| `exercises.resolver.ts`: nueva mutation `updateExerciseImage` | ✅ Completo |
+| Compilación TypeScript sin errores | ✅ Completo (`tsc --noEmit` exitoso) |
+
 ### Resumen de cambios por archivo
 
 | Archivo | Cambio |
 |---------|--------|
 | `apps/api/src/common/models/exercise.model.ts` | Agregar `@Field({ nullable: true }) imageUrl?: string` |
-| `apps/api/src/modules/exercises/dto/exercise.input.ts` | Agregar `@IsOptional() @IsUrl() imageUrl?: string` al `CreateExerciseInput` |
+| `apps/api/src/modules/exercises/dto/exercise.input.ts` | Agregar `@IsOptional() @IsUrl() imageUrl?: string` al `CreateExerciseInput` + nuevo `UpdateExerciseImageInput` |
 | `apps/api/src/modules/exercises/exercises.service.ts` | Agregar `imageUrl` en `create()` + nuevo método `updateImage()` |
 | `apps/api/src/modules/exercises/exercises.resolver.ts` | Agregar mutation `updateExerciseImage` |

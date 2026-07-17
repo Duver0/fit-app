@@ -1,5 +1,7 @@
 # Exercise Refactor — Tests
 
+> **Estado: ❌ PENDIENTE** — no se implementaron tests
+
 ## Objetivo
 Actualizar los tests existentes y agregar nuevos escenarios para cubrir el campo `imageUrl` y la mutation `updateExerciseImage`.
 
@@ -157,6 +159,18 @@ describe('updateExerciseImage', () => {
 // 3. Top 3 tiene estilos destacados (medallas)
 // 4. Botones de disputa funcionan
 ```
+
+### Checklist de implementación
+
+| Item | Estado |
+|------|--------|
+| `exercises.service.spec.ts`: mock actualizado con `imageUrl: null` | ❌ Pendiente |
+| `exercises.service.spec.ts`: test `create` con `imageUrl` | ❌ Pendiente |
+| `exercises.service.spec.ts`: test `create` sin `imageUrl` | ❌ Pendiente |
+| `exercises.service.spec.ts`: `describe('updateImage')` con 3 tests | ❌ Pendiente |
+| `exercises.resolver.spec.ts`: test `updateExerciseImage` | ❌ Pendiente |
+| `index.test.tsx` (nuevo): tests del dashboard simplificado | ❌ Pendiente |
+| `[exerciseId].test.tsx` (nuevo): tests del detalle enriquecido | ❌ Pendiente |
 
 ## Resumen de cambios en tests
 

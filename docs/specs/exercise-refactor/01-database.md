@@ -1,5 +1,7 @@
 # Exercise Refactor — Database
 
+> **Estado: ✅ COMPLETADO** (solo falta ejecutar `prisma migrate dev` en entorno con BD)
+
 ## Objetivo
 Agregar el campo `imageUrl` al modelo `Exercise` en Prisma y generar la migración correspondiente.
 
@@ -44,6 +46,15 @@ npx prisma migrate dev --name add_exercise_image_url
 # 4. Regenerar el client:
 npx prisma generate
 ```
+
+### Checklist de implementación
+
+| Item | Estado |
+|------|--------|
+| Schema: agregar `imageUrl String? @map("image_url") @db.Text` al modelo Exercise | ✅ Completo |
+| Migración: archivo `20260717120000_add_exercise_image_url/migration.sql` creado | ✅ Completo |
+| `prisma generate` ejecutado | ✅ Completo |
+| `prisma migrate dev` aplicado en BD | ❌ Pendiente (no hay BD local) |
 
 ### Resumen de cambios en schema.prisma
 

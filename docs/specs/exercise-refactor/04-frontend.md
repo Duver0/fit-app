@@ -1,5 +1,7 @@
 # Exercise Refactor — Frontend (React Native / Expo Router)
 
+> **Estado: ✅ COMPLETADO**
+
 ## Objetivo
 Simplificar el Group Dashboard eliminando el registro inline de marcas y el top 3 inline, mostrando cada ejercicio como una tarjeta con imagen (thumbnail o placeholder) que navega al detalle individual. Enriquecer la pantalla de detalle del ejercicio para mostrar TODAS las marcas de todos los miembros del grupo con ranking ordenado, destacando el top 3 visualmente y manteniendo el sistema de disputas existente.
 
@@ -524,11 +526,34 @@ renderItem={({ item, index }: any) => {
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image } from 'react-native'
 ```
 
+### Checklist de implementación
+
+| Item | Estado |
+|------|--------|
+| `graphql.ts`: `EXERCISES_QUERY` con `imageUrl` + `avatarUrl` | ✅ Completo |
+| `graphql.ts`: `GROUP_QUERY` con `imageUrl` en exercises | ✅ Completo |
+| `graphql.ts`: `CREATE_EXERCISE_MUTATION` con `imageUrl` en respuesta | ✅ Completo |
+| `graphql.ts`: `UPDATE_EXERCISE_IMAGE_MUTATION` agregada | ✅ Completo |
+| `graphql.ts`: `TOP3_RANKING_QUERY` con `imageUrl` en exercise | ✅ Completo |
+| `useExercises.ts`: `createExercise()` acepta `imageUrl` opcional | ✅ Completo |
+| `index.tsx`: eliminar `TOP3_RANKING_QUERY` y `UPSERT_PERFORMANCE_MUTATION` | ✅ Completo |
+| `index.tsx`: eliminar estado `markingExerciseId`, `markValue`, `myMarks` | ✅ Completo |
+| `index.tsx`: eliminar helper `getUserMark()` | ✅ Completo |
+| `index.tsx`: tarjetas con imagen/placeholder + nombre + unidad | ✅ Completo |
+| `index.tsx`: navegación al detalle al tocar tarjeta | ✅ Completo |
+| `index.tsx`: mantener modal de crear ejercicio | ✅ Completo |
+| `[exerciseId].tsx`: header con imagen del ejercicio (120×120) | ✅ Completo |
+| `[exerciseId].tsx`: top 3 destacado con medallas 🥇🥈🥉 | ✅ Completo |
+| `[exerciseId].tsx`: ranking completo con todos los miembros | ✅ Completo |
+| `[exerciseId].tsx`: avatar de usuario en cada fila del ranking | ✅ Completo |
+| `[exerciseId].tsx`: sistema de disputas intacto | ✅ Completo |
+| `[exerciseId].tsx`: labels de unidad más descriptivos | ✅ Completo |
+
 ### Resumen de cambios por archivo
 
 | Archivo | Cambio |
 |---------|--------|
-| `apps/mobile/src/lib/graphql.ts` | Agregar `imageUrl` en `EXERCISES_QUERY`, `CREATE_EXERCISE_MUTATION`, `GROUP_QUERY`. Opcional: agregar `UPDATE_EXERCISE_IMAGE_MUTATION`. |
+| `apps/mobile/src/lib/graphql.ts` | Agregar `imageUrl` en `EXERCISES_QUERY`, `CREATE_EXERCISE_MUTATION`, `GROUP_QUERY`, `TOP3_RANKING_QUERY`. Agregar `UPDATE_EXERCISE_IMAGE_MUTATION`. |
 | `apps/mobile/src/hooks/useExercises.ts` | Actualizar `createExercise()` para aceptar `imageUrl` opcional. |
 | `apps/mobile/app/(app)/groups/[groupId]/index.tsx` | **Refactor completo**: eliminar ranking inline, eliminar registro inline de marcas, simplificar a lista de ejercicios con imagen/nombre/unidad + navegación al detalle. |
 | `apps/mobile/app/(app)/groups/[groupId]/exercises/[exerciseId].tsx` | Agregar imagen del ejercicio en header, mejorar visual del ranking con medallas para top 3, mostrar avatar de usuarios. |
