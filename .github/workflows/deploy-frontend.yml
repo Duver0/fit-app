@@ -142,6 +142,8 @@ jobs:
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
             sed -i 's|href="/_expo|href="./_expo|g' "$f"
             sed -i 's|href="/assets|href="./assets|g' "$f"
+            # Fix favicon path: /favicon.ico -> favicon.ico (relative, resolves via <base>)
+            sed -i 's|href="/favicon.ico"|href="favicon.ico"|g' "$f"
           done
 
           # -------------------------------------------------------
