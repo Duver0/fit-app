@@ -23,11 +23,11 @@ const ADMIN_USERS = gql`
 `
 
 const ADMIN_DELETE_GROUP = gql`
-  mutation AdminDeleteGroup($id: ID!) { adminDeleteGroup(id: $id) }
+  mutation AdminDeleteGroup($id: String!) { adminDeleteGroup(id: $id) }
 `
 
 const ADMIN_DELETE_USER = gql`
-  mutation AdminDeleteUser($id: ID!) { adminDeleteUser(id: $id) }
+  mutation AdminDeleteUser($id: String!) { adminDeleteUser(id: $id) }
 `
 
 type Tab = 'groups' | 'users'
