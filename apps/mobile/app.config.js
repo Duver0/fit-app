@@ -26,10 +26,25 @@ module.exports = {
   },
   web: {
     bundler: 'metro',
-    favicon: './assets/favicon.png',
+    favicon: './assets/icon.png',
     output: 'single',
     name: 'Fit App',
+    shortName: 'Fit App',
+    description: 'Tu ranking de gimnasio',
     publicPath: BASE_URL,
+    backgroundColor: '#FFF8F0',
+    themeColor: '#FF6B35',
+    barStyle: 'default',
+    orientation: 'portrait',
+    display: 'standalone',
+    lang: 'es-ES',
+    scope: BASE_URL,
+    startUrl: BASE_URL,
+    appleTouchIcon: './assets/icon.png',
+    splash: {
+      backgroundColor: '#FFF8F0',
+      resizeMode: 'contain',
+    },
   },
   extra: {
     router: {

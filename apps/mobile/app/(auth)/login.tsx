@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 import { router } from 'expo-router'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuth } from '../../src/hooks/useAuth'
+import PWAInstallButton from '../../src/components/PWAInstallButton'
 
 export default function LoginScreen() {
   const { colors } = useTheme()
@@ -96,6 +97,8 @@ export default function LoginScreen() {
           ¿No tienes cuenta? Regístrate
         </Text>
       </TouchableOpacity>
+
+      {Platform.OS === 'web' && <PWAInstallButton />}
     </View>
   )
 }
