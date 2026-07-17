@@ -6,6 +6,7 @@ import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
 import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
+import { uploadAvatar } from '../../src/lib/api'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()
@@ -41,9 +42,15 @@ export default function ProfileScreen() {
     }
     setSaving(true)
     try {
+      let serverAvatarUrl: string | undefined
+      if (avatarUri) {
+        // Upload the local file first and get back a server-accessible URL
+        serverAvatarUrl = await uploadAvatar(avatarUri)
+      }
+
       const variables: Record<string, string> = { name: name.trim() }
       if (phone.trim()) variables.phone = phone.trim()
-      if (avatarUri) variables.avatarUrl = avatarUri
+      if (serverAvatarUrl) variables.avatarUrl = serverAvatarUrl
 
       const { data } = await updateProfile({ variables })
 

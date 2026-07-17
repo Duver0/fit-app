@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { ApolloProvider } from '@apollo/client'
 import { ThemeProvider } from '../src/theme/ThemeProvider'
 import { client } from '../src/lib/apollo'
 import { patchHistoryForBasePath } from '../src/lib/historyPatch'
+import { registerServiceWorker } from '../src/lib/registerSW'
 
 // Fix client-side navigation on GitHub Pages subpath deployments.
 // Must run before any navigation occurs.
@@ -12,6 +14,10 @@ if (typeof window !== 'undefined') {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
+
   return (
     <ApolloProvider client={client}>
       <ThemeProvider>

@@ -20,7 +20,8 @@ export class UsersResolver {
     @CurrentUser() user: User,
     @Args('name', { nullable: true }) name?: string,
     @Args('phone', { nullable: true }) phone?: string,
+    @Args('avatarUrl', { nullable: true }) avatarUrl?: string,
   ) {
-    return this.usersService.updateProfile(user.id, { name, phone })
+    return this.usersService.updateProfile(user.id, { name, phone, avatarUrl })
   }
 }

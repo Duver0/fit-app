@@ -284,6 +284,12 @@ export const UPDATE_EXERCISE_IMAGE_MUTATION = gql`
   }
 `
 
+export const DELETE_EXERCISE_MUTATION = gql`
+  mutation DeleteExercise($id: String!) {
+    deleteExercise(id: $id)
+  }
+`
+
 export const LEAVE_GROUP_MUTATION = gql`
   mutation LeaveGroup($groupId: String!) {
     leaveGroup(groupId: $groupId)

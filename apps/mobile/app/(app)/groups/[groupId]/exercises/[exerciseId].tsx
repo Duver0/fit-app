@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView } from 'react-native'
-import { useLocalSearchParams, Stack } from 'expo-router'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert } from 'react-native'
+import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
 import { useRanking } from '../../../../../src/hooks/useRanking'
 import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
-import { useQuery } from '@apollo/client'
-import { GROUP_QUERY } from '../../../../../src/lib/graphql'
+import { useQuery, useMutation } from '@apollo/client'
+import { GROUP_QUERY, DELETE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
 
@@ -38,6 +38,34 @@ export default function ExerciseDetailScreen() {
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
+
+  const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION, {
+    refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
+  })
+
+  const isOwner = currentUser?.id && groupData?.group?.owner?.id === currentUser.id
+
+  const handleDeleteExercise = () => {
+    Alert.alert(
+      'Eliminar ejercicio',
+      '¿Estás seguro de que querés eliminar este ejercicio? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteExercise({ variables: { id: exerciseId } })
+              router.back()
+            } catch (e: any) {
+              Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+            }
+          },
+        },
+      ],
+    )
+  }
 
   // Split ranking into top 3 and rest
   const top3 = ranking.filter((r: any) => r.rank <= 3)
@@ -216,6 +244,26 @@ export default function ExerciseDetailScreen() {
               <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 4 }}>
                 Unidad: {unitLabel}
               </Text>
+
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={handleDeleteExercise}
+                  disabled={deleting}
+                  style={{
+                    backgroundColor: colors.error + '20',
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    alignSelf: 'center',
+                    marginTop: 12,
+                    opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ color: colors.error, fontWeight: '600', fontSize: 13 }}>
+                    {deleting ? 'Eliminando…' : 'Eliminar ejercicio'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* My performance card */}

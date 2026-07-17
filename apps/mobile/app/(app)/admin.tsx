@@ -82,6 +82,8 @@ export default function AdminScreen() {
 
         {tab === 'groups' && (
           <FlatList
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
             data={groupsData?.adminGroups?.items || []}
             keyExtractor={(item: any) => item.id}
             renderItem={({ item }: any) => (
@@ -100,6 +102,8 @@ export default function AdminScreen() {
 
         {tab === 'users' && (
           <FlatList
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
             data={usersData?.adminUsers?.items || []}
             keyExtractor={(item: any) => item.id}
             renderItem={({ item }: any) => (

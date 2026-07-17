@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView, Image } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
+import { uploadGroupAvatar } from '../../../../src/lib/api'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -29,15 +31,19 @@ export default function GroupSettingsScreen() {
   const [exerciseUnit, setExerciseUnit] = useState<string>('KG')
 
   const [initialized, setInitialized] = useState(false)
+  const [avatarUri, setAvatarUri] = useState<string | null>(null)
 
   const group = groupData?.group
   const me = meData?.me
   const isOwner = me?.id && group?.owner?.id === me.id
   const isLoading = meLoading || groupLoading
 
+  const displayAvatar = avatarUri || group?.avatarUrl
+
   if (!initialized && group) {
     setName(group.name || '')
     setDescription(group.description || '')
+    setAvatarUri(null)
     setInitialized(true)
   }
 
@@ -65,10 +71,27 @@ export default function GroupSettingsScreen() {
     )
   }
 
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri)
+    }
+  }
+
   const handleSave = async () => {
     try {
+      let serverAvatarUrl: string | undefined
+      if (avatarUri) {
+        serverAvatarUrl = await uploadGroupAvatar(avatarUri)
+      }
+
       await updateGroup({
-        variables: { id: groupId, input: { name, description } },
+        variables: { id: groupId, input: { name, description, ...(serverAvatarUrl ? { avatarUrl: serverAvatarUrl } : {}) } },
       })
       Alert.alert('Guardado', 'Los cambios se guardaron correctamente.')
     } catch (e: any) {
@@ -147,6 +170,24 @@ export default function GroupSettingsScreen() {
             borderWidth: 1, borderColor: colors.border, fontSize: 16, minHeight: 100,
           }}
         />
+
+        {/* Group photo */}
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>Foto del grupo</Text>
+        <TouchableOpacity onPress={handlePickImage} style={{ alignItems: 'center', marginBottom: 24 }}>
+          {displayAvatar ? (
+            <Image
+              source={{ uri: displayAvatar }}
+              style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }}
+            />
+          ) : (
+            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{ fontSize: 40, fontWeight: 'bold', color: colors.text }}>
+                {group?.name?.charAt(0)?.toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <Text style={{ color: colors.primary, fontSize: 14 }}>Cambiar foto</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={handleSave}

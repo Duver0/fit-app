@@ -8,7 +8,7 @@ import { UsersModule } from '../../modules/users/users.module'
 @Global()
 @Module({
   imports: [
-    MulterModule.register({ limits: { fileSize: 5 * 1024 * 1024 } }),
+    MulterModule.register({ limits: { fileSize: 20 * 1024 * 1024 } }),
     UsersModule,
   ],
   controllers: [UploadController],
