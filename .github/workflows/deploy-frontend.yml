@@ -41,22 +41,93 @@ jobs:
           PUBLIC_URL: /fit-app/
           NODE_ENV: production
 
-      - name: Setup SPA routing and fix asset paths for GitHub Pages
+      - name: Setup SPA routing, PWA assets, and fix asset paths for GitHub Pages
         run: |
           cd apps/mobile/dist
 
-          # Fix HTML files
+          # -------------------------------------------------------
+          # 1. PWA: Copy service worker from source
+          #    Metro bundler does NOT copy public/ directory automatically.
+          # -------------------------------------------------------
+          if [ -f ../public/sw.js ]; then
+            echo "Copying service worker"
+            cp ../public/sw.js sw.js
+          else
+            echo "Generating service worker"
+            node -e "
+              const sw = \`
+        const CACHE_NAME = 'fit-app-v1'
+        self.addEventListener('install', (e) => { self.skipWaiting() })
+        self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()) })
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(fetch(e.request).catch(() => caches.match(e.request)))
+        })
+        \`.trim()
+              require('fs').writeFileSync('sw.js', sw)
+            "
+          fi
+
+          # -------------------------------------------------------
+          # 2. PWA: Copy icon assets for manifest
+          #    Expo web build with Metro does NOT always copy icon.png to dist/assets.
+          # -------------------------------------------------------
+          mkdir -p assets
+          if [ -f ../assets/icon.png ]; then
+            echo "Copying PWA icons"
+            cp ../assets/icon.png assets/icon-192x192.png
+            cp ../assets/icon.png assets/icon-512x512.png
+          fi
+
+          # -------------------------------------------------------
+          # 3. Generate manifest.json with correct subpath-aware paths
+          # -------------------------------------------------------
+          echo "Generating manifest.json"
+          node -e "
+            const m = {
+              name: 'Fit App',
+              short_name: 'Fit App',
+              description: 'Tu ranking de gimnasio',
+              start_url: '/fit-app/',
+              scope: '/fit-app/',
+              display: 'standalone',
+              orientation: 'portrait',
+              background_color: '#FFF8F0',
+              theme_color: '#FF6B35',
+              lang: 'es-ES',
+              icons: [
+                { src: '/fit-app/assets/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                { src: '/fit-app/assets/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+              ],
+            }
+            require('fs').writeFileSync('manifest.json', JSON.stringify(m, null, 2))
+          "
+
+          # -------------------------------------------------------
+          # 4. Inject PWA meta/link tags into HTML files
+          # -------------------------------------------------------
           for f in $(find . -name "*.html"); do
             echo "Fixing $f"
             # Add <base href="/fit-app/"> after <head>
             sed -i 's|<head>|<head><base href="/fit-app/">|' "$f"
-            # Add manifest link if not present (Expo should generate it, but ensure it's there)
+            # Add manifest link
             if ! grep -q 'rel="manifest"' "$f"; then
               sed -i 's|</head>|<link rel="manifest" href="/fit-app/manifest.json" /></head>|' "$f"
             fi
             # Add apple-touch-icon
             if ! grep -q 'apple-touch-icon' "$f"; then
-              sed -i 's|</head>|<link rel="apple-touch-icon" href="/fit-app/assets/icon.png" /></head>|' "$f"
+              sed -i 's|</head>|<link rel="apple-touch-icon" href="/fit-app/assets/icon-192x192.png" /></head>|' "$f"
+            fi
+            # Add theme-color meta
+            if ! grep -q 'theme-color' "$f"; then
+              sed -i 's|</head>|<meta name="theme-color" content="#FF6B35" /></head>|' "$f"
+            fi
+            # Add apple-mobile-web-app-capable meta
+            if ! grep -q 'apple-mobile-web-app-capable' "$f"; then
+              sed -i 's|</head>|<meta name="apple-mobile-web-app-capable" content="yes" /></head>|' "$f"
+            fi
+            # Add apple-mobile-web-app-status-bar-style meta
+            if ! grep -q 'apple-mobile-web-app-status-bar-style' "$f"; then
+              sed -i 's|</head>|<meta name="apple-mobile-web-app-status-bar-style" content="default" /></head>|' "$f"
             fi
             # Make asset paths relative to the base
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
@@ -64,47 +135,17 @@ jobs:
             sed -i 's|href="/assets|href="./assets|g' "$f"
           done
 
-          # Fix JS bundle: Metro does NOT respect publicPath for asset httpServerLocation,
-          # so it generates "/assets/..." instead of "/fit-app/assets/...". On GitHub Pages
-          # subpath, new URL("/assets/...", bundleUrl) resolves to origin + "/assets/..."
-          # (ignoring subpath). We patch it to include the subpath explicitly.
+          # -------------------------------------------------------
+          # 5. Fix JS bundle asset paths for GitHub Pages subpath
+          # -------------------------------------------------------
           for f in $(find ./_expo -name "*.js"); do
             echo "Fixing asset paths in $f"
             sed -i 's|httpServerLocation:"/assets|httpServerLocation:"/fit-app/assets|g' "$f"
           done
 
-          # Fix manifest.json asset paths (if generated by Expo)
-          if [ -f manifest.json ]; then
-            echo "Fixing manifest.json"
-            sed -i 's|"/assets|"/fit-app/assets|g' manifest.json
-            sed -i 's|"src": "/|"src": "/fit-app/|g' manifest.json
-          fi
-
-          # Generate a basic manifest.json if Expo didn't create one
-          if [ ! -f manifest.json ]; then
-            echo "Generating manifest.json"
-            node -e "
-              const m = {
-                name: 'Fit App',
-                short_name: 'Fit App',
-                description: 'Tu ranking de gimnasio',
-                start_url: '/fit-app/',
-                scope: '/fit-app/',
-                display: 'standalone',
-                orientation: 'portrait',
-                background_color: '#FFF8F0',
-                theme_color: '#FF6B35',
-                lang: 'es-ES',
-                icons: [
-                  { src: '/fit-app/assets/icon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-                  { src: '/fit-app/assets/icon.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                ],
-              }
-              require('fs').writeFileSync('manifest.json', JSON.stringify(m, null, 2))
-            "
-          fi
-
-          # SPA: serve index.html on 404 so client-side routing works on all paths
+          # -------------------------------------------------------
+          # 6. SPA: serve index.html on 404 so client-side routing works
+          # -------------------------------------------------------
           cp index.html 404.html
           touch .nojekyll
 
