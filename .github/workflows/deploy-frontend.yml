@@ -60,38 +60,41 @@ jobs:
             cp ../public/sw.js sw.js
           else
             echo "⚠ public/sw.js not found, generating minimal sw.js"
-            cat > sw.js << 'SWEOF'
-      const CACHE_NAME = 'fit-app-v1'
-      const BASE_PATH = self.location.pathname.replace('/sw.js', '')
-      const PRECACHE_URLS = [BASE_PATH + '/', BASE_PATH + '/index.html']
-      self.addEventListener('install', (e) => {
-        self.skipWaiting()
-        e.waitUntil(
-          caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-        )
-      })
-      self.addEventListener('activate', (e) => {
-        e.waitUntil(
-          Promise.all([
-            clients.claim(),
-            caches.keys().then((keys) =>
-              Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-            ),
-          ])
-        )
-      })
-      self.addEventListener('fetch', (e) => {
-        e.respondWith(
-          fetch(e.request)
-            .then((r) => {
-              const clone = r.clone()
-              caches.open(CACHE_NAME).then((c) => c.put(e.request, clone))
-              return r
-            })
-            .catch(() => caches.match(e.request))
-        )
-      })
-      SWEOF
+            node -e "
+              const sw = [
+                'const CACHE_NAME = \"fit-app-v1\"',
+                'const BASE_PATH = self.location.pathname.replace(\"/sw.js\", \"\")',
+                'const PRECACHE_URLS = [BASE_PATH + \"/\", BASE_PATH + \"/index.html\"]',
+                'self.addEventListener(\"install\", (e) => {',
+                '  self.skipWaiting()',
+                '  e.waitUntil(',
+                '    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))',
+                '  )',
+                '})',
+                'self.addEventListener(\"activate\", (e) => {',
+                '  e.waitUntil(',
+                '    Promise.all([',
+                '      clients.claim(),',
+                '      caches.keys().then((keys) =>',
+                '        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))',
+                '      ),',
+                '    ])',
+                '  )',
+                '})',
+                'self.addEventListener(\"fetch\", (e) => {',
+                '  e.respondWith(',
+                '    fetch(e.request)',
+                '      .then((r) => {',
+                '        const clone = r.clone()',
+                '        caches.open(CACHE_NAME).then((c) => c.put(e.request, clone))',
+                '        return r',
+                '      })',
+                '      .catch(() => caches.match(e.request))',
+                '  )',
+                '})',
+              ].join('\n')
+              require('fs').writeFileSync('sw.js', sw)
+            "
           fi
 
           # -------------------------------------------------------
