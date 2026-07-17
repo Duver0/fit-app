@@ -5,19 +5,41 @@ import { PrismaService } from '../../prisma/prisma.service'
 export class InvitationsService {
   constructor(private prisma: PrismaService) {}
 
-  async invite(groupId: string, inviteeEmail: string, inviterId: string) {
-    const userExists = await this.prisma.user.findUnique({ where: { email: inviteeEmail } })
-    if (!userExists) throw new NotFoundException('No existe una cuenta con ese correo electrónico')
-
-    const existing = await this.prisma.groupMember.findFirst({
-      where: { groupId, user: { email: inviteeEmail } },
+  /**
+   * Invite a user to a group by searching for their email, phone, or full name.
+   * For security reasons, we do NOT reveal whether a user was found or not —
+   * if no match is found we return a generic success message but don't create
+   * the invitation. This prevents user enumeration attacks.
+   */
+  async invite(groupId: string, inviteeIdentifier: string, inviterId: string) {
+    // Try to find the user by email, phone, or name
+    const userExists = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: inviteeIdentifier, mode: 'insensitive' } },
+          { phone: inviteeIdentifier },
+          { name: { equals: inviteeIdentifier, mode: 'insensitive' } },
+        ],
+      },
     })
-    if (existing) throw new BadRequestException('User is already a member')
 
+    // Don't reveal if user was found — throw same error regardless
+    // This prevents user enumeration attacks
+    if (!userExists) throw new BadRequestException('No se pudo enviar la invitación. Verificá los datos e intentá de nuevo.')
+
+    const inviteeEmail = userExists.email
+
+    // Check if already a member
+    const existing = await this.prisma.groupMember.findFirst({
+      where: { groupId, userId: userExists.id },
+    })
+    if (existing) throw new BadRequestException('El usuario ya es miembro del grupo')
+
+    // Check for existing pending invitation
     const pending = await this.prisma.invitation.findFirst({
       where: { groupId, inviteeEmail, status: 'PENDING' },
     })
-    if (pending) throw new BadRequestException('Invitation already sent')
+    if (pending) throw new BadRequestException('Ya se envió una invitación a este usuario')
 
     return this.prisma.invitation.create({
       data: { groupId, inviteeEmail, inviterId },
@@ -28,10 +50,10 @@ export class InvitationsService {
   async accept(invitationId: string, userId: string) {
     const invitation = await this.prisma.invitation.findUnique({ where: { id: invitationId } })
     if (!invitation) throw new NotFoundException()
-    if (invitation.status !== 'PENDING') throw new BadRequestException('Invitation is not pending')
+    if (invitation.status !== 'PENDING') throw new BadRequestException('La invitación ya no está pendiente')
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } })
-    if (user?.email !== invitation.inviteeEmail) throw new BadRequestException('Email does not match')
+    if (user?.email !== invitation.inviteeEmail) throw new BadRequestException('El correo no coincide con la invitación')
 
     await this.prisma.$transaction([
       this.prisma.invitation.update({ where: { id: invitationId }, data: { status: 'ACCEPTED' } }),

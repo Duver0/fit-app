@@ -15,9 +15,9 @@ export class InvitationsResolver {
   async inviteToGroup(
     @CurrentUser() user: User,
     @Args('groupId') groupId: string,
-    @Args('inviteeEmail') inviteeEmail: string,
+    @Args('inviteeIdentifier') inviteeIdentifier: string,
   ) {
-    return this.invitationsService.invite(groupId, inviteeEmail, user.id)
+    return this.invitationsService.invite(groupId, inviteeIdentifier, user.id)
   }
 
   @Mutation(() => Boolean)

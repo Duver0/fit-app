@@ -3,7 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, R
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
-import { EXERCISES_QUERY, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
+import { EXERCISES_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION } from '../../../../src/lib/graphql'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -22,12 +22,40 @@ export default function GroupDashboardScreen() {
     refetchQueries: [{ query: EXERCISES_QUERY, variables: { groupId } }],
   })
 
+  // --- Invite mutation ---
+  const [inviteToGroup, { loading: inviting }] = useMutation(INVITE_TO_GROUP_MUTATION)
+
   // --- State ---
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteIdentifier, setInviteIdentifier] = useState('')
   const [exerciseName, setExerciseName] = useState('')
   const [exerciseUnit, setExerciseUnit] = useState<string>('KG')
 
   const exercises: any[] = data?.exercises || []
+
+  // --- Invite to group ---
+  const handleInvite = async () => {
+    if (!inviteIdentifier.trim()) return
+    try {
+      const result = await inviteToGroup({
+        variables: { groupId, inviteeIdentifier: inviteIdentifier.trim() },
+      })
+      if (result.errors?.[0]) {
+        Alert.alert('Error', result.errors[0].message)
+        return
+      }
+      Alert.alert(
+        'Invitación enviada',
+        'Si el usuario existe, recibirá la invitación.',
+      )
+      setShowInviteModal(false)
+      setInviteIdentifier('')
+    } catch (e: any) {
+      const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error de red'
+      Alert.alert('Error', msg)
+    }
+  }
 
   // --- Create exercise ---
   const handleCreateExercise = async () => {
@@ -57,7 +85,7 @@ export default function GroupDashboardScreen() {
         data={exercises}
         keyExtractor={(item: any) => item.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         ListHeaderComponent={
           <View style={{ padding: 16, paddingBottom: 8 }}>
             <TouchableOpacity
@@ -145,6 +173,80 @@ export default function GroupDashboardScreen() {
           </TouchableOpacity>
         )}
       />
+
+      {/* Floating invite button */}
+      <TouchableOpacity
+        onPress={() => setShowInviteModal(true)}
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          left: 24,
+          right: 24,
+          backgroundColor: colors.primary,
+          borderRadius: 28,
+          paddingVertical: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '300' }}>+</Text>
+        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>
+          Invitar
+        </Text>
+      </TouchableOpacity>
+
+      {/* Invite modal */}
+      <Modal visible={showInviteModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+            <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 }}>
+                Invitar al grupo
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                Ingresá el correo, teléfono o nombre completo de la persona
+              </Text>
+
+              <TextInput
+                value={inviteIdentifier}
+                onChangeText={setInviteIdentifier}
+                placeholder="Correo, teléfono o nombre"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24,
+                  borderWidth: 1, borderColor: colors.border, fontSize: 16,
+                }}
+              />
+
+              <TouchableOpacity
+                onPress={handleInvite}
+                disabled={!inviteIdentifier.trim() || inviting}
+                style={{
+                  backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
+                  opacity: (!inviteIdentifier.trim() || inviting) ? 0.6 : 1,
+                }}
+              >
+                <Text style={{ color: colors.text, fontWeight: '600' }}>
+                  {inviting ? 'Enviando…' : 'Enviar invitación'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => { setShowInviteModal(false); setInviteIdentifier('') }} style={{ padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Create exercise modal */}
       <Modal visible={showCreateModal} transparent animationType="slide">

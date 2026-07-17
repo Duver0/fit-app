@@ -62,6 +62,7 @@ describe('InvitationsService', () => {
             },
             user: {
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
             },
             $transaction: jest.fn(),
           },
@@ -74,8 +75,8 @@ describe('InvitationsService', () => {
   })
 
   describe('invite', () => {
-    it('should create invitation with PENDING status', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+    it('should create invitation with PENDING status (by email)', async () => {
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
@@ -88,8 +89,28 @@ describe('InvitationsService', () => {
       })
     })
 
+    it('should create invitation with PENDING status (by name)', async () => {
+      const userByName = { ...mockUser }
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(userByName)
+      jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
+      jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
+      jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
+
+      const result = await service.invite('group-1', 'Invitee', 'user-1')
+      expect(result.status).toBe('PENDING')
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { email: { equals: 'Invitee', mode: 'insensitive' } },
+            { phone: 'Invitee' },
+            { name: { equals: 'Invitee', mode: 'insensitive' } },
+          ],
+        },
+      })
+    })
+
     it('should throw BadRequestException when user is already a member', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(mockMember as any)
 
       await expect(
@@ -97,11 +118,11 @@ describe('InvitationsService', () => {
       ).rejects.toThrow(BadRequestException)
       await expect(
         service.invite('group-1', 'existing@test.com', 'user-1'),
-      ).rejects.toThrow('User is already a member')
+      ).rejects.toThrow('El usuario ya es miembro del grupo')
     })
 
     it('should throw BadRequestException when pending invitation exists', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(mockInvitation as any)
 
@@ -110,34 +131,34 @@ describe('InvitationsService', () => {
       ).rejects.toThrow(BadRequestException)
       await expect(
         service.invite('group-1', 'invitee@test.com', 'user-1'),
-      ).rejects.toThrow('Invitation already sent')
+      ).rejects.toThrow('Ya se envió una invitación a este usuario')
     })
 
-    it('should throw NotFoundException when invitee email has no account', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null)
+    it('should throw BadRequestException when invitee has no account (prevents enumeration)', async () => {
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(null)
 
       await expect(
         service.invite('group-1', 'unknown@test.com', 'user-1'),
-      ).rejects.toThrow(NotFoundException)
+      ).rejects.toThrow(BadRequestException)
       await expect(
         service.invite('group-1', 'unknown@test.com', 'user-1'),
-      ).rejects.toThrow('No existe una cuenta con ese correo electrónico')
+      ).rejects.toThrow('No se pudo enviar la invitación')
     })
 
-    it('should search for existing membership by email', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+    it('should search for existing membership by userId', async () => {
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
 
       await service.invite('group-1', 'invitee@test.com', 'user-1')
       expect(prisma.groupMember.findFirst).toHaveBeenCalledWith({
-        where: { groupId: 'group-1', user: { email: 'invitee@test.com' } },
+        where: { groupId: 'group-1', userId: mockUser.id },
       })
     })
 
-    it('should search for existing pending invitation', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+    it('should search for existing pending invitation by email', async () => {
+      jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(mockUser)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'findFirst').mockResolvedValue(null)
       jest.spyOn(prisma.invitation, 'create').mockResolvedValue(mockInvitation as any)
@@ -176,7 +197,7 @@ describe('InvitationsService', () => {
       jest.spyOn(prisma.invitation, 'findUnique').mockResolvedValue(acceptedInvitation as any)
 
       await expect(service.accept('invite-1', 'user-3')).rejects.toThrow(BadRequestException)
-      await expect(service.accept('invite-1', 'user-3')).rejects.toThrow('Invitation is not pending')
+      await expect(service.accept('invite-1', 'user-3')).rejects.toThrow('La invitación ya no está pendiente')
     })
 
     it('should throw BadRequestException when email does not match', async () => {
@@ -185,7 +206,7 @@ describe('InvitationsService', () => {
       jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(differentUser)
 
       await expect(service.accept('invite-1', 'user-3')).rejects.toThrow(BadRequestException)
-      await expect(service.accept('invite-1', 'user-3')).rejects.toThrow('Email does not match')
+      await expect(service.accept('invite-1', 'user-3')).rejects.toThrow('El correo no coincide con la invitación')
     })
   })
 

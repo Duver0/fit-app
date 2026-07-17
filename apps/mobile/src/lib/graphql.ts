@@ -194,8 +194,8 @@ export const VOTE_DISPUTE_MUTATION = gql`
 `
 
 export const INVITE_TO_GROUP_MUTATION = gql`
-  mutation InviteToGroup($groupId: String!, $inviteeEmail: String!) {
-    inviteToGroup(groupId: $groupId, inviteeEmail: $inviteeEmail) {
+  mutation InviteToGroup($groupId: String!, $inviteeIdentifier: String!) {
+    inviteToGroup(groupId: $groupId, inviteeIdentifier: $inviteeIdentifier) {
       id
       status
       inviteeEmail
