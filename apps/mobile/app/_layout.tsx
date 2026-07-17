@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { ApolloProvider } from '@apollo/client'
@@ -15,9 +16,24 @@ if (typeof window !== 'undefined') {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
-    registerServiceWorker()
+  const [updateAvailable, setUpdateAvailable] = useState(false)
+
+  const handleSWUpdate = useCallback(() => {
+    setUpdateAvailable(true)
   }, [])
+
+  const handleRefresh = useCallback(() => {
+    // Send SKIP_WAITING to the waiting SW, then the 'controllerchange'
+    // event in registerSW.ts will trigger a reload.
+    navigator.serviceWorker?.getRegistration()?.then((reg) => {
+      reg?.waiting?.postMessage({ type: 'SKIP_WAITING' })
+    })
+    setUpdateAvailable(false)
+  }, [])
+
+  useEffect(() => {
+    registerServiceWorker(handleSWUpdate)
+  }, [handleSWUpdate])
 
   return (
     <ApolloProvider client={client}>
@@ -29,6 +45,43 @@ export default function RootLayout() {
         </Stack>
         {/* PWA install button — shown on all screens, fixed position */}
         <PWAInstallButton />
+
+        {/* Update available banner */}
+        {updateAvailable && (
+          <View
+            // @ts-expect-error - position:fixed is web-only but correct for this overlay
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10000,
+              backgroundColor: '#FF6B35',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 }}>
+              Nueva versión disponible
+            </Text>
+            <TouchableOpacity
+              onPress={handleRefresh}
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+              }}
+            >
+              <Text style={{ color: '#FF6B35', fontWeight: '700', fontSize: 13 }}>
+                Actualizar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ThemeProvider>
     </ApolloProvider>
   )

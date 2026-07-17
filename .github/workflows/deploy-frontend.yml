@@ -40,125 +40,170 @@ jobs:
           EXPO_PUBLIC_BASE_URL: /fit-app/
           PUBLIC_URL: /fit-app/
           NODE_ENV: production
+          # Ensure the icon is passed along
+          EXPO_PUBLIC_ICON: ./assets/icon.png
 
       - name: Setup SPA routing, PWA assets, and fix asset paths for GitHub Pages
         run: |
+          set -euo pipefail
           cd apps/mobile/dist
+
+          echo "=== Contents of dist/ before setup ==="
+          find . -maxdepth 2 -type f | sort
 
           # -------------------------------------------------------
           # 1. PWA: Copy service worker from source
           #    Metro bundler does NOT copy public/ directory automatically.
           # -------------------------------------------------------
           if [ -f ../public/sw.js ]; then
-            echo "Copying service worker"
+            echo "✓ Copying service worker from public/sw.js"
             cp ../public/sw.js sw.js
           else
-            echo "Generating service worker"
-            node -e "
-              const sw = \`
-        const CACHE_NAME = 'fit-app-v1'
-        self.addEventListener('install', (e) => { self.skipWaiting() })
-        self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()) })
-        self.addEventListener('fetch', (e) => {
-          e.respondWith(fetch(e.request).catch(() => caches.match(e.request)))
-        })
-        \`.trim()
-              require('fs').writeFileSync('sw.js', sw)
-            "
+            echo "⚠ public/sw.js not found, generating minimal sw.js"
+            cat > sw.js << 'SWEOF'
+      const CACHE_NAME = 'fit-app-v1'
+      const BASE_PATH = self.location.pathname.replace('/sw.js', '')
+      const PRECACHE_URLS = [BASE_PATH + '/', BASE_PATH + '/index.html']
+      self.addEventListener('install', (e) => {
+        self.skipWaiting()
+        e.waitUntil(
+          caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+        )
+      })
+      self.addEventListener('activate', (e) => {
+        e.waitUntil(
+          Promise.all([
+            clients.claim(),
+            caches.keys().then((keys) =>
+              Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+            ),
+          ])
+        )
+      })
+      self.addEventListener('fetch', (e) => {
+        e.respondWith(
+          fetch(e.request)
+            .then((r) => {
+              const clone = r.clone()
+              caches.open(CACHE_NAME).then((c) => c.put(e.request, clone))
+              return r
+            })
+            .catch(() => caches.match(e.request))
+        )
+      })
+      SWEOF
           fi
 
           # -------------------------------------------------------
           # 2. PWA: Copy icon assets for manifest
-          #    Expo web build with Metro does NOT always copy icon.png to dist/assets.
-          #    Try assets/ first, then fall back to project-root img/.
+          #    Expo web build does NOT copy icon.png to dist/assets/ automatically.
+          #    Try multiple source locations as fallback.
           # -------------------------------------------------------
+          echo "--- Copying PWA icons ---"
           mkdir -p assets
           ICON_SRC=""
-          if [ -f ../assets/icon.png ]; then
-            ICON_SRC="../assets/icon.png"
-          elif [ -f ../../img/icon.png ]; then
-            ICON_SRC="../../img/icon.png"
-          fi
+          for candidate in ../assets/icon.png ../assets/favicon.png ../../img/icon.png; do
+            if [ -f "$candidate" ]; then
+              ICON_SRC="$candidate"
+              echo "  Found icon at: $candidate"
+              break
+            fi
+          done
           if [ -n "$ICON_SRC" ]; then
-            echo "Copying PWA icons from $ICON_SRC"
             cp "$ICON_SRC" assets/icon-192x192.png
             cp "$ICON_SRC" assets/icon-512x512.png
+            echo "✓ Icons copied to assets/icon-{192,512}x512.png"
           else
-            echo "WARNING: No icon source found for PWA manifest"
+            echo "⚠ WARNING: No icon source found! Generating placeholder icons."
+            # Generate 1x1 transparent PNGs so manifest doesn't 404
+            node -e "
+              const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
+              require('fs').writeFileSync('assets/icon-192x192.png', png)
+              require('fs').writeFileSync('assets/icon-512x512.png', png)
+            "
           fi
+          ls -la assets/
 
           # -------------------------------------------------------
           # 3. Generate manifest.json with correct subpath-aware paths
+          #    Use BASE_PATH from environment or default to /fit-app/
           # -------------------------------------------------------
-          echo "Generating manifest.json"
+          echo "--- Generating manifest.json ---"
+          MANIFEST_BASE="${PUBLIC_URL:-/fit-app/}"
+          MANIFEST_BASE="${MANIFEST_BASE%/}"  # Remove trailing slash
           node -e "
+            const base = process.env.MANIFEST_BASE || '/fit-app'
             const m = {
               name: 'Fit App',
               short_name: 'Fit App',
               description: 'Tu ranking de gimnasio',
-              start_url: '/fit-app/',
-              scope: '/fit-app/',
+              start_url: base + '/',
+              scope: base + '/',
               display: 'standalone',
               orientation: 'portrait',
               background_color: '#FFF8F0',
               theme_color: '#FF6B35',
               lang: 'es-ES',
+              categories: ['fitness', 'health', 'social'],
+              prefer_related_applications: false,
               icons: [
-                { src: '/fit-app/assets/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                { src: '/fit-app/assets/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+                { src: base + '/assets/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                { src: base + '/assets/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
               ],
+              splash_pages: null,
             }
             require('fs').writeFileSync('manifest.json', JSON.stringify(m, null, 2))
+            console.log('manifest.json written with base:', base)
           "
 
           # -------------------------------------------------------
-          # 4. Inject PWA meta/link tags into HTML files
+          # 4. Inject all PWA meta/link tags into HTML files (single pass)
+          #    IMPORTANT: Do ALL </head> insertions in ONE sed to avoid
+          #    nested </head> tags from successive replacements.
           # -------------------------------------------------------
+          echo "--- Injecting PWA meta tags ---"
           for f in $(find . -name "*.html"); do
-            echo "Fixing $f"
-            # Add <base href="/fit-app/"> after <head>
+            echo "  Processing: $f"
+
+            # Step 4a: Add <base> tag right after <head>
             sed -i 's|<head>|<head><base href="/fit-app/">|' "$f"
-            # Add manifest link
-            if ! grep -q 'rel="manifest"' "$f"; then
-              sed -i 's|</head>|<link rel="manifest" href="/fit-app/manifest.json" /></head>|' "$f"
-            fi
-            # Add apple-touch-icon
-            if ! grep -q 'apple-touch-icon' "$f"; then
-              sed -i 's|</head>|<link rel="apple-touch-icon" href="/fit-app/assets/icon-192x192.png" /></head>|' "$f"
-            fi
-            # Add theme-color meta
-            if ! grep -q 'theme-color' "$f"; then
-              sed -i 's|</head>|<meta name="theme-color" content="#FF6B35" /></head>|' "$f"
-            fi
-            # Add apple-mobile-web-app-capable meta
-            if ! grep -q 'apple-mobile-web-app-capable' "$f"; then
-              sed -i 's|</head>|<meta name="apple-mobile-web-app-capable" content="yes" /></head>|' "$f"
-            fi
-            # Add apple-mobile-web-app-status-bar-style meta
-            if ! grep -q 'apple-mobile-web-app-status-bar-style' "$f"; then
-              sed -i 's|</head>|<meta name="apple-mobile-web-app-status-bar-style" content="default" /></head>|' "$f"
-            fi
-            # Make asset paths relative to the base
+
+            # Step 4b: Inject ALL head tags before </head> in a SINGLE sed
+            # This avoids the problem of each sed creating a new </head>
+            sed -i \
+              's|</head>|<link rel="manifest" href="/fit-app/manifest.json" />\n    <link rel="apple-touch-icon" href="/fit-app/assets/icon-192x192.png" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n    <meta name="theme-color" content="#FF6B35" />\n  </head>|' "$f"
+
+            # Step 4c: Make asset paths relative (resolve via <base> tag)
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
             sed -i 's|href="/_expo|href="./_expo|g' "$f"
             sed -i 's|href="/assets|href="./assets|g' "$f"
-            # Fix favicon path: /favicon.ico -> favicon.ico (relative, resolves via <base>)
             sed -i 's|href="/favicon.ico"|href="favicon.ico"|g' "$f"
+
+            echo "  ✓ Done: $f"
           done
 
           # -------------------------------------------------------
           # 5. Fix JS bundle asset paths for GitHub Pages subpath
           # -------------------------------------------------------
-          for f in $(find ./_expo -name "*.js"); do
-            echo "Fixing asset paths in $f"
-            sed -i 's|httpServerLocation:"/assets|httpServerLocation:"/fit-app/assets|g' "$f"
-          done
+          echo "--- Fixing JS bundle asset paths ---"
+          if [ -d ./_expo ]; then
+            for f in $(find ./_expo -name "*.js"); do
+              sed -i 's|httpServerLocation:"/assets|httpServerLocation:"/fit-app/assets|g' "$f"
+            done
+            echo "✓ Fixed JS paths in _expo/"
+          fi
 
           # -------------------------------------------------------
           # 6. SPA: serve index.html on 404 so client-side routing works
           # -------------------------------------------------------
+          echo "--- Setting up SPA routing ---"
           cp index.html 404.html
           touch .nojekyll
+          echo "✓ SPA routing ready (.nojekyll + 404.html)"
+
+          echo ""
+          echo "=== Final dist/ contents ==="
+          find . -maxdepth 2 -type f | sort
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
