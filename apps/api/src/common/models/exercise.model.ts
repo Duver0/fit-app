@@ -20,6 +20,9 @@ export class Exercise {
   @Field(() => ExerciseUnit)
   unit: ExerciseUnit
 
+  @Field({ nullable: true })
+  imageUrl?: string
+
   @Field(() => User)
   createdBy: User
 

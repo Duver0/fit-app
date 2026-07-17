@@ -92,6 +92,7 @@ export const GROUP_QUERY = gql`
         id
         name
         unit
+        imageUrl
       }
     }
   }
@@ -136,6 +137,7 @@ export const TOP3_RANKING_QUERY = gql`
         id
         name
         unit
+        imageUrl
       }
       top {
         id
@@ -266,6 +268,18 @@ export const CREATE_EXERCISE_MUTATION = gql`
       id
       name
       unit
+      imageUrl
+    }
+  }
+`
+
+export const UPDATE_EXERCISE_IMAGE_MUTATION = gql`
+  mutation UpdateExerciseImage($input: UpdateExerciseImageInput!) {
+    updateExerciseImage(input: $input) {
+      id
+      name
+      unit
+      imageUrl
     }
   }
 `
@@ -348,9 +362,11 @@ export const EXERCISES_QUERY = gql`
       id
       name
       unit
+      imageUrl
       createdBy {
         id
         name
+        avatarUrl
       }
     }
   }

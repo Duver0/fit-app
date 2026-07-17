@@ -11,8 +11,10 @@ export function useExercises(groupId: string) {
     refetchQueries: [{ query: EXERCISES_QUERY, variables: { groupId } }],
   })
 
-  const createExercise = async (name: string, unit: string = 'KG') => {
-    return createExerciseMutation({ variables: { input: { groupId, name, unit } } })
+  const createExercise = async (name: string, unit: string = 'KG', imageUrl?: string) => {
+    return createExerciseMutation({
+      variables: { input: { groupId, name, unit, ...(imageUrl ? { imageUrl } : {}) } },
+    })
   }
 
   return {

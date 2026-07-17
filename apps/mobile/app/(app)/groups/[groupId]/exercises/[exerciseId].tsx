@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView } from 'react-native'
 import { useLocalSearchParams, Stack } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
 import { useRanking } from '../../../../../src/hooks/useRanking'
@@ -7,6 +7,20 @@ import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery } from '@apollo/client'
 import { GROUP_QUERY } from '../../../../../src/lib/graphql'
+
+const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
+
+const MEDAL_ICONS: Record<number, string> = {
+  1: '🥇',
+  2: '🥈',
+  3: '🥉',
+}
+
+const MEDAL_COLORS: Record<number, string> = {
+  1: '#FFD700',
+  2: '#C0C0C0',
+  3: '#CD7F32',
+}
 
 export default function ExerciseDetailScreen() {
   const { colors } = useTheme()
@@ -24,6 +38,10 @@ export default function ExerciseDetailScreen() {
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
+
+  // Split ranking into top 3 and rest
+  const top3 = ranking.filter((r: any) => r.rank <= 3)
+  const rest = ranking.filter((r: any) => r.rank > 3)
 
   const handleUpsert = async () => {
     if (!newValue) return
@@ -73,89 +91,253 @@ export default function ExerciseDetailScreen() {
     }
   }
 
+  const unitLabel = exercise ? (UNIT_LABELS[exercise.unit] || exercise.unit) : ''
+
+  const renderRankingItem = (item: any, index: number) => {
+    const isMe = currentUser && item.user?.id === currentUser.id
+    const medal = item.rank <= 3 ? MEDAL_ICONS[item.rank] : null
+
+    return (
+      <View key={item.id} style={{
+        backgroundColor: isMe ? colors.primary + '12' : colors.surface,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: isMe ? colors.primary + '30' : colors.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+        {/* Rank */}
+        <View style={{ width: 40, alignItems: 'center' }}>
+          {medal ? (
+            <Text style={{ fontSize: 20 }}>{medal}</Text>
+          ) : (
+            <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 14 }}>
+              #{item.rank}
+            </Text>
+          )}
+        </View>
+
+        {/* Avatar */}
+        <View style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: item.rank <= 3 ? MEDAL_COLORS[item.rank] + '40' : colors.accent,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 10,
+        }}>
+          {item.user?.avatarUrl ? (
+            <Image
+              source={{ uri: item.user.avatarUrl }}
+              style={{ width: 36, height: 36, borderRadius: 18 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
+              {item.user?.name?.charAt(0) || '?'}
+            </Text>
+          )}
+        </View>
+
+        {/* Name */}
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }} numberOfLines={1}>
+            {item.user?.name || 'Usuario'}
+          </Text>
+          {isMe && (
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '500' }}>Tú</Text>
+          )}
+        </View>
+
+        {/* Value */}
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginRight: 8 }}>
+          {item.value} {unitLabel}
+        </Text>
+
+        {/* Dispute buttons */}
+        <TouchableOpacity
+          onPress={() => setDisputeVotingPerformanceId(item.id)}
+          style={{ backgroundColor: colors.primary + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5, marginRight: 4 }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 11 }}>Disputas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setShowDispute(item.id)}
+          style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 }}
+        >
+          <Text style={{ color: colors.error, fontSize: 11 }}>Disputar</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: exercise?.name || 'Ejercicio' }} />
 
-      <View style={{ padding: 24, paddingTop: 60 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.text }}>{exercise?.name}</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Unidad: {exercise?.unit}</Text>
-      </View>
-
-      {myPerformance && (
-        <TouchableOpacity
-          onPress={() => { setNewValue(myPerformance.value.toString()); setShowUpsert(true) }}
-          style={{
-            marginHorizontal: 16, marginBottom: 16,
-            backgroundColor: colors.surface, borderRadius: 16, padding: 16,
-            borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-          }}
-        >
-          <View>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Tu marca</Text>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: 'bold' }}>{myPerformance.value}</Text>
-          </View>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Actualizar</Text>
-        </TouchableOpacity>
-      )}
-
-      {!myPerformance && (
-        <TouchableOpacity
-          onPress={() => setShowUpsert(true)}
-          style={{
-            marginHorizontal: 16, marginBottom: 16,
-            backgroundColor: colors.primary, borderRadius: 24, padding: 14, alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: colors.text, fontWeight: '600' }}>Registrar marca</Text>
-        </TouchableOpacity>
-      )}
-
       <FlatList
-        data={ranking}
+        data={rest}
         keyExtractor={(item: any) => item.id}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
-        contentContainerStyle={{ padding: 16, paddingTop: 0 }}
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingTop: 40 }}>
-            <Text style={{ color: colors.textSecondary }}>No hay marcas registradas aún</Text>
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={
+          <View>
+            {/* Header with image */}
+            <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
+              {exercise?.imageUrl ? (
+                <Image
+                  source={{ uri: exercise.imageUrl }}
+                  style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 24,
+                  backgroundColor: colors.surface,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}>
+                  <Text style={{ fontSize: 40, color: colors.primary, fontWeight: '700' }}>
+                    {exercise?.name?.charAt(0) || '?'}
+                  </Text>
+                </View>
+              )}
+              <Text style={{ fontSize: 26, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>
+                {exercise?.name}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 4 }}>
+                Unidad: {unitLabel}
+              </Text>
+            </View>
+
+            {/* My performance card */}
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+              {myPerformance ? (
+                <TouchableOpacity
+                  onPress={() => { setNewValue(myPerformance.value.toString()); setShowUpsert(true) }}
+                  style={{
+                    backgroundColor: colors.primary + '15',
+                    borderRadius: 16,
+                    padding: 16,
+                    borderWidth: 1,
+                    borderColor: colors.primary + '30',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Tu marca</Text>
+                    <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
+                      {myPerformance.value} {unitLabel}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.primary, fontWeight: '600' }}>Actualizar</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setShowUpsert(true)}
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 24,
+                    padding: 16,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>
+                    + Registrar marca
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Top 3 destacado */}
+            {top3.length > 0 && (
+              <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 12 }}>
+                  🏆 Top 3 destacado
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 160 }}>
+                  {[2, 1, 3].map((pos) => {
+                    const record = top3.find((r: any) => r.rank === pos)
+                    if (!record) return <View key={pos} style={{ width: 100 }} />
+                    const barHeight = pos === 1 ? 120 : pos === 2 ? 90 : 60
+                    return (
+                      <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
+                        <Text style={{ fontSize: 28 }}>{MEDAL_ICONS[pos]}</Text>
+                        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700', marginVertical: 4 }}>
+                          {record.value} {unitLabel}
+                        </Text>
+                        <View style={{
+                          width: 50,
+                          height: barHeight,
+                          backgroundColor: MEDAL_COLORS[pos],
+                          borderRadius: 10,
+                          marginBottom: 6,
+                          opacity: 0.8,
+                        }} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                          <View style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: MEDAL_COLORS[pos] + '60',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 4,
+                          }}>
+                            {record.user?.avatarUrl ? (
+                              <Image
+                                source={{ uri: record.user.avatarUrl }}
+                                style={{ width: 24, height: 24, borderRadius: 12 }}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <Text style={{ color: colors.text, fontSize: 10, fontWeight: '600' }}>
+                                {record.user?.name?.charAt(0) || '?'}
+                              </Text>
+                            )}
+                          </View>
+                          <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                            {record.user?.name || 'Usuario'}
+                          </Text>
+                        </View>
+                      </View>
+                    )
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Ranking completo header */}
+            {ranking.length > 0 && (
+              <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
+                  Ranking completo ({ranking.length})
+                </Text>
+              </View>
+            )}
           </View>
         }
-        renderItem={({ item, index }: any) => (
-          <View style={{
-            backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8,
-            borderWidth: 1, borderColor: colors.border,
-            flexDirection: 'row', alignItems: 'center',
-          }}>
-            <Text style={{
-              width: 32, textAlign: 'center', fontWeight: 'bold', fontSize: 16,
-              color: item.rank <= 3 ? colors.primary : colors.textSecondary,
-            }}>
-              #{item.rank}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 16 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15 }}>
+              No hay marcas registradas aún
             </Text>
-            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center', marginHorizontal: 8 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{item.user.name.charAt(0)}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '500' }}>{item.user.name}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>{item.value}</Text>
-              <TouchableOpacity
-                onPress={() => setDisputeVotingPerformanceId(item.id)}
-                style={{ backgroundColor: colors.primary + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 4, marginRight: 4 }}
-              >
-                <Text style={{ color: colors.primary, fontSize: 12 }}>Disputas</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowDispute(item.id)}
-                style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 4 }}
-              >
-                <Text style={{ color: colors.error, fontSize: 12 }}>Disputar</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+              ¡Registrá tu primera marca para empezar a competir!
+            </Text>
           </View>
-        )}
+        }
+        renderItem={({ item }: any) => renderRankingItem(item, item.rank)}
       />
 
       {/* Upsert Modal */}
@@ -166,7 +348,7 @@ export default function ExerciseDetailScreen() {
               {myPerformance ? 'Actualizar marca' : 'Registrar marca'}
             </Text>
             <TextInput
-              placeholder={`Valor en ${exercise?.unit || 'kg'}`}
+              placeholder={`Valor en ${unitLabel || 'kg'}`}
               placeholderTextColor={colors.textSecondary}
               value={newValue} onChangeText={setNewValue}
               keyboardType="decimal-pad"

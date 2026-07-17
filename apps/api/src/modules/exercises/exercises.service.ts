@@ -22,7 +22,7 @@ export class ExercisesService {
     return exercise
   }
 
-  async create(userId: string, data: { groupId: string; name: string; unit?: string }) {
+  async create(userId: string, data: { groupId: string; name: string; unit?: string; imageUrl?: string }) {
     const membership = await this.prisma.groupMember.findFirst({
       where: { groupId: data.groupId, userId },
     })
@@ -34,7 +34,23 @@ export class ExercisesService {
         name: data.name,
         createdBy: userId,
         unit: (data.unit as ExerciseUnit) || ExerciseUnit.KG,
+        ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
       },
+    })
+  }
+
+  async updateImage(id: string, userId: string, imageUrl: string) {
+    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    if (!exercise) throw new NotFoundException()
+
+    const membership = await this.prisma.groupMember.findFirst({
+      where: { groupId: exercise.groupId, userId },
+    })
+    if (!membership) throw new ForbiddenException('You must be a group member to update exercise image')
+
+    return this.prisma.exercise.update({
+      where: { id },
+      data: { imageUrl },
     })
   }
 

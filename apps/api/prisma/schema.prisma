@@ -128,6 +128,7 @@ model Exercise {
   groupId   String       @map("group_id") @db.Uuid
   name      String
   unit      ExerciseUnit @default(KG)
+  imageUrl  String?      @map("image_url") @db.Text
   createdBy String       @map("created_by") @db.Uuid
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
