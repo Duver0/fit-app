@@ -66,7 +66,7 @@ export const MY_GROUPS_QUERY = gql`
 `
 
 export const GROUP_QUERY = gql`
-  query Group($id: ID!) {
+  query Group($id: String!) {
     group(id: $id) {
       id
       name
@@ -110,7 +110,7 @@ export const CREATE_GROUP_MUTATION = gql`
 `
 
 export const RANKING_QUERY = gql`
-  query Ranking($exerciseId: ID!, $page: Int, $limit: Int) {
+  query Ranking($exerciseId: String!, $page: Int, $limit: Int) {
     ranking(exerciseId: $exerciseId, page: $page, limit: $limit) {
       items {
         id
@@ -130,7 +130,7 @@ export const RANKING_QUERY = gql`
 `
 
 export const TOP3_RANKING_QUERY = gql`
-  query Top3Ranking($groupId: ID!) {
+  query Top3Ranking($groupId: String!) {
     top3Ranking(groupId: $groupId) {
       exercise {
         id
@@ -161,7 +161,7 @@ export const UPSERT_PERFORMANCE_MUTATION = gql`
 `
 
 export const MY_PERFORMANCE_QUERY = gql`
-  query MyPerformance($exerciseId: ID!) {
+  query MyPerformance($exerciseId: String!) {
     myPerformance(exerciseId: $exerciseId) {
       id
       value
@@ -183,7 +183,7 @@ export const CREATE_DISPUTE_MUTATION = gql`
 `
 
 export const VOTE_DISPUTE_MUTATION = gql`
-  mutation VoteOnDispute($disputeId: ID!, $vote: Boolean!) {
+  mutation VoteOnDispute($disputeId: String!, $vote: Boolean!) {
     voteOnDispute(disputeId: $disputeId, vote: $vote) {
       id
       status
@@ -192,7 +192,7 @@ export const VOTE_DISPUTE_MUTATION = gql`
 `
 
 export const INVITE_TO_GROUP_MUTATION = gql`
-  mutation InviteToGroup($groupId: ID!, $inviteeEmail: String!) {
+  mutation InviteToGroup($groupId: String!, $inviteeEmail: String!) {
     inviteToGroup(groupId: $groupId, inviteeEmail: $inviteeEmail) {
       id
       status
@@ -221,13 +221,13 @@ export const MY_INVITATIONS_QUERY = gql`
 `
 
 export const ACCEPT_INVITATION_MUTATION = gql`
-  mutation AcceptInvitation($invitationId: ID!) {
+  mutation AcceptInvitation($invitationId: String!) {
     acceptInvitation(invitationId: $invitationId)
   }
 `
 
 export const DECLINE_INVITATION_MUTATION = gql`
-  mutation DeclineInvitation($invitationId: ID!) {
+  mutation DeclineInvitation($invitationId: String!) {
     declineInvitation(invitationId: $invitationId)
   }
 `
@@ -244,7 +244,7 @@ export const UPDATE_PROFILE_MUTATION = gql`
 `
 
 export const UPDATE_GROUP_MUTATION = gql`
-  mutation UpdateGroup($id: ID!, $input: UpdateGroupInput!) {
+  mutation UpdateGroup($id: String!, $input: UpdateGroupInput!) {
     updateGroup(id: $id, input: $input) {
       id
       name
@@ -255,7 +255,7 @@ export const UPDATE_GROUP_MUTATION = gql`
 `
 
 export const DELETE_GROUP_MUTATION = gql`
-  mutation DeleteGroup($id: ID!) {
+  mutation DeleteGroup($id: String!) {
     deleteGroup(id: $id)
   }
 `
@@ -271,19 +271,19 @@ export const CREATE_EXERCISE_MUTATION = gql`
 `
 
 export const LEAVE_GROUP_MUTATION = gql`
-  mutation LeaveGroup($groupId: ID!) {
+  mutation LeaveGroup($groupId: String!) {
     leaveGroup(groupId: $groupId)
   }
 `
 
 export const REMOVE_MEMBER_MUTATION = gql`
-  mutation RemoveMember($groupId: ID!, $userId: ID!) {
+  mutation RemoveMember($groupId: String!, $userId: String!) {
     removeMember(groupId: $groupId, userId: $userId)
   }
 `
 
 export const DISPUTES_QUERY = gql`
-  query Disputes($performanceId: ID!) {
+  query Disputes($performanceId: String!) {
     disputes(performanceId: $performanceId) {
       id
       status
@@ -343,7 +343,7 @@ export const MY_DISPUTES_QUERY = gql`
 `
 
 export const EXERCISES_QUERY = gql`
-  query Exercises($groupId: ID!) {
+  query Exercises($groupId: String!) {
     exercises(groupId: $groupId) {
       id
       name
