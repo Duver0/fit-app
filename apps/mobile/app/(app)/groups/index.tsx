@@ -1,7 +1,7 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
 import { router } from 'expo-router'
-import { useTheme } from '../../../../src/theme/ThemeProvider'
-import { useGroups } from '../../../../src/hooks/useGroups'
+import { useTheme } from '../../../src/theme/ThemeProvider'
+import { useGroups } from '../../../src/hooks/useGroups'
 
 export default function GroupsScreen() {
   const { colors } = useTheme()
@@ -45,7 +45,7 @@ export default function GroupsScreen() {
         }
         renderItem={({ item }: any) => (
           <TouchableOpacity
-            onPress={() => router.push(`/(app)/(tabs)/groups/${item.id}`)}
+            onPress={() => router.push(`/(app)/groups/${item.id}`)}
             style={{
               backgroundColor: colors.surface,
               borderRadius: 16,
@@ -76,7 +76,7 @@ export default function GroupsScreen() {
       />
 
       <TouchableOpacity
-        onPress={() => router.push('/(app)/(tabs)/groups/create')}
+        onPress={() => router.push('/(app)/groups/create')}
         style={{
           position: 'absolute', bottom: 24, right: 24,
           backgroundColor: colors.primary, width: 56, height: 56, borderRadius: 28,

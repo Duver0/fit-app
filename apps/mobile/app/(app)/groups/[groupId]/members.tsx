@@ -3,8 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, Alert, Activi
 import { useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION } from '../../../../../src/lib/graphql'
+import { useTheme } from '../../../../src/theme/ThemeProvider'
+import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION } from '../../../../src/lib/graphql'
 
 export default function MembersScreen() {
   const { colors } = useTheme()

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView } from 'react-native'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
-import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { useTheme } from '../../../../src/theme/ThemeProvider'
+import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -88,7 +88,7 @@ export default function GroupSettingsScreen() {
           onPress: async () => {
             try {
               await deleteGroup({ variables: { id: groupId } })
-              router.replace('/(app)/(tabs)/groups')
+              router.replace('/(app)/groups')
             } catch (e: any) {
               Alert.alert('Error', e.message)
             }

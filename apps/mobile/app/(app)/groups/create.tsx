@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
-import { useTheme } from '../../../../src/theme/ThemeProvider'
-import { useGroups } from '../../../../src/hooks/useGroups'
+import { useTheme } from '../../../src/theme/ThemeProvider'
+import { useGroups } from '../../../src/hooks/useGroups'
 
 export default function CreateGroupScreen() {
   const { colors } = useTheme()

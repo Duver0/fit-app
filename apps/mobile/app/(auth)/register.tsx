@@ -25,7 +25,7 @@ export default function RegisterScreen() {
     try {
       setError('')
       await register(email, password, name, phone || undefined)
-      router.replace('/(app)/(tabs)/groups')
+      router.replace('/(app)/groups')
     } catch (e: any) {
       setError(e.message || 'Error al registrarse')
     }

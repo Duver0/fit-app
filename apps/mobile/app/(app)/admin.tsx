@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native'
 import { useQuery, useMutation, gql } from '@apollo/client'
-import { useTheme } from '../../../src/theme/ThemeProvider'
-import { useAuthStore } from '../../../src/stores/authStore'
+import { useTheme } from '../../src/theme/ThemeProvider'
+import { useAuthStore } from '../../src/stores/authStore'
 
 const ADMIN_GROUPS = gql`
   query AdminGroups($page: Int, $limit: Int) {

@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
-import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { useAuthStore } from '../../../../../src/stores/authStore'
-import { EXERCISES_QUERY, TOP3_RANKING_QUERY, CREATE_EXERCISE_MUTATION, UPSERT_PERFORMANCE_MUTATION } from '../../../../../src/lib/graphql'
+import { useTheme } from '../../../../src/theme/ThemeProvider'
+import { useAuthStore } from '../../../../src/stores/authStore'
+import { EXERCISES_QUERY, TOP3_RANKING_QUERY, CREATE_EXERCISE_MUTATION, UPSERT_PERFORMANCE_MUTATION } from '../../../../src/lib/graphql'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -293,7 +293,7 @@ export default function GroupDashboardScreen() {
                 <View>
                   <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>Ranking top 3</Text>
                   <TouchableOpacity
-                    onPress={() => router.push(`/(app)/(tabs)/groups/${groupId}/exercises/${ex.id}`)}
+                    onPress={() => router.push(`/(app)/groups/${groupId}/exercises/${ex.id}`)}
                     activeOpacity={0.7}
                   >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 70 }}>

@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
-import { useTheme } from '../../../src/theme/ThemeProvider'
-import { useAuthStore } from '../../../src/stores/authStore'
-import { useThemeStore } from '../../../src/stores/themeStore'
-import { UPDATE_PROFILE_MUTATION } from '../../../src/lib/graphql'
+import { useTheme } from '../../src/theme/ThemeProvider'
+import { useAuthStore } from '../../src/stores/authStore'
+import { useThemeStore } from '../../src/stores/themeStore'
+import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()
