@@ -36,6 +36,7 @@ export class ExercisesService {
         unit: (data.unit as ExerciseUnit) || ExerciseUnit.KG,
         ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
       },
+      include: { creator: true },
     })
   }
 
@@ -51,6 +52,7 @@ export class ExercisesService {
     return this.prisma.exercise.update({
       where: { id },
       data: { imageUrl },
+      include: { creator: true },
     })
   }
 
