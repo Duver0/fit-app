@@ -150,8 +150,9 @@ export class ExercisesService {
         name: data.name,
         createdBy: userId,
         unit: (data.unit as ExerciseUnit) || ExerciseUnit.KG,
-        imageUrl: data.imageUrl,        // ← NUEVO: se pasa si está definido
+        ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
       },
+      include: { creator: true },    // ← NECESARIO: el modelo GraphQL requiere createdBy: User no-nullable
     })
   }
 
@@ -168,6 +169,7 @@ export class ExercisesService {
     return this.prisma.exercise.update({
       where: { id },
       data: { imageUrl },
+      include: { creator: true },    // ← NECESARIO: mismo motivo
     })
   }
 
@@ -262,7 +264,9 @@ export class ExercisesResolver {
 | `exercise.input.ts`: agregar `imageUrl` opcional con validación `@IsUrl()` a `CreateExerciseInput` | ✅ Completo |
 | `exercise.input.ts`: crear `UpdateExerciseImageInput` con `id` + `imageUrl` | ✅ Completo |
 | `exercises.service.ts`: `create()` acepta y persiste `imageUrl` | ✅ Completo |
+| `exercises.service.ts`: `create()` incluye `creator: true` en el retorno | ✅ Completo (fix 35cea0a) |
 | `exercises.service.ts`: nuevo método `updateImage()` con validación de pertenencia al grupo | ✅ Completo |
+| `exercises.service.ts`: `updateImage()` incluye `creator: true` en el retorno | ✅ Completo (fix 35cea0a) |
 | `exercises.resolver.ts`: importar `UpdateExerciseImageInput` | ✅ Completo |
 | `exercises.resolver.ts`: nueva mutation `updateExerciseImage` | ✅ Completo |
 | Compilación TypeScript sin errores | ✅ Completo (`tsc --noEmit` exitoso) |

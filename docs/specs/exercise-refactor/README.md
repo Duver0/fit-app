@@ -31,3 +31,19 @@ Se agrega la posibilidad de asociar una imagen (`imageUrl`) a cada ejercicio. El
 - La imagen se almacena como URL string opcional; la subida se maneja desde el frontend con un upload presignado (similar a avatars). Esta spec solo cubre almacenar y mostrar la URL.
 - No se agrega soporte para editar imagen por separado en la primera iteración; se podrá al crear el ejercicio y luego mediante una mutation `updateExerciseImage`.
 - El `TOP3_RANKING_QUERY` existente puede eliminarse del dashboard ya que ya no se usa ahí, pero se mantiene por si otro screen lo necesita. Se deja de llamar en el dashboard.
+
+## Errores encontrados durante implementación
+
+### `Cannot return null for non-nullable field User.id`
+
+**Síntoma**: Al crear un ejercicio, la mutation `createExercise` fallaba con este error. También al listar ejercicios con `exercises(groupId)` si el backend no incluye `creator`.
+
+**Causa raíz**: El modelo GraphQL `Exercise` tiene `@Field(() => User) createdBy: User` (no-nullable). Prisma retorna `createdBy` como UUID string, pero GraphQL espera un objeto `User`. La relación `creator` de Prisma debe incluirse vía `include: { creator: true }` en cada operación que retorne ejercicios.
+
+**Fix**: Agregar `include: { creator: true }` en:
+- `findByGroup()` ✅ (aa45e2c)
+- `findById()` ✅ (aa45e2c)
+- `create()` ✅ (35cea0a)
+- `updateImage()` ✅ (35cea0a)
+- `GroupsService.findById()` ya lo incluye en `exercises` ✅
+- `RankingService.getTop3()` ya lo incluye ✅
