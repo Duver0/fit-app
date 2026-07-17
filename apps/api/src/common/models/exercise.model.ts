@@ -23,8 +23,8 @@ export class Exercise {
   @Field({ nullable: true })
   imageUrl?: string
 
-  @Field(() => User)
-  createdBy: User
+  @Field(() => User, { name: 'createdBy', description: 'User who created the exercise (resolved from Prisma creator relation)' })
+  creator: User
 
   @Field()
   createdAt: Date
