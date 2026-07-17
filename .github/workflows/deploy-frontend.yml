@@ -70,12 +70,21 @@ jobs:
           # -------------------------------------------------------
           # 2. PWA: Copy icon assets for manifest
           #    Expo web build with Metro does NOT always copy icon.png to dist/assets.
+          #    Try assets/ first, then fall back to project-root img/.
           # -------------------------------------------------------
           mkdir -p assets
+          ICON_SRC=""
           if [ -f ../assets/icon.png ]; then
-            echo "Copying PWA icons"
-            cp ../assets/icon.png assets/icon-192x192.png
-            cp ../assets/icon.png assets/icon-512x512.png
+            ICON_SRC="../assets/icon.png"
+          elif [ -f ../../img/icon.png ]; then
+            ICON_SRC="../../img/icon.png"
+          fi
+          if [ -n "$ICON_SRC" ]; then
+            echo "Copying PWA icons from $ICON_SRC"
+            cp "$ICON_SRC" assets/icon-192x192.png
+            cp "$ICON_SRC" assets/icon-512x512.png
+          else
+            echo "WARNING: No icon source found for PWA manifest"
           fi
 
           # -------------------------------------------------------
