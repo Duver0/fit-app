@@ -53,19 +53,17 @@ export class WgerService {
   }
 
   /**
-   * Busca ejercicios en wger por nombre.
-   * La API de wger ordena por ID (no por relevancia), así que:
-   * 1. Traemos un batch grande
-   * 2. Separamos resultados donde el nombre coincide vs. el resto
-   * 3. Devolvemos primero los que coinciden
+   * Busca ejercicios en wger filtrando SOLO por nombre y con imagen.
+   * - Solo devuelve ejercicios cuyo nombre contenga el texto buscado
+   * - Solo devuelve ejercicios que tengan al menos una imagen disponible
    */
   async searchByName(
     name: string,
     limit: number = 20,
     offset: number = 0,
   ): Promise<WgerSearchResult> {
-    // Pedimos un batch más grande para poder filtrar por relevancia
-    const fetchLimit = Math.max(limit, 50)
+    // Pedimos un batch grande porque filtraremos muchos resultados
+    const fetchLimit = 100
     const url = `${this.baseUrl}/exerciseinfo/?format=json&limit=${fetchLimit}&offset=${offset}&search=${encodeURIComponent(name)}`
     this.logger.log(`Searching wger: ${url}`)
 
@@ -79,25 +77,24 @@ export class WgerService {
 
     const searchLower = name.toLowerCase()
 
-    // Mapear todos y separar por relevancia
-    const allItems: WgerExercise[] = result.results.map((item) =>
-      this.mapExercise(item),
-    )
+    // Mapear y filtrar: solo los que tienen el término en el nombre Y tienen imagen
+    const items: WgerExercise[] = result.results
+      .filter((raw) => {
+        // Solo ejercicios con al menos una imagen
+        if (!raw.images || raw.images.length === 0) return false
 
-    // Separar: primero los que tienen el término en el nombre
-    const nameMatchItems: WgerExercise[] = []
-    const otherItems: WgerExercise[] = []
+        // Extraer nombre para ver si coincide
+        const translation =
+          raw.translations?.find((t) => t.language === LANG_ENGLISH) ||
+          raw.translations?.find((t) => t.language === LANG_SPANISH) ||
+          raw.translations?.[0]
+        const exerciseName = translation?.name?.toLowerCase() || raw.name?.toLowerCase() || ''
 
-    for (const item of allItems) {
-      if (item.name.toLowerCase().includes(searchLower)) {
-        nameMatchItems.push(item)
-      } else {
-        otherItems.push(item)
-      }
-    }
-
-    // Combinar: primero los que coinciden, luego el resto (limitado)
-    const items = [...nameMatchItems, ...otherItems].slice(0, limit)
+        // Solo si el nombre contiene el término buscado
+        return exerciseName.includes(searchLower)
+      })
+      .map((item) => this.mapExercise(item))
+      .slice(0, limit)
 
     const nextOffset = result.next ? offset + fetchLimit : undefined
 
