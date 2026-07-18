@@ -37,7 +37,7 @@ export async function uploadAvatar(uri: string): Promise<string> {
   if (!response.ok) {
     const errorBody = await response.text()
     if (response.status === 413) {
-      throw new Error('La imagen es demasiado grande. El máximo es 20MB.')
+      throw new Error('La imagen es demasiado grande. El máximo es 5MB.')
     }
     throw new Error(errorBody || 'Error al subir la imagen')
   }
@@ -75,7 +75,7 @@ export async function uploadGroupAvatar(uri: string): Promise<string> {
   if (!response.ok) {
     const errorBody = await response.text()
     if (response.status === 413) {
-      throw new Error('La imagen es demasiado grande. El máximo es 20MB.')
+      throw new Error('La imagen es demasiado grande. El máximo es 5MB.')
     }
     throw new Error(errorBody || 'Error al subir la imagen')
   }
@@ -113,7 +113,7 @@ export async function uploadExerciseImage(uri: string): Promise<string> {
   if (!response.ok) {
     const errorBody = await response.text()
     if (response.status === 413) {
-      throw new Error('La imagen es demasiado grande. El máximo es 20MB.')
+      throw new Error('La imagen es demasiado grande. El máximo es 5MB.')
     }
     throw new Error(errorBody || 'Error al subir la imagen')
   }

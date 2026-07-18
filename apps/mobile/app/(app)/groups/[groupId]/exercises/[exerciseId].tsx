@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert, Pressable } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
+import { useImagePicker } from '../../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -35,6 +35,12 @@ export default function ExerciseDetailScreen() {
   const [showMenu, setShowMenu] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
+
+  // --- Image picker ---
+  const { pickImage, ImageEditorModal, isLoading: imageLoading } = useImagePicker({
+    context: 'ejercicio',
+    aspectRatio: '1:1',
+  })
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
@@ -102,17 +108,11 @@ export default function ExerciseDetailScreen() {
   const handleChangeImage = async () => {
     setShowMenu(false)
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      })
-      if (!result.canceled && result.assets[0]) {
-        const imageUrl = await uploadExerciseImage(result.assets[0].uri)
-        await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
-        Alert.alert('Imagen actualizada', 'La imagen del ejercicio se actualizó correctamente.')
-      }
+      const image = await pickImage()
+      if (!image) return
+      const imageUrl = await uploadExerciseImage(image.uri)
+      await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
+      Alert.alert('Imagen actualizada', 'La imagen del ejercicio se actualizó correctamente.')
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Error al actualizar la imagen')
     }
@@ -264,53 +264,51 @@ export default function ExerciseDetailScreen() {
         ) : undefined}
       />
 
-      {/* Dropdown overlay — fuera del header para sobreponerse a todo */}
-      {showMenu && (
-        <>
-          <Pressable
-            onPress={() => setShowMenu(false)}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
-          />
-          <View style={{
-            position: 'absolute',
-            top: 100,
-            right: 16,
-            backgroundColor: colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            zIndex: 999,
-            minWidth: 200,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            elevation: 8,
-          }}>
-            <TouchableOpacity
-              onPress={handleEditExercise}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-            >
-              <Ionicons name="pencil-outline" size={18} color={colors.text} />
-              <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleChangeImage}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-            >
-              <Ionicons name="image-outline" size={18} color={colors.text} />
-              <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDeleteExercise}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
-            >
-              <Ionicons name="trash-outline" size={18} color={colors.error} />
-              <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
-            </TouchableOpacity>
+      {/* Dropdown menu como Modal para que flote sobre todo sin superponerse */}
+      <Modal visible={showMenu} transparent animationType="none">
+        <Pressable style={{ flex: 1 }} onPress={() => setShowMenu(false)}>
+          <View style={{ flex: 1 }}>
+            <View style={{
+              position: 'absolute',
+              top: 100,
+              right: 16,
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+              minWidth: 200,
+              marginBottom: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 8,
+            }}>
+              <TouchableOpacity
+                onPress={handleEditExercise}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <Ionicons name="pencil-outline" size={18} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleChangeImage}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <Ionicons name="image-outline" size={18} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDeleteExercise}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
+              >
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </>
-      )}
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={rest}
@@ -732,6 +730,8 @@ export default function ExerciseDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      {ImageEditorModal}
     </View>
   )
 }

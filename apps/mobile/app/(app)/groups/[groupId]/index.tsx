@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert, KeyboardAvoidingView, Platform, Image, Pressable } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
+import { useImagePicker } from '../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
@@ -33,6 +33,12 @@ export default function GroupDashboardScreen() {
     refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
   })
   const [deleteGroupMutation, { loading: deleting }] = useMutation(DELETE_GROUP_MUTATION)
+
+  // --- Image picker ---
+  const { pickImage, ImageEditorModal, isLoading: imageLoading } = useImagePicker({
+    context: 'grupo',
+    aspectRatio: '1:1',
+  })
 
   // --- State ---
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -69,17 +75,11 @@ export default function GroupDashboardScreen() {
   const handleChangeImage = async () => {
     setShowMenu(false)
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      })
-      if (!result.canceled && result.assets[0]) {
-        const avatarUrl = await uploadGroupAvatar(result.assets[0].uri)
-        await updateGroup({ variables: { id: groupId, input: { avatarUrl } } })
-        Alert.alert('Imagen actualizada', 'La imagen del grupo se actualizó correctamente.')
-      }
+      const image = await pickImage()
+      if (!image) return
+      const avatarUrl = await uploadGroupAvatar(image.uri)
+      await updateGroup({ variables: { id: groupId, input: { avatarUrl } } })
+      Alert.alert('Imagen actualizada', 'La imagen del grupo se actualizó correctamente.')
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Error al actualizar la imagen')
     }
@@ -162,53 +162,51 @@ export default function GroupDashboardScreen() {
         ) : undefined}
       />
 
-      {/* Dropdown overlay */}
-      {showMenu && (
-        <>
-          <Pressable
-            onPress={() => setShowMenu(false)}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
-          />
-          <View style={{
-            position: 'absolute',
-            top: 100,
-            right: 16,
-            backgroundColor: colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            zIndex: 999,
-            minWidth: 200,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            elevation: 8,
-          }}>
-            <TouchableOpacity
-              onPress={handleEditGroup}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-            >
-              <Ionicons name="pencil-outline" size={18} color={colors.text} />
-              <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleChangeImage}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-            >
-              <Ionicons name="image-outline" size={18} color={colors.text} />
-              <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDeleteGroup}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
-            >
-              <Ionicons name="trash-outline" size={18} color={colors.error} />
-              <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar grupo</Text>
-            </TouchableOpacity>
+      {/* Dropdown menu as Modal to overlay everything properly */}
+      <Modal visible={showMenu} transparent animationType="none">
+        <Pressable style={{ flex: 1 }} onPress={() => setShowMenu(false)}>
+          <View style={{ flex: 1 }}>
+            <View style={{
+              position: 'absolute',
+              top: 100,
+              right: 16,
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+              minWidth: 200,
+              marginBottom: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 8,
+            }}>
+              <TouchableOpacity
+                onPress={handleEditGroup}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <Ionicons name="pencil-outline" size={18} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleChangeImage}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+              >
+                <Ionicons name="image-outline" size={18} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDeleteGroup}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
+              >
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar grupo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </>
-      )}
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={exercises}
@@ -533,6 +531,8 @@ export default function GroupDashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {ImageEditorModal}
     </View>
   )
 }
