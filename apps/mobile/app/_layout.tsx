@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ApolloProvider } from '@apollo/client'
 import { ThemeProvider } from '../src/theme/ThemeProvider'
 import { client } from '../src/lib/apollo'
@@ -37,6 +38,7 @@ export default function RootLayout() {
 
   return (
     <ApolloProvider client={client}>
+      <SafeAreaProvider>
       <ThemeProvider>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
@@ -83,6 +85,7 @@ export default function RootLayout() {
           </View>
         )}
       </ThemeProvider>
+      </SafeAreaProvider>
     </ApolloProvider>
   )
 }

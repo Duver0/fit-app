@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme/ThemeProvider'
 
 interface ScreenHeaderProps {
@@ -11,6 +12,7 @@ interface ScreenHeaderProps {
 
 export default function ScreenHeader({ title, showBack = true, rightAction }: ScreenHeaderProps) {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
 
   return (
     <View style={{
@@ -18,7 +20,7 @@ export default function ScreenHeader({ title, showBack = true, rightAction }: Sc
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
-      paddingTop: 60,
+      paddingTop: insets.top + 8,
       paddingBottom: 12,
       backgroundColor: colors.background,
     }}>
