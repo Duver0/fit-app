@@ -6,6 +6,7 @@ import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
 import { uploadGroupAvatar } from '../../../../src/lib/api'
+import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
@@ -94,9 +95,9 @@ export default function GroupSettingsScreen() {
       await updateGroup({
         variables: { id: groupId, input: { name, description, ...(serverAvatarUrl ? { avatarUrl: serverAvatarUrl } : {}) } },
       })
-      Alert.alert('Guardado', 'Los cambios se guardaron correctamente.')
+      showSuccessToast('Cambios guardados correctamente')
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      showErrorToast(e?.message || 'Error al guardar los cambios')
     }
   }
 
@@ -112,9 +113,10 @@ export default function GroupSettingsScreen() {
           onPress: async () => {
             try {
               await deleteGroup({ variables: { id: groupId } })
+              showSuccessToast('Grupo eliminado')
               router.replace('/(app)/groups')
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              showErrorToast(e?.message || 'Error al eliminar el grupo')
             }
           },
         },
@@ -131,8 +133,9 @@ export default function GroupSettingsScreen() {
       setShowExerciseModal(false)
       setExerciseName('')
       setExerciseUnit('KG')
+      showSuccessToast('Ejercicio creado')
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      showErrorToast(e?.message || 'Error al crear el ejercicio')
     }
   }
 

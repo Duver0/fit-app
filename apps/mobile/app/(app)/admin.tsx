@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
+import { showSuccessToast, showErrorToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
 
 const ADMIN_GROUPS = gql`
@@ -60,10 +61,10 @@ export default function AdminScreen() {
         onPress: async () => {
           try {
             await deleteGroupMutation({ variables: { id } })
-            Alert.alert('Grupo eliminado', `El grupo "${name}" fue eliminado correctamente.`)
+            showSuccessToast(`Grupo "${name}" eliminado correctamente`)
           } catch (e: any) {
             const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el grupo'
-            Alert.alert('Error', msg)
+            showErrorToast(msg)
           }
         },
       },
@@ -79,10 +80,10 @@ export default function AdminScreen() {
         onPress: async () => {
           try {
             await deleteUserMutation({ variables: { id } })
-            Alert.alert('Usuario eliminado', `El usuario "${name}" fue eliminado correctamente.`)
+            showSuccessToast(`Usuario "${name}" eliminado correctamente`)
           } catch (e: any) {
             const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el usuario'
-            Alert.alert('Error', msg)
+            showErrorToast(msg)
           }
         },
       },

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert, Pressable } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Alert, Pressable } from 'react-native'
 import { useImagePicker } from '../../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -10,6 +10,7 @@ import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
 import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 import { uploadExerciseImage } from '../../../../../src/lib/api'
+import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -78,9 +79,10 @@ export default function ExerciseDetailScreen() {
           onPress: async () => {
             try {
               await deleteExercise({ variables: { id: exerciseId } })
+              showSuccessToast('Ejercicio eliminado')
               router.back()
             } catch (e: any) {
-              Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+              showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
             }
           },
         },
@@ -99,9 +101,9 @@ export default function ExerciseDetailScreen() {
     try {
       await updateExercise({ variables: { input: { id: exerciseId, name: editName.trim() } } })
       setShowEditModal(false)
-      Alert.alert('Guardado', 'El nombre del ejercicio se actualizó correctamente.')
+      showSuccessToast('Nombre del ejercicio actualizado')
     } catch (e: any) {
-      Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
     }
   }
 
@@ -112,9 +114,9 @@ export default function ExerciseDetailScreen() {
       if (!image) return
       const imageUrl = await uploadExerciseImage(image.uri)
       await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
-      Alert.alert('Imagen actualizada', 'La imagen del ejercicio se actualizó correctamente.')
+      showSuccessToast('Imagen del ejercicio actualizada')
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Error al actualizar la imagen')
+      showErrorToast(e?.message || 'Error al actualizar la imagen')
     }
   }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert, KeyboardAvoidingView, Platform, Image, Pressable } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, KeyboardAvoidingView, Platform, Image, Pressable, Alert } from 'react-native'
 import { useImagePicker } from '../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -8,6 +8,7 @@ import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
 import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
 import { uploadGroupAvatar } from '../../../../src/lib/api'
+import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
@@ -71,9 +72,9 @@ export default function GroupDashboardScreen() {
     try {
       await updateGroup({ variables: { id: groupId, input: { name: editName.trim() } } })
       setShowEditModal(false)
-      Alert.alert('Guardado', 'El nombre del grupo se actualizó correctamente.')
+      showSuccessToast('Nombre del grupo actualizado')
     } catch (e: any) {
-      Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
     }
   }
 
@@ -84,9 +85,9 @@ export default function GroupDashboardScreen() {
       if (!image) return
       const avatarUrl = await uploadGroupAvatar(image.uri)
       await updateGroup({ variables: { id: groupId, input: { avatarUrl } } })
-      Alert.alert('Imagen actualizada', 'La imagen del grupo se actualizó correctamente.')
+      showSuccessToast('Imagen del grupo actualizada')
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Error al actualizar la imagen')
+      showErrorToast(e?.message || 'Error al actualizar la imagen')
     }
   }
 
@@ -103,9 +104,10 @@ export default function GroupDashboardScreen() {
           onPress: async () => {
             try {
               await deleteGroupMutation({ variables: { id: groupId } })
+              showSuccessToast('Grupo eliminado')
               router.replace('/(app)/groups')
             } catch (e: any) {
-              Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+              showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
             }
           },
         },
@@ -122,12 +124,12 @@ export default function GroupDashboardScreen() {
         variables: { groupId, inviteeIdentifier: identifier },
       })
       if (result.errors?.[0]) {
-        Alert.alert('Error', result.errors[0].message)
+        showErrorToast(result.errors[0].message)
         return
       }
-      Alert.alert('Invitación enviada', selectedUser
-        ? `Se invitó a ${selectedUser.name} correctamente.`
-        : 'Si el usuario existe, recibirá la invitación.',
+      showSuccessToast(selectedUser
+        ? `Invitación enviada a ${selectedUser.name}`
+        : 'Invitación enviada',
       )
       setShowInviteModal(false)
       setInviteIdentifier('')
@@ -135,7 +137,7 @@ export default function GroupDashboardScreen() {
       setSelectedUser(null)
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error de red'
-      Alert.alert('Error', msg)
+      showErrorToast(msg)
     }
   }
 
@@ -166,15 +168,16 @@ export default function GroupDashboardScreen() {
         variables: { input: { groupId, name: exerciseName.trim(), unit: exerciseUnit } },
       })
       if (result.errors?.[0]) {
-        Alert.alert('Error', result.errors[0].message)
+        showErrorToast(result.errors[0].message)
         return
       }
       setShowCreateModal(false)
       setExerciseName('')
       setExerciseUnit('KG')
+      showSuccessToast('Ejercicio creado')
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error de red'
-      Alert.alert('Error', msg)
+      showErrorToast(msg)
     }
   }
 

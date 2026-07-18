@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
 import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
+import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 export default function MembersScreen() {
@@ -43,10 +44,10 @@ export default function MembersScreen() {
           onPress: async () => {
             try {
               await removeMemberMutation({ variables: { groupId, userId: memberId } })
-              Alert.alert('Miembro eliminado', `${memberName} fue eliminado del grupo.`)
+              showSuccessToast(`${memberName} fue eliminado del grupo`)
             } catch (e: any) {
               const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar miembro'
-              Alert.alert('Error', msg)
+              showErrorToast(msg)
             }
           },
         },
@@ -60,12 +61,12 @@ export default function MembersScreen() {
     try {
       const result = await inviteMutation({ variables: { groupId, inviteeIdentifier: identifier } })
       if (result.errors?.[0]) {
-        Alert.alert('Error', result.errors[0].message)
+        showErrorToast(result.errors[0].message)
         return
       }
-      Alert.alert('Invitación enviada', selectedUser
-        ? `Se invitó a ${selectedUser.name} correctamente.`
-        : `Se invitó a ${identifier} correctamente.`,
+      showSuccessToast(selectedUser
+        ? `Invitación enviada a ${selectedUser.name}`
+        : `Invitación enviada a ${identifier}`,
       )
       setShowInvite(false)
       setQuery('')
@@ -73,7 +74,7 @@ export default function MembersScreen() {
       setSelectedUser(null)
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al invitar'
-      Alert.alert('Error', msg)
+      showErrorToast(msg)
     }
   }
 

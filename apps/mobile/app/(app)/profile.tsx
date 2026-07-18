@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
 import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
 import { uploadAvatar } from '../../src/lib/api'
+import { showErrorToast, showSuccessToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
 
 export default function ProfileScreen() {
@@ -38,14 +39,13 @@ export default function ProfileScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'El nombre es obligatorio')
+      showErrorToast('El nombre es obligatorio')
       return
     }
     setSaving(true)
     try {
       let serverAvatarUrl: string | undefined
       if (avatarUri) {
-        // Upload the local file first and get back a server-accessible URL
         serverAvatarUrl = await uploadAvatar(avatarUri)
       }
 
@@ -60,8 +60,9 @@ export default function ProfileScreen() {
       }
 
       setIsEditing(false)
+      showSuccessToast('Perfil actualizado correctamente')
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Ocurrió un error al guardar')
+      showErrorToast(e.message || 'Ocurrió un error al guardar')
     } finally {
       setSaving(false)
     }

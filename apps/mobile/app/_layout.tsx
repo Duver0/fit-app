@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ApolloProvider } from '@apollo/client'
 import { ThemeProvider } from '../src/theme/ThemeProvider'
 import { client } from '../src/lib/apollo'
+import { ToastContainer } from '../src/components/ui/Toast'
 import { patchHistoryForBasePath } from '../src/lib/historyPatch'
 import { registerServiceWorker } from '../src/lib/registerSW'
 import PWAInstallButton from '../src/components/PWAInstallButton'
@@ -47,6 +48,9 @@ export default function RootLayout() {
         </Stack>
         {/* PWA install button — shown on all screens, fixed position */}
         <PWAInstallButton />
+
+        {/* Toast container — muestra notificaciones flotantes de error/éxito */}
+        <ToastContainer />
 
         {/* Update available banner */}
         {updateAvailable && (
