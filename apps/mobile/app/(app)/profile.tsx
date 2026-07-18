@@ -6,7 +6,7 @@ import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
 import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
-import { uploadAvatar } from '../../src/lib/api'
+import { uploadAvatar, getImageUrl } from '../../src/lib/api'
 import { showErrorToast, showSuccessToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
 
@@ -75,7 +75,7 @@ export default function ProfileScreen() {
     setIsEditing(false)
   }
 
-  const displayAvatar = avatarUri || user?.avatarUrl
+  const displayAvatar = avatarUri || getImageUrl(user?.avatarUrl)
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -168,14 +168,21 @@ export default function ProfileScreen() {
 
           <View style={{ padding: 24 }}>
             <View style={{ alignItems: 'center', marginBottom: 32 }}>
-              <View style={{
-                width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary,
-                justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-              }}>
-                <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text }}>
-                  {user?.name?.charAt(0)?.toUpperCase()}
-                </Text>
-              </View>
+              {getImageUrl(user?.avatarUrl) ? (
+                <Image
+                  source={{ uri: getImageUrl(user?.avatarUrl) }}
+                  style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 12 }}
+                />
+              ) : (
+                <View style={{
+                  width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary,
+                  justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+                }}>
+                  <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text }}>
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text }}>{user?.name}</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{user?.email}</Text>
               {user?.phone && (

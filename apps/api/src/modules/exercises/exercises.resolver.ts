@@ -1,16 +1,46 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { ExercisesService } from './exercises.service'
+import { WgerService } from './wger.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { Exercise } from '../../common/models'
-import { CreateExerciseInput, UpdateExerciseImageInput, UpdateExerciseInput } from './dto/exercise.input'
+import { WgerSearchResult } from '../../common/models/wger.model'
+import { CreateExerciseInput, UpdateExerciseImageInput, UpdateExerciseInput, WgerDataInput } from './dto/exercise.input'
 import { User } from '../../common/models'
+
+/** Parsea un string JSON a arreglo, o devuelve undefined */
+function parseJsonArray(value?: string | null): string[] | undefined {
+  if (!value) return undefined
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+@Resolver(() => Exercise)
+@UseGuards(GqlAuthGuard)
+export class ExerciseFieldsResolver {
+  @ResolveField(() => [String], { nullable: true })
+  wgerMuscles(@Parent() exercise: any): string[] | undefined {
+    return parseJsonArray(exercise.wgerMuscles)
+  }
+
+  @ResolveField(() => [String], { nullable: true })
+  wgerEquipment(@Parent() exercise: any): string[] | undefined {
+    return parseJsonArray(exercise.wgerEquipment)
+  }
+}
 
 @Resolver()
 @UseGuards(GqlAuthGuard)
 export class ExercisesResolver {
-  constructor(private exercisesService: ExercisesService) {}
+  constructor(
+    private exercisesService: ExercisesService,
+    private wgerService: WgerService,
+  ) {}
 
   @Query(() => [Exercise])
   async exercises(@Args('groupId') groupId: string) {
@@ -20,6 +50,15 @@ export class ExercisesResolver {
   @Query(() => Exercise)
   async exercise(@Args('id') id: string) {
     return this.exercisesService.findById(id)
+  }
+
+  @Query(() => WgerSearchResult)
+  async searchExercises(
+    @Args('name') name: string,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+    @Args('offset', { type: () => Int, nullable: true }) offset?: number,
+  ) {
+    return this.wgerService.searchByName(name, limit ?? 20, offset ?? 0)
   }
 
   @Mutation(() => Exercise)
@@ -44,6 +83,15 @@ export class ExercisesResolver {
     @Args('input') input: UpdateExerciseInput,
   ) {
     return this.exercisesService.update(input.id, user.id, { name: input.name, imageUrl: input.imageUrl })
+  }
+
+  @Mutation(() => Exercise)
+  async enrichExercise(
+    @CurrentUser() user: User,
+    @Args('id') id: string,
+    @Args('wgerData') wgerData: WgerDataInput,
+  ) {
+    return this.exercisesService.enrichFromWger(id, user.id, wgerData)
   }
 
   @Mutation(() => Boolean)

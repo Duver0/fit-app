@@ -93,6 +93,11 @@ export const GROUP_QUERY = gql`
         name
         unit
         imageUrl
+        wgerId
+        wgerCategory
+        wgerMuscles
+        wgerEquipment
+        wgerInstructions
         createdBy {
           id
         }
@@ -315,6 +320,21 @@ export const DELETE_EXERCISE_MUTATION = gql`
   }
 `
 
+export const ENRICH_EXERCISE_MUTATION = gql`
+  mutation EnrichExercise($id: String!, $wgerData: WgerDataInput!) {
+    enrichExercise(id: $id, wgerData: $wgerData) {
+      id
+      name
+      imageUrl
+      wgerId
+      wgerCategory
+      wgerMuscles
+      wgerEquipment
+      wgerInstructions
+    }
+  }
+`
+
 export const LEAVE_GROUP_MUTATION = gql`
   mutation LeaveGroup($groupId: String!) {
     leaveGroup(groupId: $groupId)
@@ -394,11 +414,36 @@ export const EXERCISES_QUERY = gql`
       name
       unit
       imageUrl
+      wgerId
+      wgerCategory
+      wgerMuscles
+      wgerEquipment
+      wgerInstructions
       createdBy {
         id
         name
         avatarUrl
       }
+    }
+  }
+`
+
+export const SEARCH_EXERCISES_QUERY = gql`
+  query SearchExercises($name: String!, $limit: Int, $offset: Int) {
+    searchExercises(name: $name, limit: $limit, offset: $offset) {
+      items {
+        id
+        name
+        category
+        image
+        thumbnail
+        muscles
+        equipment
+        description
+      }
+      total
+      hasNextPage
+      nextOffset
     }
   }
 `

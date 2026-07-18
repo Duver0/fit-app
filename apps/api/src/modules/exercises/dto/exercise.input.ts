@@ -1,5 +1,5 @@
-import { InputType, Field } from '@nestjs/graphql'
-import { IsUUID, IsString, MinLength, MaxLength, IsOptional, IsEnum, IsUrl } from 'class-validator'
+import { InputType, Field, Int } from '@nestjs/graphql'
+import { IsUUID, IsString, MinLength, MaxLength, IsOptional, IsEnum, IsUrl, IsInt, IsArray } from 'class-validator'
 import { ExerciseUnit } from '@prisma/client'
 
 @InputType()
@@ -11,6 +11,36 @@ export class UpdateExerciseImageInput {
   @Field()
   @IsUrl({}, { message: 'Debe ser una URL válida' })
   imageUrl: string
+}
+
+@InputType()
+export class WgerDataInput {
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  wgerId?: number
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  wgerCategory?: string
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  wgerMuscles?: string[]
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  wgerEquipment?: string[]
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  wgerInstructions?: string
 }
 
 @InputType()

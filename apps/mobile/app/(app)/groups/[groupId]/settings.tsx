@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
-import { uploadGroupAvatar } from '../../../../src/lib/api'
+import { uploadGroupAvatar, getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
@@ -40,7 +40,7 @@ export default function GroupSettingsScreen() {
   const isOwner = me?.id && group?.owner?.id === me.id
   const isLoading = meLoading || groupLoading
 
-  const displayAvatar = avatarUri || group?.avatarUrl
+  const displayAvatar = avatarUri || getImageUrl(group?.avatarUrl)
 
   if (!initialized && group) {
     setName(group.name || '')

@@ -39,7 +39,11 @@ export class UploadService {
     fs.writeFileSync(filePath, file.buffer)
 
     this.logger.log(`File saved: ${filePath}`)
-    return `/uploads/${subDir}/${filename}`
+
+    // Construir URL absoluta para que funcione en cualquier cliente
+    const appUrl = this.config.get('APP_URL', 'http://localhost:4000')
+    const baseUrl = appUrl.replace(/\/+$/, '')
+    return `${baseUrl}/uploads/${subDir}/${filename}`
   }
 
   async uploadAvatar(file: Express.Multer.File): Promise<string> {

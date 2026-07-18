@@ -1,5 +1,6 @@
-import { View, Text, TouchableOpacity, ViewStyle } from 'react-native'
+import { View, Text, Image, TouchableOpacity, ViewStyle } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
+import { getImageUrl } from '../../lib/api'
 
 interface RankingRowProps {
   rank: number
@@ -54,21 +55,33 @@ export function RankingRow({
       </Text>
 
       {/* Avatar */}
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: colors.accent,
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginHorizontal: 8,
-        }}
-      >
-        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
-          {name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      {getImageUrl(avatarUrl) ? (
+        <Image
+          source={{ uri: getImageUrl(avatarUrl) }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            marginHorizontal: 8,
+          }}
+        />
+      ) : (
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: colors.accent,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginHorizontal: 8,
+          }}
+        >
+          <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
+            {name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
 
       {/* Name */}
       <View style={{ flex: 1 }}>

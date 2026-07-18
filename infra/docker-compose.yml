@@ -52,6 +52,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-https://duver0.github.io}
       PORT: 4000
       UPLOAD_DIR: /app/uploads
+      APP_URL: https://dbfitapp.duckdns.org
       NODE_ENV: production
     volumes:
       - uploads:/app/uploads

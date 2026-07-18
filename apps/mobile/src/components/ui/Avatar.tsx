@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
+import { getImageUrl } from '../../lib/api'
 
 interface AvatarProps {
   name: string
@@ -42,7 +43,8 @@ export function Avatar({
   const bgColor = getColorFromName(name, colors)
   const fontSize = size * 0.4
 
-  if (avatarUrl) {
+  const resolvedUrl = getImageUrl(avatarUrl)
+  if (resolvedUrl) {
     return (
       <View
         style={[
@@ -57,7 +59,7 @@ export function Avatar({
         accessibilityLabel={`Avatar for ${name}`}
       >
         <Image
-          source={{ uri: avatarUrl }}
+          source={{ uri: resolvedUrl }}
           style={[
             styles.image,
             {

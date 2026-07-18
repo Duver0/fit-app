@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Alert, Pressable } from 'react-native'
-import { useImagePicker } from '../../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -8,8 +7,9 @@ import { useRanking } from '../../../../../src/hooks/useRanking'
 import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
-import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
-import { uploadExerciseImage } from '../../../../../src/lib/api'
+import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { getImageUrl } from '../../../../../src/lib/api'
+import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
@@ -36,12 +36,7 @@ export default function ExerciseDetailScreen() {
   const [showMenu, setShowMenu] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
-
-  // --- Image picker ---
-  const { pickImage, ImageEditorModal, isLoading: imageLoading } = useImagePicker({
-    context: 'ejercicio',
-    aspectRatio: '1:1',
-  })
+  const [showDbSearch, setShowDbSearch] = useState(false)
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
@@ -55,6 +50,13 @@ export default function ExerciseDetailScreen() {
   })
 
   const [updateExercise, { loading: updating }] = useMutation(UPDATE_EXERCISE_MUTATION, {
+    refetchQueries: [
+      { query: GROUP_QUERY, variables: { id: groupId } },
+      { query: EXERCISES_QUERY, variables: { groupId } },
+    ],
+  })
+
+  const [enrichExercise] = useMutation(ENRICH_EXERCISE_MUTATION, {
     refetchQueries: [
       { query: GROUP_QUERY, variables: { id: groupId } },
       { query: EXERCISES_QUERY, variables: { groupId } },
@@ -107,16 +109,34 @@ export default function ExerciseDetailScreen() {
     }
   }
 
-  const handleChangeImage = async () => {
+  const handleChangeImage = () => {
     setShowMenu(false)
+    setShowDbSearch(true)
+  }
+
+  const handleSelectFromDb = async (item: any) => {
     try {
-      const image = await pickImage()
-      if (!image) return
-      const imageUrl = await uploadExerciseImage(image.uri)
-      await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
-      showSuccessToast('Imagen del ejercicio actualizada')
+      const imageUrl = item.image || item.thumbnail
+      if (!imageUrl) {
+        showErrorToast('Este ejercicio no tiene imagen disponible')
+        return
+      }
+      await enrichExercise({
+        variables: {
+          id: exerciseId,
+          wgerData: {
+            wgerId: item.id,
+            imageUrl,
+            wgerCategory: item.category || undefined,
+            wgerMuscles: item.muscles || undefined,
+            wgerEquipment: item.equipment || undefined,
+            wgerInstructions: item.description || undefined,
+          },
+        },
+      })
+      showSuccessToast('Ejercicio enriquecido desde wger')
     } catch (e: any) {
-      showErrorToast(e?.message || 'Error al actualizar la imagen')
+      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
     }
   }
 
@@ -210,9 +230,9 @@ export default function ExerciseDetailScreen() {
           alignItems: 'center',
           marginRight: 10,
         }}>
-          {item.user?.avatarUrl ? (
+          {getImageUrl(item.user?.avatarUrl) ? (
             <Image
-              source={{ uri: item.user.avatarUrl }}
+              source={{ uri: getImageUrl(item.user?.avatarUrl) }}
               style={{ width: 36, height: 36, borderRadius: 18 }}
               resizeMode="cover"
             />
@@ -321,9 +341,9 @@ export default function ExerciseDetailScreen() {
           <View>
             {/* Header with image */}
             <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
-              {exercise?.imageUrl ? (
+              {getImageUrl(exercise?.imageUrl) ? (
                 <Image
-                  source={{ uri: exercise.imageUrl }}
+                  source={{ uri: getImageUrl(exercise?.imageUrl) }}
                   style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}
                   resizeMode="cover"
                 />
@@ -350,6 +370,72 @@ export default function ExerciseDetailScreen() {
               <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 4 }}>
                 Unidad: {unitLabel}
               </Text>
+
+              {/* Wger enriched data */}
+              {(exercise?.wgerCategory || exercise?.wgerMuscles || exercise?.wgerEquipment) && (
+                <View style={{
+                  marginTop: 16,
+                  backgroundColor: colors.surface,
+                  borderRadius: 16,
+                  padding: 16,
+                  width: '100%',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}>
+                  {exercise.wgerCategory && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Categoría</Text>
+                      <View style={{ backgroundColor: colors.primary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
+                        <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{exercise.wgerCategory}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {exercise.wgerMuscles && exercise.wgerMuscles.length > 0 && (
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Músculos</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {exercise.wgerMuscles.map((m: string, i: number) => (
+                          <View key={i} style={{ backgroundColor: colors.accent + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
+                            <Text style={{ color: colors.text, fontSize: 12 }}>{m}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                  {exercise.wgerEquipment && exercise.wgerEquipment.length > 0 && (
+                    <View>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Equipamiento</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {exercise.wgerEquipment.map((e: string, i: number) => (
+                          <View key={i} style={{ backgroundColor: colors.secondary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
+                            <Text style={{ color: colors.text, fontSize: 12 }}>{e}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Wger instructions */}
+              {exercise?.wgerInstructions && (
+                <View style={{
+                  marginTop: 12,
+                  backgroundColor: colors.surface,
+                  borderRadius: 16,
+                  padding: 16,
+                  width: '100%',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}>
+                  <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+                    Instrucciones
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>
+                    {exercise.wgerInstructions}
+                  </Text>
+                </View>
+              )}
 
             </View>
 
@@ -432,9 +518,9 @@ export default function ExerciseDetailScreen() {
                             alignItems: 'center',
                             marginRight: 4,
                           }}>
-                            {record.user?.avatarUrl ? (
+                            {getImageUrl(record.user?.avatarUrl) ? (
                               <Image
-                                source={{ uri: record.user.avatarUrl }}
+                                source={{ uri: getImageUrl(record.user?.avatarUrl) }}
                                 style={{ width: 24, height: 24, borderRadius: 12 }}
                                 resizeMode="cover"
                               />
@@ -733,7 +819,11 @@ export default function ExerciseDetailScreen() {
         </View>
       </Modal>
 
-      {ImageEditorModal}
+      <ExerciseDbSearchModal
+        visible={showDbSearch}
+        onClose={() => setShowDbSearch(false)}
+        onSelect={handleSelectFromDb}
+      />
     </View>
   )
 }

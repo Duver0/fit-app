@@ -7,7 +7,7 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
 import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
-import { uploadGroupAvatar } from '../../../../src/lib/api'
+import { uploadGroupAvatar, getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
@@ -247,9 +247,9 @@ export default function GroupDashboardScreen() {
           <View>
             {/* Group avatar */}
             <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 8 }}>
-              {group?.avatarUrl ? (
+              {getImageUrl(group?.avatarUrl) ? (
                 <Image
-                  source={{ uri: group.avatarUrl }}
+                  source={{ uri: getImageUrl(group?.avatarUrl) }}
                   style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 8 }}
                   resizeMode="cover"
                 />
@@ -329,9 +329,9 @@ export default function GroupDashboardScreen() {
               marginRight: 14,
               overflow: 'hidden',
             }}>
-              {ex.imageUrl ? (
+              {getImageUrl(ex.imageUrl) ? (
                 <Image
-                  source={{ uri: ex.imageUrl }}
+                  source={{ uri: getImageUrl(ex.imageUrl) }}
                   style={{ width: 56, height: 56, borderRadius: 12 }}
                   resizeMode="cover"
                 />

@@ -76,6 +76,44 @@ export class ExercisesService {
     })
   }
 
+  async enrichFromWger(
+    id: string,
+    userId: string,
+    wgerData: {
+      wgerId?: number
+      imageUrl?: string
+      wgerCategory?: string
+      wgerMuscles?: string[]
+      wgerEquipment?: string[]
+      wgerInstructions?: string
+    },
+  ) {
+    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
+
+    // Allow if group member
+    const membership = await this.prisma.groupMember.findFirst({
+      where: { groupId: exercise.groupId, userId },
+    })
+    if (!membership) {
+      throw new ForbiddenException('Debes ser miembro del grupo para enriquecer un ejercicio')
+    }
+
+    const data: any = {}
+    if (wgerData.wgerId !== undefined) data.wgerId = wgerData.wgerId
+    if (wgerData.imageUrl !== undefined) data.imageUrl = wgerData.imageUrl
+    if (wgerData.wgerCategory !== undefined) data.wgerCategory = wgerData.wgerCategory
+    if (wgerData.wgerMuscles !== undefined) data.wgerMuscles = JSON.stringify(wgerData.wgerMuscles)
+    if (wgerData.wgerEquipment !== undefined) data.wgerEquipment = JSON.stringify(wgerData.wgerEquipment)
+    if (wgerData.wgerInstructions !== undefined) data.wgerInstructions = wgerData.wgerInstructions
+
+    return this.prisma.exercise.update({
+      where: { id },
+      data,
+      include: { creator: true },
+    })
+  }
+
   async delete(id: string, userId: string) {
     const exercise = await this.prisma.exercise.findUnique({ where: { id } })
     if (!exercise) throw new NotFoundException('Ejercicio no encontrado')

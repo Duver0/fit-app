@@ -1,5 +1,6 @@
-import { TouchableOpacity, View, Text, StyleSheet, ViewStyle } from 'react-native'
+import { TouchableOpacity, View, Text, Image, StyleSheet, ViewStyle } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
+import { getImageUrl } from '../../lib/api'
 
 interface GroupCardGroup {
   id: string
@@ -32,16 +33,23 @@ export function GroupCard({ group, onPress, style }: GroupCardProps) {
       ]}
       activeOpacity={0.7}
     >
-      <View
-        style={[
-          styles.avatar,
-          { backgroundColor: colors.primary },
-        ]}
-      >
-        <Text style={[styles.avatarText, { color: colors.text }]}>
-          {group.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      {getImageUrl(group.avatarUrl) ? (
+        <Image
+          source={{ uri: getImageUrl(group.avatarUrl) }}
+          style={[styles.avatar, { backgroundColor: colors.primary }]}
+        />
+      ) : (
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: colors.primary },
+          ]}
+        >
+          <Text style={[styles.avatarText, { color: colors.text }]}>
+            {group.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
       <View style={styles.info}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {group.name}

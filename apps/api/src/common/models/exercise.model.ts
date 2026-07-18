@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, registerEnumType } from '@nestjs/graphql'
+import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql'
 import { ExerciseUnit } from '@prisma/client'
 import { User } from './user.model'
 
@@ -22,6 +22,25 @@ export class Exercise {
 
   @Field({ nullable: true })
   imageUrl?: string
+
+  // --- Datos enriquecidos desde wger.de ---
+
+  @Field(() => Int, { nullable: true, description: 'ID del ejercicio en wger.de' })
+  wgerId?: number
+
+  @Field({ nullable: true, description: 'Categoría del ejercicio (Chest, Legs, etc.)' })
+  wgerCategory?: string
+
+  @Field(() => [String], { nullable: true, description: 'Músculos trabajados' })
+  wgerMuscles?: string[]
+
+  @Field(() => [String], { nullable: true, description: 'Equipamiento necesario' })
+  wgerEquipment?: string[]
+
+  @Field({ nullable: true, description: 'Instrucciones paso a paso desde wger' })
+  wgerInstructions?: string
+
+  // ---
 
   @Field(() => User, { name: 'createdBy', description: 'User who created the exercise (resolved from Prisma creator relation)' })
   creator: User

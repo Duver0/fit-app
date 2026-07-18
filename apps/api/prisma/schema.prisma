@@ -133,6 +133,13 @@ model Exercise {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
+  // Datos enriquecidos desde wger.de
+  wgerId           Int?     @unique @map("wger_id")
+  wgerCategory     String?  @map("wger_category") @db.Text
+  wgerMuscles      String?  @map("wger_muscles") @db.Text
+  wgerEquipment    String?  @map("wger_equipment") @db.Text
+  wgerInstructions String?  @map("wger_instructions") @db.Text
+
   group        Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
   creator      User                @relation(fields: [createdBy], references: [id])
   performances PerformanceRecord[]
