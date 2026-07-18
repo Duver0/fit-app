@@ -2,11 +2,32 @@ import { useState, useRef, useCallback } from 'react'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import * as FileSystem from 'expo-file-system'
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import { IMAGE_CONFIG } from '../lib/imageConfig'
 import ImageEditorModal, {
   ImageEditorResult,
 } from '../components/ui/ImageEditorModal'
+
+// ------------------------------------------------------------------
+// Obtener tamaño de archivo — funciona en native y web
+// ------------------------------------------------------------------
+async function getFileSize(uri: string): Promise<number> {
+  if (Platform.OS === 'web') {
+    try {
+      const response = await fetch(uri)
+      const blob = await response.blob()
+      return blob.size
+    } catch {
+      return 0
+    }
+  }
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(uri, { size: true })
+    return fileInfo.exists ? (fileInfo.size ?? 0) : 0
+  } catch {
+    return 0
+  }
+}
 
 export interface ProcessedImage {
   /** URI local de la imagen ya editada, redimensionada y comprimida */
@@ -91,8 +112,7 @@ export function useImagePicker(options: UseImagePickerOptions = {}) {
       )
 
       // 2. Validar tamaño
-      const fileInfo = await FileSystem.getInfoAsync(result.uri, { size: true })
-      const fileSize = fileInfo.exists ? fileInfo.size : 0
+      const fileSize = await getFileSize(result.uri)
 
       if (fileSize > maxFileSize) {
         // Re-intentar con más compresión
@@ -136,8 +156,7 @@ export function useImagePicker(options: UseImagePickerOptions = {}) {
         },
       )
 
-      const fileInfo = await FileSystem.getInfoAsync(result.uri, { size: true })
-      const fileSize = fileInfo.exists ? fileInfo.size : 0
+      const fileSize = await getFileSize(result.uri)
 
       if (fileSize > maxFileSize && currentQuality > 0.3) {
         return compressWithQuality(sourceUri, targetWidth, targetHeight, currentQuality - 0.2)
