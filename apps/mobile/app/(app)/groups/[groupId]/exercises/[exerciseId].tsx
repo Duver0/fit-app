@@ -258,60 +258,59 @@ export default function ExerciseDetailScreen() {
       <ScreenHeader
         title={exercise?.name || 'Ejercicio'}
         rightAction={isOwner ? (
-          <View style={{ position: 'relative' }}>
-            <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
-              <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
-            </TouchableOpacity>
-
-            {showMenu && (
-              <>
-                <Pressable
-                  onPress={() => setShowMenu(false)}
-                  style={{ position: 'absolute', top: -60, left: -200, right: -200, bottom: -800, zIndex: 9 }}
-                />
-                <View style={{
-                  position: 'absolute',
-                  top: 36,
-                  right: 0,
-                  backgroundColor: colors.surface,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  zIndex: 10,
-                  minWidth: 200,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 8,
-                  elevation: 8,
-                }}>
-                  <TouchableOpacity
-                    onPress={handleEditExercise}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                  >
-                    <Ionicons name="pencil-outline" size={18} color={colors.text} />
-                    <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleChangeImage}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                  >
-                    <Ionicons name="image-outline" size={18} color={colors.text} />
-                    <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleDeleteExercise}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
-                  >
-                    <Ionicons name="trash-outline" size={18} color={colors.error} />
-                    <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
+          <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
+            <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+          </TouchableOpacity>
         ) : undefined}
       />
+
+      {/* Dropdown overlay — fuera del header para sobreponerse a todo */}
+      {showMenu && (
+        <>
+          <Pressable
+            onPress={() => setShowMenu(false)}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
+          />
+          <View style={{
+            position: 'absolute',
+            top: 100,
+            right: 16,
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            zIndex: 999,
+            minWidth: 200,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 8,
+          }}>
+            <TouchableOpacity
+              onPress={handleEditExercise}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <Ionicons name="pencil-outline" size={18} color={colors.text} />
+              <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleChangeImage}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <Ionicons name="image-outline" size={18} color={colors.text} />
+              <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDeleteExercise}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+              <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <FlatList
         data={rest}
