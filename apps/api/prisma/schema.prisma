@@ -134,7 +134,7 @@ model Exercise {
   updatedAt DateTime     @updatedAt @map("updated_at")
 
   // Datos enriquecidos desde wger.de
-  wgerId           Int?     @unique @map("wger_id")
+  wgerId           Int?     @map("wger_id")
   wgerCategory     String?  @map("wger_category") @db.Text
   wgerMuscles      String?  @map("wger_muscles") @db.Text
   wgerEquipment    String?  @map("wger_equipment") @db.Text
