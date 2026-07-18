@@ -3,7 +3,6 @@ import { Tabs, Redirect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
-import InvitationBell from '../../src/components/InvitationBell'
 
 export default function AppLayout() {
   const { colors } = useTheme()
@@ -52,12 +51,6 @@ export default function AppLayout() {
           }}
         />
       </Tabs>
-
-      <View style={{
-        position: 'absolute', top: 50, right: 12, zIndex: 100,
-      }}>
-        <InvitationBell />
-      </View>
     </View>
   )
 }

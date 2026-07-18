@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
@@ -22,7 +22,31 @@ export class AdminService {
   }
 
   async deleteUser(id: string) {
-    await this.prisma.user.delete({ where: { id } })
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({ where: { id } })
+    if (!user) throw new ConflictException('Usuario no encontrado')
+
+    // Delete related records in a transaction to avoid FK violations
+    await this.prisma.$transaction([
+      // Delete memberships
+      this.prisma.groupMember.deleteMany({ where: { userId: id } }),
+      // Delete performance records
+      this.prisma.performanceRecord.deleteMany({ where: { userId: id } }),
+      // Delete dispute votes
+      this.prisma.disputeVote.deleteMany({ where: { userId: id } }),
+      // Delete invitations sent by this user
+      this.prisma.invitation.deleteMany({ where: { inviterId: id } }),
+      // Delete disputes initiated by this user
+      this.prisma.dispute.deleteMany({ where: { initiatedById: id } }),
+      // Delete exercises created by this user
+      this.prisma.exercise.deleteMany({ where: { createdBy: id } }),
+      // Transfer or delete owned groups
+      // For simplicity, delete owned groups (cascades to members, exercises, performances)
+      this.prisma.group.deleteMany({ where: { ownerId: id } }),
+      // Finally delete the user
+      this.prisma.user.delete({ where: { id } }),
+    ])
+
     return true
   }
 

@@ -139,7 +139,7 @@ jobs:
             const m = {
               name: 'Fit App',
               short_name: 'Fit App',
-              description: 'Tu ranking de gimnasio',
+              description: 'Tu progreso rankeado',
               start_url: base + '/',
               scope: base + '/',
               display: 'standalone',

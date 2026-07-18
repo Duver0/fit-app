@@ -83,3 +83,41 @@ export async function uploadGroupAvatar(uri: string): Promise<string> {
   const data = await response.json()
   return data.avatarUrl
 }
+
+export async function uploadExerciseImage(uri: string): Promise<string> {
+  const token = useAuthStore.getState().token
+
+  if (!token) {
+    throw new Error('No authentication token available')
+  }
+
+  const formData = new FormData()
+
+  const filename = uri.split('/').pop() || 'exercise.jpg'
+  const ext = filename.split('.').pop() || 'jpg'
+
+  formData.append('file', {
+    uri,
+    name: `exercise.${ext}`,
+    type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+  } as any)
+
+  const response = await fetch(`${API_URL}/upload/exercise`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text()
+    if (response.status === 413) {
+      throw new Error('La imagen es demasiado grande. El máximo es 20MB.')
+    }
+    throw new Error(errorBody || 'Error al subir la imagen')
+  }
+
+  const data = await response.json()
+  return data.imageUrl
+}

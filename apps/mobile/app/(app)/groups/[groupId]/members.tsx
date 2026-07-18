@@ -1,16 +1,22 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native'
-import { useLocalSearchParams, Stack } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
-import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION } from '../../../../src/lib/graphql'
+import { useAuthStore } from '../../../../src/stores/authStore'
+import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION } from '../../../../src/lib/graphql'
+import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 export default function MembersScreen() {
   const { colors } = useTheme()
   const { groupId } = useLocalSearchParams<{ groupId: string }>()
+  const currentUser = useAuthStore(state => state.user)
   const { data, loading, refetch } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
   const [inviteMutation, { loading: inviting }] = useMutation(INVITE_TO_GROUP_MUTATION, {
+    refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
+  })
+  const [removeMemberMutation, { loading: removing }] = useMutation(REMOVE_MEMBER_MUTATION, {
     refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
   })
 
@@ -18,6 +24,30 @@ export default function MembersScreen() {
   const [email, setEmail] = useState('')
 
   const group = data?.group
+  const isOwner = currentUser?.id && group?.owner?.id === currentUser.id
+
+  const handleRemoveMember = (memberId: string, memberName: string) => {
+    Alert.alert(
+      'Eliminar miembro',
+      `¿Estás seguro de que querés eliminar a "${memberName}" del grupo?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeMemberMutation({ variables: { groupId, userId: memberId } })
+              Alert.alert('Miembro eliminado', `${memberName} fue eliminado del grupo.`)
+            } catch (e: any) {
+              const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar miembro'
+              Alert.alert('Error', msg)
+            }
+          },
+        },
+      ],
+    )
+  }
 
   const handleInvite = async () => {
     if (!email.trim()) return
@@ -38,13 +68,14 @@ export default function MembersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: 'Miembros' }} />
-      <View style={{ padding: 24, paddingTop: 60, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text }}>Miembros</Text>
-        <TouchableOpacity onPress={() => setShowInvite(true)} style={{ backgroundColor: colors.primary, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8 }}>
-          <Text style={{ color: colors.text, fontWeight: '600' }}>Invitar</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Miembros"
+        rightAction={
+          <TouchableOpacity onPress={() => setShowInvite(true)} style={{ backgroundColor: colors.primary, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Invitar</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <FlatList
         data={group?.members || []}
@@ -61,11 +92,19 @@ export default function MembersScreen() {
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontWeight: '500' }}>{item.user.name}</Text>
             </View>
-            {item.role === 'OWNER' && (
+            {item.role === 'OWNER' ? (
               <View style={{ backgroundColor: colors.warning + '40', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 }}>
                 <Text style={{ color: colors.text, fontSize: 12 }}>Dueño</Text>
               </View>
-            )}
+            ) : isOwner ? (
+              <TouchableOpacity
+                onPress={() => handleRemoveMember(item.user.id, item.user.name)}
+                disabled={removing}
+                style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 }}
+              >
+                <Text style={{ color: colors.error, fontSize: 12, fontWeight: '500' }}>Eliminar</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         )}
       />

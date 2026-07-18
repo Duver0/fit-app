@@ -56,14 +56,39 @@ export class ExercisesService {
     })
   }
 
-  async delete(id: string, userId: string) {
+  async update(id: string, userId: string, data: { name?: string; imageUrl?: string }) {
     const exercise = await this.prisma.exercise.findUnique({ where: { id } })
-    if (!exercise) throw new NotFoundException()
+    if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
 
+    // Allow update if user is the group owner OR the exercise creator
     const membership = await this.prisma.groupMember.findFirst({
       where: { groupId: exercise.groupId, userId, role: 'OWNER' },
     })
-    if (!membership) throw new ForbiddenException()
+    const isCreator = exercise.createdBy === userId
+    if (!membership && !isCreator) {
+      throw new ForbiddenException('Solo el dueño del grupo o el creador del ejercicio puede editarlo')
+    }
+
+    return this.prisma.exercise.update({
+      where: { id },
+      data,
+      include: { creator: true },
+    })
+  }
+
+  async delete(id: string, userId: string) {
+    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
+
+    // Allow deletion if user is the group owner OR the exercise creator
+    const membership = await this.prisma.groupMember.findFirst({
+      where: { groupId: exercise.groupId, userId, role: 'OWNER' },
+    })
+    const isCreator = exercise.createdBy === userId
+
+    if (!membership && !isCreator) {
+      throw new ForbiddenException('Solo el dueño del grupo o el creador del ejercicio puede eliminarlo')
+    }
 
     await this.prisma.exercise.delete({ where: { id } })
     return true

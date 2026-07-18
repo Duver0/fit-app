@@ -55,4 +55,26 @@ export class UploadService {
     this.logger.log(`Group avatar saved: ${filePath}`)
     return `/uploads/groups/${filename}`
   }
+
+  async uploadExerciseImage(file: Express.Multer.File): Promise<string> {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato de imagen no soportado. Usá JPG, PNG, WebP o GIF.',
+      )
+    }
+
+    const uploadDir = this.config.get('UPLOAD_DIR', './uploads')
+    const exercisesDir = path.join(uploadDir, 'exercises')
+
+    fs.mkdirSync(exercisesDir, { recursive: true })
+
+    const ext = path.extname(file.originalname) || '.jpg'
+    const filename = `${crypto.randomUUID()}${ext}`
+    const filePath = path.join(exercisesDir, filename)
+
+    fs.writeFileSync(filePath, file.buffer)
+
+    this.logger.log(`Exercise image saved: ${filePath}`)
+    return `/uploads/exercises/${filename}`
+  }
 }

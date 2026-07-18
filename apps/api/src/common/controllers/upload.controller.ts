@@ -42,4 +42,17 @@ export class UploadController {
     const avatarUrl = await this.uploadService.uploadGroupAvatar(file)
     return { avatarUrl }
   }
+
+  @Post('exercise')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadExerciseImage(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se recibió ningún archivo.')
+    }
+
+    const imageUrl = await this.uploadService.uploadExerciseImage(file)
+    return { imageUrl }
+  }
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native'
-import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { EXERCISES_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION } from '../../../../src/lib/graphql'
+import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -79,7 +81,7 @@ export default function GroupDashboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: 'Ejercicios' }} />
+      <ScreenHeader title="Ejercicios" />
 
       <FlatList
         data={exercises}
@@ -174,33 +176,64 @@ export default function GroupDashboardScreen() {
         )}
       />
 
-      {/* Floating invite button */}
-      <TouchableOpacity
-        onPress={() => setShowInviteModal(true)}
-        style={{
-          position: 'absolute',
-          bottom: 24,
-          left: 24,
-          right: 24,
-          backgroundColor: colors.primary,
-          borderRadius: 28,
-          paddingVertical: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
-        }}
-      >
-        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '300' }}>+</Text>
-        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>
-          Invitar
-        </Text>
-      </TouchableOpacity>
+      {/* Floating action buttons */}
+      <View style={{
+        position: 'absolute',
+        bottom: 24,
+        left: 24,
+        right: 24,
+        flexDirection: 'row',
+        gap: 12,
+      }}>
+        <TouchableOpacity
+          onPress={() => router.push(`/(app)/groups/${groupId}/members`)}
+          style={{
+            flex: 1,
+            backgroundColor: colors.surface,
+            borderRadius: 28,
+            paddingVertical: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="people-outline" size={20} color={colors.text} />
+          <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
+            Integrantes
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setShowInviteModal(true)}
+          style={{
+            flex: 1,
+            backgroundColor: colors.primary,
+            borderRadius: 28,
+            paddingVertical: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+          }}
+        >
+          <Text style={{ color: colors.text, fontSize: 20, fontWeight: '300' }}>+</Text>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+            Invitar
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Invite modal */}
       <Modal visible={showInviteModal} transparent animationType="slide">

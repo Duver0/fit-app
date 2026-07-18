@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView, Image } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
-import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
 import { uploadGroupAvatar } from '../../../../src/lib/api'
+import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -137,12 +138,9 @@ export default function GroupSettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: 'Configuración' }} />
+      <ScreenHeader title="Configuración" />
 
-      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60, paddingBottom: 100 }}>
-        <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 24 }}>
-          Configuración del grupo
-        </Text>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
 
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>Nombre</Text>
         <TextInput

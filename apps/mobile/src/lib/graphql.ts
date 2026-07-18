@@ -93,6 +93,9 @@ export const GROUP_QUERY = gql`
         name
         unit
         imageUrl
+        createdBy {
+          id
+        }
       }
     }
   }
@@ -280,6 +283,17 @@ export const UPDATE_EXERCISE_IMAGE_MUTATION = gql`
       name
       unit
       imageUrl
+    }
+  }
+`
+
+export const UPDATE_EXERCISE_MUTATION = gql`
+  mutation UpdateExercise($input: UpdateExerciseInput!) {
+    updateExercise(input: $input) {
+      id
+      name
+      imageUrl
+      unit
     }
   }
 `

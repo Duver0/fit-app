@@ -27,7 +27,7 @@ export default function LoginScreen() {
         Fit App
       </Text>
       <Text style={{ fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 32 }}>
-        Tu ranking de gimnasio
+        Tu progreso rankeado
       </Text>
 
       {error ? (

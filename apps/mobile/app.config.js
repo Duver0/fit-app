@@ -30,7 +30,7 @@ module.exports = {
     output: 'single',
     name: 'Fit App',
     shortName: 'Fit App',
-    description: 'Tu ranking de gimnasio',
+    description: 'Tu progreso rankeado',
     publicPath: BASE_URL,
     backgroundColor: '#FFF8F0',
     themeColor: '#FF6B35',

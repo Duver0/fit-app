@@ -14,6 +14,25 @@ export class UpdateExerciseImageInput {
 }
 
 @InputType()
+export class UpdateExerciseInput {
+  @Field()
+  @IsUUID()
+  id: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  name?: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUrl({}, { message: 'Debe ser una URL válida' })
+  imageUrl?: string
+}
+
+@InputType()
 export class CreateExerciseInput {
   @Field()
   @IsUUID()

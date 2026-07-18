@@ -7,6 +7,7 @@ import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
 import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
 import { uploadAvatar } from '../../src/lib/api'
+import ScreenHeader from '../../src/components/ui/ScreenHeader'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()
@@ -77,13 +78,11 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 24, paddingTop: 60 }}>
-        {isEditing ? (
-          <>
-            <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 32 }}>
-              Editar Perfil
-            </Text>
+      {isEditing ? (
+        <>
+          <ScreenHeader title="Editar Perfil" />
 
+          <View style={{ padding: 24 }}>
             <TouchableOpacity onPress={handlePickImage} style={{ alignItems: 'center', marginBottom: 32 }}>
               {displayAvatar ? (
                 <Image
@@ -146,11 +145,13 @@ export default function ProfileScreen() {
             <TouchableOpacity onPress={handleCancelEdit} style={{ alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancelar</Text>
             </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.text }}>Mi Perfil</Text>
+          </View>
+        </>
+      ) : (
+        <>
+          <ScreenHeader
+            title="Mi Perfil"
+            rightAction={
               <TouchableOpacity onPress={() => {
                 setName(user?.name ?? '')
                 setPhone(user?.phone ?? '')
@@ -161,8 +162,10 @@ export default function ProfileScreen() {
               }}>
                 <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>Editar</Text>
               </TouchableOpacity>
-            </View>
+            }
+          />
 
+          <View style={{ padding: 24 }}>
             <View style={{ alignItems: 'center', marginBottom: 32 }}>
               <View style={{
                 width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary,
@@ -203,9 +206,9 @@ export default function ProfileScreen() {
             }}>
               <Text style={{ color: colors.error, fontWeight: '600', fontSize: 16 }}>Cerrar sesión</Text>
             </TouchableOpacity>
-          </>
-        )}
-      </View>
+          </View>
+        </>
+      )}
     </View>
   )
 }

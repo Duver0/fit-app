@@ -1,13 +1,16 @@
-import { useState, useCallback } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert } from 'react-native'
+import { useState, useCallback, useRef } from 'react'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, ScrollView, Alert, Pressable } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
 import { useRanking } from '../../../../../src/hooks/useRanking'
 import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
-import { GROUP_QUERY, DELETE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { uploadExerciseImage } from '../../../../../src/lib/api'
+import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
 
@@ -29,18 +32,35 @@ export default function ExerciseDetailScreen() {
   const [showDispute, setShowDispute] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeVotingPerformanceId, setDisputeVotingPerformanceId] = useState<string | null>(null)
+  const [showMenu, setShowMenu] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editName, setEditName] = useState('')
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
 
   const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION, {
-    refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
+    refetchQueries: [
+      { query: GROUP_QUERY, variables: { id: groupId } },
+      { query: EXERCISES_QUERY, variables: { groupId } },
+    ],
   })
 
-  const isOwner = currentUser?.id && groupData?.group?.owner?.id === currentUser.id
+  const [updateExercise, { loading: updating }] = useMutation(UPDATE_EXERCISE_MUTATION, {
+    refetchQueries: [
+      { query: GROUP_QUERY, variables: { id: groupId } },
+      { query: EXERCISES_QUERY, variables: { groupId } },
+    ],
+  })
+
+  const isOwner = currentUser?.id && (
+    groupData?.group?.owner?.id === currentUser.id ||
+    exercise?.createdBy?.id === currentUser.id
+  )
 
   const handleDeleteExercise = () => {
+    setShowMenu(false)
     Alert.alert(
       'Eliminar ejercicio',
       '¿Estás seguro de que querés eliminar este ejercicio? Esta acción no se puede deshacer.',
@@ -60,6 +80,42 @@ export default function ExerciseDetailScreen() {
         },
       ],
     )
+  }
+
+  const handleEditExercise = () => {
+    setShowMenu(false)
+    setEditName(exercise?.name || '')
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) return
+    try {
+      await updateExercise({ variables: { input: { id: exerciseId, name: editName.trim() } } })
+      setShowEditModal(false)
+      Alert.alert('Guardado', 'El nombre del ejercicio se actualizó correctamente.')
+    } catch (e: any) {
+      Alert.alert('Error', e?.graphQLErrors?.[0]?.message || e.message)
+    }
+  }
+
+  const handleChangeImage = async () => {
+    setShowMenu(false)
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+      if (!result.canceled && result.assets[0]) {
+        const imageUrl = await uploadExerciseImage(result.assets[0].uri)
+        await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
+        Alert.alert('Imagen actualizada', 'La imagen del ejercicio se actualizó correctamente.')
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Error al actualizar la imagen')
+    }
   }
 
   // Split ranking into top 3 and rest
@@ -199,7 +255,7 @@ export default function ExerciseDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: exercise?.name || 'Ejercicio' }} />
+      <ScreenHeader title={exercise?.name || 'Ejercicio'} />
 
       <FlatList
         data={rest}
@@ -241,23 +297,73 @@ export default function ExerciseDetailScreen() {
               </Text>
 
               {isOwner && (
-                <TouchableOpacity
-                  onPress={handleDeleteExercise}
-                  disabled={deleting}
-                  style={{
-                    backgroundColor: colors.error + '20',
-                    borderRadius: 16,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    alignSelf: 'center',
-                    marginTop: 12,
-                    opacity: deleting ? 0.6 : 1,
-                  }}
-                >
-                  <Text style={{ color: colors.error, fontWeight: '600', fontSize: 13 }}>
-                    {deleting ? 'Eliminando…' : 'Eliminar ejercicio'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ position: 'relative', marginTop: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowMenu(!showMenu)}
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderRadius: 20,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Ionicons name="ellipsis-vertical" size={18} color={colors.text} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Opciones</Text>
+                  </TouchableOpacity>
+
+                  {showMenu && (
+                    <>
+                      {/* Overlay to close menu */}
+                      <Pressable
+                        onPress={() => setShowMenu(false)}
+                        style={{ position: 'absolute', top: -300, left: -100, right: -100, bottom: -800, zIndex: 9 }}
+                      />
+                      <View style={{
+                        position: 'absolute',
+                        top: 40,
+                        left: 0,
+                        backgroundColor: colors.surface,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        zIndex: 10,
+                        minWidth: 200,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 8,
+                        elevation: 8,
+                      }}>
+                        <TouchableOpacity
+                          onPress={handleEditExercise}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                        >
+                          <Ionicons name="pencil-outline" size={18} color={colors.text} />
+                          <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleChangeImage}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                        >
+                          <Ionicons name="image-outline" size={18} color={colors.text} />
+                          <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleDeleteExercise}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
+                        >
+                          <Ionicons name="trash-outline" size={18} color={colors.error} />
+                          <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
               )}
             </View>
 
@@ -600,6 +706,42 @@ export default function ExerciseDetailScreen() {
 
             <TouchableOpacity onPress={() => setDisputeVotingPerformanceId(null)} style={{ padding: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Exercise Modal */}
+      <Modal visible={showEditModal} transparent animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
+              Editar ejercicio
+            </Text>
+            <TextInput
+              placeholder="Nombre del ejercicio"
+              placeholderTextColor={colors.textSecondary}
+              value={editName}
+              onChangeText={setEditName}
+              style={{
+                backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16,
+                borderWidth: 1, borderColor: colors.border, fontSize: 16,
+              }}
+            />
+            <TouchableOpacity
+              onPress={handleSaveEdit}
+              disabled={updating || !editName.trim()}
+              style={{
+                backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
+                opacity: (updating || !editName.trim()) ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                {updating ? 'Guardando…' : 'Guardar cambios'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEditModal(false)} style={{ padding: 12, alignItems: 'center' }}>
+              <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>

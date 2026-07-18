@@ -1,13 +1,14 @@
 import { Resolver, Mutation, Query, Args, Int } from '@nestjs/graphql'
-import { UseGuards } from '@nestjs/common'
+import { UseGuards, SetMetadata } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
+import { RolesGuard, ROLES_KEY } from '../auth/guards/roles.guard'
 import { Group, GroupConnection, UserConnection, ExerciseConnection } from '../../common/models'
 import { UpdateGroupInput } from '../groups/dto/group.input'
 
 @Resolver()
 @UseGuards(GqlAuthGuard, RolesGuard)
+@SetMetadata(ROLES_KEY, ['SUPER_ADMIN'])
 export class AdminResolver {
   constructor(private adminService: AdminService) {}
 

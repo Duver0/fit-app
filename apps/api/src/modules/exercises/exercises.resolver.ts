@@ -4,7 +4,7 @@ import { ExercisesService } from './exercises.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { Exercise } from '../../common/models'
-import { CreateExerciseInput, UpdateExerciseImageInput } from './dto/exercise.input'
+import { CreateExerciseInput, UpdateExerciseImageInput, UpdateExerciseInput } from './dto/exercise.input'
 import { User } from '../../common/models'
 
 @Resolver()
@@ -36,6 +36,14 @@ export class ExercisesResolver {
     @Args('input') input: UpdateExerciseImageInput,
   ) {
     return this.exercisesService.updateImage(input.id, user.id, input.imageUrl)
+  }
+
+  @Mutation(() => Exercise)
+  async updateExercise(
+    @CurrentUser() user: User,
+    @Args('input') input: UpdateExerciseInput,
+  ) {
+    return this.exercisesService.update(input.id, user.id, { name: input.name, imageUrl: input.imageUrl })
   }
 
   @Mutation(() => Boolean)

@@ -2,6 +2,8 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshContr
 import { router } from 'expo-router'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useGroups } from '../../../src/hooks/useGroups'
+import ScreenHeader from '../../../src/components/ui/ScreenHeader'
+import InvitationBell from '../../../src/components/InvitationBell'
 
 export default function GroupsScreen() {
   const { colors } = useTheme()
@@ -28,9 +30,11 @@ export default function GroupsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 24, paddingTop: 60 }}>
-        <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.text }}>Mis Grupos</Text>
-      </View>
+      <ScreenHeader
+        title="Mis Grupos"
+        showBack={false}
+        rightAction={<InvitationBell />}
+      />
 
       <FlatList
         data={groups}

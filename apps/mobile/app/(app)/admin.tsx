@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
+import ScreenHeader from '../../src/components/ui/ScreenHeader'
 
 const ADMIN_GROUPS = gql`
   query AdminGroups($page: Int, $limit: Int) {
@@ -39,8 +40,8 @@ export default function AdminScreen() {
 
   const { data: groupsData, refetch: refetchGroups } = useQuery(ADMIN_GROUPS, { variables: { page: 1, limit: 50 } })
   const { data: usersData, refetch: refetchUsers } = useQuery(ADMIN_USERS, { variables: { page: 1, limit: 50 } })
-  const [deleteGroup] = useMutation(ADMIN_DELETE_GROUP, { refetchQueries: [{ query: ADMIN_GROUPS, variables: { page: 1, limit: 50 } }] })
-  const [deleteUser] = useMutation(ADMIN_DELETE_USER, { refetchQueries: [{ query: ADMIN_USERS, variables: { page: 1, limit: 50 } }] })
+  const [deleteGroupMutation] = useMutation(ADMIN_DELETE_GROUP, { refetchQueries: [{ query: ADMIN_GROUPS, variables: { page: 1, limit: 50 } }] })
+  const [deleteUserMutation] = useMutation(ADMIN_DELETE_USER, { refetchQueries: [{ query: ADMIN_USERS, variables: { page: 1, limit: 50 } }] })
 
   if (user?.role !== 'SUPER_ADMIN') {
     return (
@@ -51,24 +52,48 @@ export default function AdminScreen() {
   }
 
   const handleDeleteGroup = (id: string, name: string) => {
-    Alert.alert('Eliminar grupo', `¿Eliminar "${name}"?`, [
+    Alert.alert('Eliminar grupo', `¿Eliminar "${name}"? Esta acción no se puede deshacer.`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => deleteGroup({ variables: { id } }) },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteGroupMutation({ variables: { id } })
+            Alert.alert('Grupo eliminado', `El grupo "${name}" fue eliminado correctamente.`)
+          } catch (e: any) {
+            const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el grupo'
+            Alert.alert('Error', msg)
+          }
+        },
+      },
     ])
   }
 
   const handleDeleteUser = (id: string, name: string) => {
-    Alert.alert('Eliminar usuario', `¿Eliminar a "${name}"?`, [
+    Alert.alert('Eliminar usuario', `¿Eliminar a "${name}"? Esta acción no se puede deshacer.`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => deleteUser({ variables: { id } }) },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteUserMutation({ variables: { id } })
+            Alert.alert('Usuario eliminado', `El usuario "${name}" fue eliminado correctamente.`)
+          } catch (e: any) {
+            const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el usuario'
+            Alert.alert('Error', msg)
+          }
+        },
+      },
     ])
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 24, paddingTop: 60 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Admin Panel</Text>
+      <ScreenHeader title="Admin Panel" showBack={false} />
 
+      <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
         <View style={{ flexDirection: 'row', marginBottom: 16, gap: 8 }}>
           <TouchableOpacity onPress={() => setTab('groups')}
             style={{ flex: 1, backgroundColor: tab === 'groups' ? colors.primary : colors.surface, borderRadius: 24, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
@@ -79,47 +104,47 @@ export default function AdminScreen() {
             <Text style={{ color: tab === 'users' ? colors.text : colors.textSecondary, fontWeight: '600' }}>Usuarios</Text>
           </TouchableOpacity>
         </View>
-
-        {tab === 'groups' && (
-          <FlatList
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
-            data={groupsData?.adminGroups?.items || []}
-            keyExtractor={(item: any) => item.id}
-            renderItem={({ item }: any) => (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.memberCount} miembros</Text>
-                </View>
-                <TouchableOpacity onPress={() => handleDeleteGroup(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
-                  <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        )}
-
-        {tab === 'users' && (
-          <FlatList
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
-            data={usersData?.adminUsers?.items || []}
-            keyExtractor={(item: any) => item.id}
-            renderItem={({ item }: any) => (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.email} · {item.role}</Text>
-                </View>
-                <TouchableOpacity onPress={() => handleDeleteUser(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
-                  <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        )}
       </View>
+
+      {tab === 'groups' && (
+        <FlatList
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          data={groupsData?.adminGroups?.items || []}
+          keyExtractor={(item: any) => item.id}
+          renderItem={({ item }: any) => (
+            <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.memberCount} miembros</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDeleteGroup(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
+
+      {tab === 'users' && (
+        <FlatList
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          data={usersData?.adminUsers?.items || []}
+          keyExtractor={(item: any) => item.id}
+          renderItem={({ item }: any) => (
+            <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.email} · {item.role}</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDeleteUser(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
     </View>
   )
 }
