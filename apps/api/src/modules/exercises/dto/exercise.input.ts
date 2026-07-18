@@ -15,6 +15,11 @@ export class UpdateExerciseImageInput {
 
 @InputType()
 export class WgerDataInput {
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUrl({}, { message: 'Debe ser una URL válida' })
+  imageUrl?: string
+
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
