@@ -3,10 +3,10 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, R
 import { useImagePicker } from '../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useQuery, useMutation } from '@apollo/client'
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
-import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION } from '../../../../src/lib/graphql'
+import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
 import { uploadGroupAvatar } from '../../../../src/lib/api'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
@@ -47,6 +47,11 @@ export default function GroupDashboardScreen() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
   const [inviteIdentifier, setInviteIdentifier] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  const [searchUsers] = useLazyQuery(SEARCH_USERS_QUERY)
   const [exerciseName, setExerciseName] = useState('')
   const [exerciseUnit, setExerciseUnit] = useState<string>('KG')
 
@@ -110,25 +115,47 @@ export default function GroupDashboardScreen() {
 
   // --- Invite to group ---
   const handleInvite = async () => {
-    if (!inviteIdentifier.trim()) return
+    const identifier = selectedUser?.email || inviteIdentifier.trim()
+    if (!identifier) return
     try {
       const result = await inviteToGroup({
-        variables: { groupId, inviteeIdentifier: inviteIdentifier.trim() },
+        variables: { groupId, inviteeIdentifier: identifier },
       })
       if (result.errors?.[0]) {
         Alert.alert('Error', result.errors[0].message)
         return
       }
-      Alert.alert(
-        'Invitación enviada',
-        'Si el usuario existe, recibirá la invitación.',
+      Alert.alert('Invitación enviada', selectedUser
+        ? `Se invitó a ${selectedUser.name} correctamente.`
+        : 'Si el usuario existe, recibirá la invitación.',
       )
       setShowInviteModal(false)
       setInviteIdentifier('')
+      setSearchResults([])
+      setSelectedUser(null)
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error de red'
       Alert.alert('Error', msg)
     }
+  }
+
+  const handleSearch = (text: string) => {
+    setInviteIdentifier(text)
+    setSelectedUser(null)
+    if (searchTimeout) clearTimeout(searchTimeout)
+    if (text.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const { data } = await searchUsers({ variables: { query: text.trim() } })
+        setSearchResults(data?.searchUsers || [])
+      } catch {
+        setSearchResults([])
+      }
+    }, 300)
+    setSearchTimeout(timeout)
   }
 
   // --- Create exercise ---
@@ -399,25 +426,68 @@ export default function GroupDashboardScreen() {
                 Ingresá el correo, teléfono o nombre completo de la persona
               </Text>
 
-              <TextInput
-                value={inviteIdentifier}
-                onChangeText={setInviteIdentifier}
-                placeholder="Correo, teléfono o nombre"
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={{
-                  backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24,
-                  borderWidth: 1, borderColor: colors.border, fontSize: 16,
-                }}
-              />
+              {selectedUser ? (
+                <View style={{
+                  backgroundColor: colors.background, borderRadius: 12, padding: 14, marginBottom: 16,
+                  borderWidth: 1, borderColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12,
+                }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedUser.name}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{selectedUser.email}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => { setSelectedUser(null); setInviteIdentifier(''); setSearchResults([]) }}>
+                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TextInput
+                  value={inviteIdentifier}
+                  onChangeText={handleSearch}
+                  placeholder="Correo, teléfono o nombre"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={{
+                    backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 8,
+                    borderWidth: 1, borderColor: colors.border, fontSize: 16,
+                  }}
+                />
+              )}
+
+              {/* Search results dropdown */}
+              {searchResults.length > 0 && !selectedUser && (
+                <View style={{
+                  backgroundColor: colors.background, borderRadius: 12, marginBottom: 16, maxHeight: 200,
+                  borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+                }}>
+                  {searchResults.map((u: any) => (
+                    <TouchableOpacity
+                      key={u.id}
+                      onPress={() => setSelectedUser(u)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    >
+                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.text, fontWeight: '500' }}>{u.name}</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{u.email}</Text>
+                      </View>
+                      <Ionicons name="add-circle" size={22} color={colors.primary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <TouchableOpacity
                 onPress={handleInvite}
-                disabled={!inviteIdentifier.trim() || inviting}
+                disabled={(!inviteIdentifier.trim() && !selectedUser) || inviting}
                 style={{
                   backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
-                  opacity: (!inviteIdentifier.trim() || inviting) ? 0.6 : 1,
+                  opacity: ((!inviteIdentifier.trim() && !selectedUser) || inviting) ? 0.6 : 1,
                 }}
               >
                 <Text style={{ color: colors.text, fontWeight: '600' }}>

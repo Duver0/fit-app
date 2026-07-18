@@ -3,13 +3,18 @@ import { UseGuards } from '@nestjs/common'
 import { InvitationsService } from './invitations.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
-import { Invitation } from '../../common/models'
+import { Invitation, UserSearchResult } from '../../common/models'
 import { User } from '../../common/models'
 
 @Resolver()
 @UseGuards(GqlAuthGuard)
 export class InvitationsResolver {
   constructor(private invitationsService: InvitationsService) {}
+
+  @Query(() => [UserSearchResult])
+  async searchUsers(@Args('query') query: string) {
+    return this.invitationsService.searchUsers(query)
+  }
 
   @Mutation(() => Invitation)
   async inviteToGroup(

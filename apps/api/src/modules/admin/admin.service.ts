@@ -1,11 +1,14 @@
-import { Injectable, ConflictException } from '@nestjs/common'
+import { Injectable, Logger, ConflictException, NotFoundException, InternalServerErrorException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
+import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name)
+
   constructor(
     private prisma: PrismaService,
     private groupsService: GroupsService,
@@ -14,7 +17,20 @@ export class AdminService {
   ) {}
 
   async deleteGroup(id: string) {
-    return this.groupsService.adminDelete(id)
+    const group = await this.prisma.group.findUnique({ where: { id } })
+    if (!group) throw new NotFoundException('Grupo no encontrado')
+
+    try {
+      await this.prisma.group.delete({ where: { id } })
+      this.logger.log(`Group ${id} deleted by admin`)
+      return true
+    } catch (e) {
+      this.logger.error(`Error deleting group ${id}: ${e instanceof Error ? e.message : e}`)
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') throw new NotFoundException('Grupo no encontrado')
+      }
+      throw new InternalServerErrorException('Error al eliminar el grupo')
+    }
   }
 
   async updateGroup(id: string, data: { name?: string; description?: string }) {
@@ -26,28 +42,46 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } })
     if (!user) throw new ConflictException('Usuario no encontrado')
 
-    // Delete related records in a transaction to avoid FK violations
-    await this.prisma.$transaction([
-      // Delete memberships
-      this.prisma.groupMember.deleteMany({ where: { userId: id } }),
-      // Delete performance records
-      this.prisma.performanceRecord.deleteMany({ where: { userId: id } }),
-      // Delete dispute votes
-      this.prisma.disputeVote.deleteMany({ where: { userId: id } }),
-      // Delete invitations sent by this user
-      this.prisma.invitation.deleteMany({ where: { inviterId: id } }),
-      // Delete disputes initiated by this user
-      this.prisma.dispute.deleteMany({ where: { initiatedById: id } }),
-      // Delete exercises created by this user
-      this.prisma.exercise.deleteMany({ where: { createdBy: id } }),
-      // Transfer or delete owned groups
-      // For simplicity, delete owned groups (cascades to members, exercises, performances)
-      this.prisma.group.deleteMany({ where: { ownerId: id } }),
-      // Finally delete the user
-      this.prisma.user.delete({ where: { id } }),
-    ])
+    // Evitar que un admin se elimine a sí mismo
+    if (id === 'current-admin-id') {
+      // This is handled by the resolver
+    }
 
-    return true
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Delete memberships
+        await tx.groupMember.deleteMany({ where: { userId: id } })
+        // Delete performance records (disputes cascade via onDelete)
+        await tx.performanceRecord.deleteMany({ where: { userId: id } })
+        // Delete dispute votes cast by this user
+        await tx.disputeVote.deleteMany({ where: { userId: id } })
+        // Delete invitations sent by this user
+        await tx.invitation.deleteMany({ where: { inviterId: id } })
+        // Delete disputes initiated by this user
+        await tx.dispute.deleteMany({ where: { initiatedById: id } })
+        // Delete exercises created by this user
+        await tx.exercise.deleteMany({ where: { createdBy: id } })
+        // Delete groups owned by this user (cascades to members, exercises, performances, invitations)
+        await tx.group.deleteMany({ where: { ownerId: id } })
+        // Finally delete the user
+        await tx.user.delete({ where: { id } })
+      })
+
+      this.logger.log(`User ${id} (${user.email}) deleted by admin`)
+      return true
+    } catch (e) {
+      this.logger.error(`Error deleting user ${id}: ${e instanceof Error ? e.message : e}`)
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') throw new NotFoundException('Usuario no encontrado')
+        if (e.code === 'P2003') {
+          throw new InternalServerErrorException(
+            'No se pudo eliminar el usuario debido a restricciones de integridad. ' +
+            'Asegurate de que no tenga grupos, ejercicios o disputas referenciados.',
+          )
+        }
+      }
+      throw new InternalServerErrorException('Error al eliminar el usuario')
+    }
   }
 
   async deleteExercise(id: string) {

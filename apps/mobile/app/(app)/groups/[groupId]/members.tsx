@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { useQuery, useMutation } from '@apollo/client'
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
-import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION } from '../../../../src/lib/graphql'
+import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
 export default function MembersScreen() {
@@ -21,7 +21,12 @@ export default function MembersScreen() {
   })
 
   const [showInvite, setShowInvite] = useState(false)
-  const [email, setEmail] = useState('')
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  const [searchUsers] = useLazyQuery(SEARCH_USERS_QUERY)
 
   const group = data?.group
   const isOwner = currentUser?.id && group?.owner?.id === currentUser.id
@@ -50,20 +55,45 @@ export default function MembersScreen() {
   }
 
   const handleInvite = async () => {
-    if (!email.trim()) return
+    const identifier = selectedUser?.email || query.trim()
+    if (!identifier) return
     try {
-      const result = await inviteMutation({ variables: { groupId, inviteeEmail: email.trim() } })
+      const result = await inviteMutation({ variables: { groupId, inviteeIdentifier: identifier } })
       if (result.errors?.[0]) {
         Alert.alert('Error', result.errors[0].message)
         return
       }
-      Alert.alert('Invitación enviada', `Se invitó a ${email.trim()} correctamente.`)
+      Alert.alert('Invitación enviada', selectedUser
+        ? `Se invitó a ${selectedUser.name} correctamente.`
+        : `Se invitó a ${identifier} correctamente.`,
+      )
       setShowInvite(false)
-      setEmail('')
+      setQuery('')
+      setSearchResults([])
+      setSelectedUser(null)
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al invitar'
       Alert.alert('Error', msg)
     }
+  }
+
+  const handleSearch = (text: string) => {
+    setQuery(text)
+    setSelectedUser(null)
+    if (searchTimeout) clearTimeout(searchTimeout)
+    if (text.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const { data } = await searchUsers({ variables: { query: text.trim() } })
+        setSearchResults(data?.searchUsers || [])
+      } catch {
+        setSearchResults([])
+      }
+    }, 300)
+    setSearchTimeout(timeout)
   }
 
   return (
@@ -114,7 +144,7 @@ export default function MembersScreen() {
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>Invitar miembro</Text>
-              <TouchableOpacity onPress={() => { setShowInvite(false); setEmail('') }}>
+              <TouchableOpacity onPress={() => { setShowInvite(false); setQuery(''); setSearchResults([]); setSelectedUser(null) }}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -125,39 +155,83 @@ export default function MembersScreen() {
               borderWidth: 1, borderColor: colors.border, borderLeftWidth: 3, borderLeftColor: colors.primary,
             }}>
               <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
-                Ingresá el <Text style={{ fontWeight: '600', color: colors.text }}>correo electrónico</Text> de la persona.
-                Si está registrada en la app, recibirá una invitación para unirse al grupo.
-                Podrá elegir si acepta o rechaza.
+                Buscá por <Text style={{ fontWeight: '600', color: colors.text }}>nombre, correo o teléfono</Text>.
+                Si está registrada en la app, recibirá una invitación.
               </Text>
             </View>
 
-            <TextInput
-              placeholder="correo@ejemplo.com"
-              placeholderTextColor={colors.textSecondary}
-              value={email} onChangeText={setEmail}
-              autoCapitalize="none" keyboardType="email-address"
-              style={{
-                backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16,
-                borderWidth: 1, borderColor: colors.border, fontSize: 16,
-              }}
-            />
+            {selectedUser ? (
+              <View style={{
+                backgroundColor: colors.background, borderRadius: 12, padding: 14, marginBottom: 16,
+                borderWidth: 1, borderColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12,
+              }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedUser.name}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{selectedUser.email}</Text>
+                </View>
+                <TouchableOpacity onPress={() => { setSelectedUser(null); setQuery(''); setSearchResults([]) }}>
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TextInput
+                placeholder="Nombre, correo o teléfono…"
+                placeholderTextColor={colors.textSecondary}
+                value={query} onChangeText={handleSearch}
+                autoCapitalize="none" autoCorrect={false}
+                style={{
+                  backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 8,
+                  borderWidth: 1, borderColor: colors.border, fontSize: 16,
+                }}
+              />
+            )}
+
+            {/* Search results dropdown */}
+            {searchResults.length > 0 && !selectedUser && (
+              <View style={{
+                backgroundColor: colors.background, borderRadius: 12, marginBottom: 16, maxHeight: 200,
+                borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+              }}>
+                {searchResults.map((u: any) => (
+                  <TouchableOpacity
+                    key={u.id}
+                    onPress={() => setSelectedUser(u)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: '500' }}>{u.name}</Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{u.email}</Text>
+                    </View>
+                    <Ionicons name="add-circle" size={22} color={colors.primary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             <TouchableOpacity
               onPress={handleInvite}
-              disabled={!email.trim() || inviting}
+              disabled={(!query.trim() && !selectedUser) || inviting}
               style={{
                 backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
-                opacity: (!email.trim() || inviting) ? 0.6 : 1,
+                opacity: ((!query.trim() && !selectedUser) || inviting) ? 0.6 : 1,
               }}
             >
               {inviting ? (
                 <ActivityIndicator color={colors.text} />
               ) : (
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Enviar invitación</Text>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>
+                  {selectedUser ? `Invitar a ${selectedUser.name}` : 'Enviar invitación'}
+                </Text>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => { setShowInvite(false); setEmail('') }} style={{ padding: 12, alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => { setShowInvite(false); setQuery(''); setSearchResults([]); setSelectedUser(null) }} style={{ padding: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
             </TouchableOpacity>
           </View>

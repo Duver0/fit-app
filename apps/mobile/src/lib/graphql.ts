@@ -196,6 +196,17 @@ export const VOTE_DISPUTE_MUTATION = gql`
   }
 `
 
+export const SEARCH_USERS_QUERY = gql`
+  query SearchUsers($query: String!) {
+    searchUsers(query: $query) {
+      id
+      name
+      email
+      avatarUrl
+    }
+  }
+`
+
 export const INVITE_TO_GROUP_MUTATION = gql`
   mutation InviteToGroup($groupId: String!, $inviteeIdentifier: String!) {
     inviteToGroup(groupId: $groupId, inviteeIdentifier: $inviteeIdentifier) {

@@ -1,9 +1,25 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class InvitationsService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Busca usuarios por nombre (case-insensitive).
+   * Retorna hasta 10 resultados. Útil para autocomplete en invitaciones.
+   */
+  async searchUsers(query: string) {
+    if (!query || query.trim().length < 2) return []
+    return this.prisma.user.findMany({
+      where: {
+        name: { contains: query.trim(), mode: 'insensitive' },
+      },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+      take: 10,
+    })
+  }
 
   /**
    * Invite a user to a group by searching for their email, phone, or full name.
