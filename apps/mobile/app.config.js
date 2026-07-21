@@ -11,7 +11,7 @@ module.exports = {
   scheme: 'fit-app',
   userInterfaceStyle: 'automatic',
   splash: {
-    backgroundColor: '#FFF8F0',
+    backgroundColor: '#000000',
   },
   assetBundlePatterns: ['**/*'],
   ios: {
@@ -20,7 +20,7 @@ module.exports = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#FFF8F0',
+      backgroundColor: '#000000',
     },
     package: 'com.fitapp.mobile',
   },
@@ -32,8 +32,8 @@ module.exports = {
     shortName: 'Fit App',
     description: 'Tu progreso rankeado',
     publicPath: BASE_URL,
-    backgroundColor: '#FFF8F0',
-    themeColor: '#FF6B35',
+    backgroundColor: '#000000',
+    themeColor: '#000000',
     barStyle: 'default',
     orientation: 'portrait',
     display: 'standalone',
@@ -42,7 +42,7 @@ module.exports = {
     startUrl: BASE_URL,
     appleTouchIcon: './assets/icon.png',
     splash: {
-      backgroundColor: '#FFF8F0',
+      backgroundColor: '#000000',
       resizeMode: 'contain',
     },
   },

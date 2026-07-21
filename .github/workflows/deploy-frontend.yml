@@ -144,8 +144,8 @@ jobs:
               scope: base + '/',
               display: 'standalone',
               orientation: 'portrait',
-              background_color: '#FFF8F0',
-              theme_color: '#FF6B35',
+              background_color: '#000000',
+              theme_color: '#000000',
               lang: 'es-ES',
               categories: ['fitness', 'health', 'social'],
               prefer_related_applications: false,
@@ -174,7 +174,7 @@ jobs:
             # Step 4b: Inject ALL head tags before </head> in a SINGLE sed
             # This avoids the problem of each sed creating a new </head>
             sed -i \
-              's|</head>|<link rel="manifest" href="/fit-app/manifest.json" />\n    <link rel="apple-touch-icon" href="/fit-app/assets/icon-192x192.png" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n    <meta name="theme-color" content="#FF6B35" />\n  </head>|' "$f"
+              's|</head>|<link rel="manifest" href="/fit-app/manifest.json" />\n    <link rel="apple-touch-icon" href="/fit-app/assets/icon-192x192.png" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n    <meta name="theme-color" content="#000000" />\n  </head>|' "$f"
 
             # Step 4c: Make asset paths relative (resolve via <base> tag)
             sed -i 's|src="/_expo|src="./_expo|g' "$f"
