@@ -1,4 +1,14 @@
 FROM node:20-alpine AS base
+
+# === Build args para imágenes dinámicas ===
+# Se pasan desde GitHub Actions secrets
+ARG UNSPLASH_ACCESS_KEY
+ARG PEXELS_API_KEY
+ARG PIXABAY_API_KEY
+ENV UNSPLASH_ACCESS_KEY=$UNSPLASH_ACCESS_KEY \
+    PEXELS_API_KEY=$PEXELS_API_KEY \
+    PIXABAY_API_KEY=$PIXABAY_API_KEY
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
