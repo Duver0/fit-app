@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity } from 'react-native'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import { showSuccessToast, showErrorToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
+import ConfirmModal from '../../src/components/ui/ConfirmModal'
 
 const ADMIN_GROUPS = gql`
   query AdminGroups($page: Int, $limit: Int) {
@@ -44,6 +45,13 @@ export default function AdminScreen() {
   const [deleteGroupMutation] = useMutation(ADMIN_DELETE_GROUP, { refetchQueries: [{ query: ADMIN_GROUPS, variables: { page: 1, limit: 50 } }] })
   const [deleteUserMutation] = useMutation(ADMIN_DELETE_USER, { refetchQueries: [{ query: ADMIN_USERS, variables: { page: 1, limit: 50 } }] })
 
+  // Estado para el modal de confirmación
+  const [confirmState, setConfirmState] = useState<{
+    type: 'group' | 'user'
+    id: string
+    name: string
+  } | null>(null)
+
   if (user?.role !== 'SUPER_ADMIN') {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
@@ -52,42 +60,24 @@ export default function AdminScreen() {
     )
   }
 
-  const handleDeleteGroup = (id: string, name: string) => {
-    Alert.alert('Eliminar grupo', `¿Eliminar "${name}"? Esta acción no se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteGroupMutation({ variables: { id } })
-            showSuccessToast(`Grupo "${name}" eliminado correctamente`)
-          } catch (e: any) {
-            const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el grupo'
-            showErrorToast(msg)
-          }
-        },
-      },
-    ])
-  }
+  const handleConfirmDelete = async () => {
+    if (!confirmState) return
+    const { type, id, name } = confirmState
 
-  const handleDeleteUser = (id: string, name: string) => {
-    Alert.alert('Eliminar usuario', `¿Eliminar a "${name}"? Esta acción no se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteUserMutation({ variables: { id } })
-            showSuccessToast(`Usuario "${name}" eliminado correctamente`)
-          } catch (e: any) {
-            const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el usuario'
-            showErrorToast(msg)
-          }
-        },
-      },
-    ])
+    try {
+      if (type === 'group') {
+        await deleteGroupMutation({ variables: { id } })
+        showSuccessToast(`Grupo "${name}" eliminado correctamente`)
+      } else {
+        await deleteUserMutation({ variables: { id } })
+        showSuccessToast(`Usuario "${name}" eliminado correctamente`)
+      }
+    } catch (e: any) {
+      const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar'
+      showErrorToast(msg)
+    } finally {
+      setConfirmState(null)
+    }
   }
 
   return (
@@ -119,7 +109,7 @@ export default function AdminScreen() {
                 <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.memberCount} miembros</Text>
               </View>
-              <TouchableOpacity onPress={() => handleDeleteGroup(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+              <TouchableOpacity onPress={() => setConfirmState({ type: 'group', id: item.id, name: item.name })} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
                 <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
               </TouchableOpacity>
             </View>
@@ -139,13 +129,27 @@ export default function AdminScreen() {
                 <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.email} · {item.role}</Text>
               </View>
-              <TouchableOpacity onPress={() => handleDeleteUser(item.id, item.name)} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+              <TouchableOpacity onPress={() => setConfirmState({ type: 'user', id: item.id, name: item.name })} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
                 <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
               </TouchableOpacity>
             </View>
           )}
         />
       )}
+
+      {/* Modal de confirmación — funciona en web y nativo */}
+      <ConfirmModal
+        visible={confirmState !== null}
+        title={confirmState?.type === 'group' ? 'Eliminar grupo' : 'Eliminar usuario'}
+        message={
+          confirmState
+            ? `¿Eliminar "${confirmState.name}"? Esta acción no se puede deshacer.`
+            : ''
+        }
+        confirmDestructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmState(null)}
+      />
     </View>
   )
 }
