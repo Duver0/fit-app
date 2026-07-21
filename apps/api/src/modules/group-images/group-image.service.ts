@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ImageProvider, GroupImage, ImageSearchOptions } from './interfaces/image-provider.interface'
+import { ProviderDiagResult } from '../../common/models'
 import { UnsplashProvider } from './providers/unsplash.provider'
 import { PexelsProvider } from './providers/pexels.provider'
 import { PixabayProvider } from './providers/pixabay.provider'
@@ -182,6 +183,58 @@ export class GroupImageService {
     }
 
     return Array.from(allImages.values())
+  }
+
+  /**
+   * Prueba cada proveedor individualmente y devuelve diagnóstico.
+   * Útil para debugging desde el cliente.
+   */
+  async diagnoseProviders(query: string): Promise<ProviderDiagResult[]> {
+    const results: ProviderDiagResult[] = []
+    const rawProviders: { name: string; envKey: string }[] = [
+      { name: 'unsplash', envKey: 'UNSPLASH_ACCESS_KEY' },
+      { name: 'pexels', envKey: 'PEXELS_API_KEY' },
+      { name: 'pixabay', envKey: 'PIXABAY_API_KEY' },
+    ]
+
+    for (const { name, envKey } of rawProviders) {
+      const configured = !!(this.configService.get<string>(envKey) || process.env[envKey])
+      const diag: ProviderDiagResult = {
+        provider: name,
+        configured,
+        success: false,
+        count: 0,
+      }
+
+      if (!configured) {
+        results.push(diag)
+        continue
+      }
+
+      // Buscar el provider activo si está inicializado
+      const provider = this.providers.find(p => p.name === name)
+
+      if (!provider) {
+        diag.error = 'Provider class not initialized (failed to instantiate)'
+        results.push(diag)
+        continue
+      }
+
+      try {
+        const imgs = await provider.search({ query, perPage: 3, page: 1 })
+        diag.success = imgs.length > 0
+        diag.count = imgs.length
+        if (imgs.length > 0) {
+          diag.firstImageThumbnail = imgs[0].thumbnail
+        }
+      } catch (e: any) {
+        diag.error = e.message
+      }
+
+      results.push(diag)
+    }
+
+    return results
   }
 
   /**

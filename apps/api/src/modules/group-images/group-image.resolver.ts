@@ -1,7 +1,7 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
-import { GroupImage } from '../../common/models'
+import { GroupImage, ProviderDiagResult } from '../../common/models'
 import { GroupImageService } from './group-image.service'
 
 @Resolver()
@@ -36,5 +36,12 @@ export class GroupImageResolver {
   @Query(() => [String], { description: 'Diagnóstico: lista los proveedores de imágenes activos (unsplash, pexels, pixabay). Vacío si no hay ninguno configurado.' })
   async activeImageProviders(): Promise<string[]> {
     return this.groupImageService.getActiveProviders()
+  }
+
+  @Query(() => [ProviderDiagResult], { description: 'Diagnóstico: prueba cada proveedor con un query y devuelve resultado individual. Útil para debugging.' })
+  async diagnoseImageProviders(
+    @Args('query', { defaultValue: 'yoga' }) query: string,
+  ): Promise<ProviderDiagResult[]> {
+    return this.groupImageService.diagnoseProviders(query)
   }
 }
