@@ -16,13 +16,13 @@ export class AdminService {
     private usersService: UsersService,
   ) {}
 
-  async deleteGroup(id: string) {
+  async deleteGroup(id: string, adminId: string) {
     const group = await this.prisma.group.findUnique({ where: { id } })
     if (!group) throw new NotFoundException('Grupo no encontrado')
 
     try {
       await this.prisma.group.delete({ where: { id } })
-      this.logger.log(`Group ${id} deleted by admin`)
+      this.logger.log(`Group ${id} deleted by admin ${adminId}`)
       return true
     } catch (e) {
       this.logger.error(`Error deleting group ${id}: ${e instanceof Error ? e.message : e}`)
@@ -37,14 +37,14 @@ export class AdminService {
     return this.groupsService.adminUpdate(id, data)
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: string, adminId: string) {
     // Check if user exists
     const user = await this.prisma.user.findUnique({ where: { id } })
     if (!user) throw new ConflictException('Usuario no encontrado')
 
     // Evitar que un admin se elimine a sí mismo
-    if (id === 'current-admin-id') {
-      // This is handled by the resolver
+    if (id === adminId) {
+      throw new ConflictException('No puedes eliminarte a ti mismo')
     }
 
     try {
@@ -67,7 +67,7 @@ export class AdminService {
         await tx.user.delete({ where: { id } })
       })
 
-      this.logger.log(`User ${id} (${user.email}) deleted by admin`)
+      this.logger.log(`User ${id} (${user.email}) deleted by admin ${adminId}`)
       return true
     } catch (e) {
       this.logger.error(`Error deleting user ${id}: ${e instanceof Error ? e.message : e}`)

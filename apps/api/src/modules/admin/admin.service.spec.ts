@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
+import { NotFoundException, ConflictException } from '@nestjs/common'
 import { UserRole } from '@prisma/client'
 
 describe('AdminService', () => {
@@ -48,6 +49,11 @@ describe('AdminService', () => {
           provide: PrismaService,
           useValue: {
             user: {
+              findUnique: jest.fn(),
+              delete: jest.fn(),
+            },
+            group: {
+              findUnique: jest.fn(),
               delete: jest.fn(),
             },
             $transaction: jest.fn(),
@@ -85,12 +91,20 @@ describe('AdminService', () => {
   })
 
   describe('deleteGroup', () => {
-    it('should call groupsService.adminDelete', async () => {
-      jest.spyOn(groupsService, 'adminDelete').mockResolvedValue(true)
+    it('should delete a group by id', async () => {
+      jest.spyOn(prisma.group, 'findUnique').mockResolvedValue(mockGroup as any)
+      jest.spyOn(prisma.group, 'delete').mockResolvedValue(mockGroup as any)
 
-      const result = await service.deleteGroup('group-1')
+      const result = await service.deleteGroup('group-1', 'admin-1')
       expect(result).toBe(true)
-      expect(groupsService.adminDelete).toHaveBeenCalledWith('group-1')
+      expect(prisma.group.findUnique).toHaveBeenCalledWith({ where: { id: 'group-1' } })
+      expect(prisma.group.delete).toHaveBeenCalledWith({ where: { id: 'group-1' } })
+    })
+
+    it('should throw NotFoundException when group not found', async () => {
+      jest.spyOn(prisma.group, 'findUnique').mockResolvedValue(null)
+
+      await expect(service.deleteGroup('nonexistent', 'admin-1')).rejects.toThrow(NotFoundException)
     })
   })
 
@@ -113,12 +127,37 @@ describe('AdminService', () => {
   })
 
   describe('deleteUser', () => {
-    it('should delete user by id', async () => {
-      jest.spyOn(prisma.user, 'delete').mockResolvedValue(mockUser)
+    it('should delete user by id with transaction', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+      jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: any) => {
+        const tx = {
+          groupMember: { deleteMany: jest.fn() },
+          performanceRecord: { deleteMany: jest.fn() },
+          disputeVote: { deleteMany: jest.fn() },
+          invitation: { deleteMany: jest.fn() },
+          dispute: { deleteMany: jest.fn() },
+          exercise: { deleteMany: jest.fn() },
+          group: { deleteMany: jest.fn() },
+          user: { delete: jest.fn().mockResolvedValue(mockUser) },
+        }
+        return cb(tx)
+      })
 
-      const result = await service.deleteUser('user-1')
+      const result = await service.deleteUser('user-1', 'admin-1')
       expect(result).toBe(true)
-      expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'user-1' } })
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: 'user-1' } })
+    })
+
+    it('should throw ConflictException when deleting self', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+
+      await expect(service.deleteUser('user-1', 'user-1')).rejects.toThrow('No puedes eliminarte a ti mismo')
+    })
+
+    it('should throw ConflictException when user not found', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null)
+
+      await expect(service.deleteUser('nonexistent', 'admin-1')).rejects.toThrow(ConflictException)
     })
   })
 
