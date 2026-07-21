@@ -371,52 +371,6 @@ export default function ExerciseDetailScreen() {
                 Unidad: {unitLabel}
               </Text>
 
-              {/* Wger enriched data */}
-              {(exercise?.wgerCategory || exercise?.wgerMuscles || exercise?.wgerEquipment) && (
-                <View style={{
-                  marginTop: 16,
-                  backgroundColor: colors.surface,
-                  borderRadius: 16,
-                  padding: 16,
-                  width: '100%',
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}>
-                  {exercise.wgerCategory && (
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Categoría</Text>
-                      <View style={{ backgroundColor: colors.primary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
-                        <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{exercise.wgerCategory}</Text>
-                      </View>
-                    </View>
-                  )}
-                  {exercise.wgerMuscles && exercise.wgerMuscles.length > 0 && (
-                    <View style={{ marginBottom: 8 }}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Músculos</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                        {exercise.wgerMuscles.map((m: string, i: number) => (
-                          <View key={i} style={{ backgroundColor: colors.accent + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
-                            <Text style={{ color: colors.text, fontSize: 12 }}>{m}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                  {exercise.wgerEquipment && exercise.wgerEquipment.length > 0 && (
-                    <View>
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Equipamiento</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                        {exercise.wgerEquipment.map((e: string, i: number) => (
-                          <View key={i} style={{ backgroundColor: colors.secondary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 }}>
-                            <Text style={{ color: colors.text, fontSize: 12 }}>{e}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
-
               {/* Wger instructions */}
               {exercise?.wgerInstructions && (
                 <View style={{
