@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Alert, Pressable } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -11,6 +11,7 @@ import { client } from '../../../../../src/lib/apollo'
 import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
+import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
@@ -38,6 +39,8 @@ export default function ExerciseDetailScreen() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
   const [showDbSearch, setShowDbSearch] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingExercise, setDeletingExercise] = useState(false)
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
@@ -66,43 +69,38 @@ export default function ExerciseDetailScreen() {
 
   const handleDeleteExercise = () => {
     setShowMenu(false)
-    Alert.alert(
-      'Eliminar ejercicio',
-      '¿Estás seguro de que querés eliminar este ejercicio? Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('[DeleteExercise] iniciando eliminación | exerciseId:', exerciseId)
-            try {
-              const { errors } = await deleteExercise({ variables: { id: exerciseId } })
-              if (errors?.[0]) {
-                console.error('[DeleteExercise] error en respuesta:', errors[0].message, errors)
-                showErrorToast(errors[0].message)
-                return
-              }
-              console.log('[DeleteExercise] eliminado correctamente')
-              // Refrescar queries del dashboard (best-effort, no bloquea)
-              client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
-              showSuccessToast('Ejercicio eliminado')
-              router.back()
-            } catch (e: any) {
-              const graphQLError = e?.graphQLErrors?.[0]
-              const errorMsg = graphQLError?.message || e?.message || 'Error desconocido'
-              console.error('[DeleteExercise] exception:', {
-                message: errorMsg,
-                graphQLErrors: e?.graphQLErrors,
-                networkError: e?.networkError,
-                stack: e?.stack,
-              })
-              showErrorToast(errorMsg)
-            }
-          },
-        },
-      ],
-    )
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false)
+    setDeletingExercise(true)
+    console.log('[DeleteExercise] iniciando eliminación | exerciseId:', exerciseId)
+    try {
+      const { errors } = await deleteExercise({ variables: { id: exerciseId } })
+      if (errors?.[0]) {
+        console.error('[DeleteExercise] error en respuesta:', errors[0].message, errors)
+        showErrorToast(errors[0].message)
+        return
+      }
+      console.log('[DeleteExercise] eliminado correctamente')
+      // Refrescar queries del dashboard (best-effort, no bloquea)
+      client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
+      showSuccessToast('Ejercicio eliminado')
+      router.back()
+    } catch (e: any) {
+      const graphQLError = e?.graphQLErrors?.[0]
+      const errorMsg = graphQLError?.message || e?.message || 'Error desconocido'
+      console.error('[DeleteExercise] exception:', {
+        message: errorMsg,
+        graphQLErrors: e?.graphQLErrors,
+        networkError: e?.networkError,
+        stack: e?.stack,
+      })
+      showErrorToast(errorMsg)
+    } finally {
+      setDeletingExercise(false)
+    }
   }
 
   const handleEditExercise = () => {
@@ -344,6 +342,18 @@ export default function ExerciseDetailScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Confirmación de eliminación */}
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Eliminar ejercicio"
+        message="¿Estás seguro de que querés eliminar este ejercicio? Esta acción no se puede deshacer."
+        confirmLabel={deletingExercise ? 'Eliminando...' : 'Eliminar'}
+        cancelLabel="Cancelar"
+        confirmDestructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       <FlatList
         data={ranking}
