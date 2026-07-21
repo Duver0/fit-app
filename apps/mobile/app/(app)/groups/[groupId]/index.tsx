@@ -11,8 +11,8 @@ import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
 
-const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
-const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
+const UNITS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
+const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
 
 export default function GroupDashboardScreen() {
   const { colors } = useTheme()

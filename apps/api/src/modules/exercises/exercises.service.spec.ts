@@ -13,7 +13,13 @@ describe('ExercisesService', () => {
     groupId: 'group-1',
     name: 'Bench Press',
     unit: ExerciseUnit.KG,
+    imageUrl: null,
     createdBy: 'user-1',
+    wgerId: null,
+    wgerCategory: null,
+    wgerMuscles: null,
+    wgerEquipment: null,
+    wgerInstructions: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -34,6 +40,20 @@ describe('ExercisesService', () => {
     joinedAt: new Date(),
   }
 
+  const mockTx = {
+    exercise: {
+      delete: jest.fn().mockResolvedValue({}),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    performanceRecord: {
+      findMany: jest.fn().mockResolvedValue([]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    dispute: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    disputeVote: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+  }
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,6 +61,7 @@ describe('ExercisesService', () => {
         {
           provide: PrismaService,
           useValue: {
+            $transaction: jest.fn().mockImplementation((cb: any) => cb(mockTx)),
             exercise: {
               findMany: jest.fn(),
               findUnique: jest.fn(),
@@ -80,6 +101,7 @@ describe('ExercisesService', () => {
           createdBy: 'user-1',
           unit: ExerciseUnit.KG,
         },
+        include: { creator: true },
       })
     })
 
@@ -114,6 +136,7 @@ describe('ExercisesService', () => {
           createdBy: 'user-1',
           unit: ExerciseUnit.REPS,
         },
+        include: { creator: true },
       })
     })
 
@@ -172,14 +195,60 @@ describe('ExercisesService', () => {
   })
 
   describe('delete', () => {
-    it('should delete exercise when user is group owner', async () => {
-      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExercise)
+    const mockExerciseWithEmptyPerfs = {
+      ...mockExercise,
+      performances: [],
+    }
+    const mockExerciseWithPerfs = {
+      ...mockExercise,
+      performances: [{ id: 'perf-1', disputes: [] }],
+    }
+
+    beforeEach(() => {
+      // Reset mockTx calls between tests
+      mockTx.performanceRecord.findMany.mockReset()
+      mockTx.performanceRecord.deleteMany.mockReset()
+      mockTx.dispute.deleteMany.mockReset()
+      mockTx.disputeVote.deleteMany.mockReset()
+      mockTx.exercise.delete.mockReset()
+      mockTx.performanceRecord.findMany.mockResolvedValue([])
+      mockTx.performanceRecord.deleteMany.mockResolvedValue({ count: 0 })
+      mockTx.dispute.deleteMany.mockResolvedValue({ count: 0 })
+      mockTx.disputeVote.deleteMany.mockResolvedValue({ count: 0 })
+      mockTx.exercise.delete.mockResolvedValue(mockExercise)
+    })
+
+    it('should delete exercise when user is group owner (sin performances)', async () => {
+      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExerciseWithEmptyPerfs as any)
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(mockOwnerMembership as any)
-      jest.spyOn(prisma.exercise, 'delete').mockResolvedValue(mockExercise)
 
       const result = await service.delete('exercise-1', 'user-1')
       expect(result).toBe(true)
-      expect(prisma.exercise.delete).toHaveBeenCalledWith({ where: { id: 'exercise-1' } })
+      expect(mockTx.exercise.delete).toHaveBeenCalledWith({ where: { id: 'exercise-1' } })
+    })
+
+    it('should delete exercise with performances, disputes and votes', async () => {
+      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExerciseWithPerfs as any)
+      jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(mockOwnerMembership as any)
+      mockTx.performanceRecord.findMany.mockResolvedValue([{ id: 'perf-1' }])
+
+      const result = await service.delete('exercise-1', 'user-1')
+      expect(result).toBe(true)
+
+      // Verify delete order: votes → disputes → performances → exercise
+      expect(mockTx.disputeVote.deleteMany).toHaveBeenCalled()
+      expect(mockTx.dispute.deleteMany).toHaveBeenCalled()
+      expect(mockTx.performanceRecord.deleteMany).toHaveBeenCalledWith({ where: { exerciseId: 'exercise-1' } })
+      expect(mockTx.exercise.delete).toHaveBeenCalledWith({ where: { id: 'exercise-1' } })
+    })
+
+    it('should delete exercise when user is exercise creator (not group owner)', async () => {
+      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExerciseWithEmptyPerfs as any)
+      // user-1 is the creator but findFirst returns null (not owner)
+      jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
+
+      const result = await service.delete('exercise-1', 'user-1')
+      expect(result).toBe(true)
     })
 
     it('should throw NotFoundException when exercise does not exist', async () => {
@@ -188,11 +257,13 @@ describe('ExercisesService', () => {
       await expect(service.delete('nonexistent', 'user-1')).rejects.toThrow(NotFoundException)
     })
 
-    it('should throw ForbiddenException when user is not the owner', async () => {
-      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExercise)
+    it('should throw ForbiddenException when user is neither owner nor creator', async () => {
+      jest.spyOn(prisma.exercise, 'findUnique').mockResolvedValue(mockExerciseWithEmptyPerfs as any)
+      // user-2 is not owner and the exercise was created by user-1
       jest.spyOn(prisma.groupMember, 'findFirst').mockResolvedValue(null)
 
       await expect(service.delete('exercise-1', 'user-2')).rejects.toThrow(ForbiddenException)
+      expect(prisma.$transaction).not.toHaveBeenCalled()
     })
   })
 

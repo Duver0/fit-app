@@ -118,12 +118,15 @@ export class ExercisesService {
   async delete(id: string, userId: string) {
     this.logger.log(`→ delete() called | id="${id}" | userId="${userId}"`)
 
-    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id },
+      include: { performances: { include: { disputes: { include: { votes: true } } } } },
+    })
     if (!exercise) {
       this.logger.warn(`✕ Exercise not found | id="${id}"`)
       throw new NotFoundException('Ejercicio no encontrado')
     }
-    this.logger.log(`✓ Exercise found | name="${exercise.name}" | groupId="${exercise.groupId}" | createdBy="${exercise.createdBy}"`)
+    this.logger.log(`✓ Exercise found | name="${exercise.name}" | groupId="${exercise.groupId}" | createdBy="${exercise.createdBy}" | performances=${exercise.performances.length}`)
 
     // Allow deletion if user is the group owner OR the exercise creator
     const membership = await this.prisma.groupMember.findFirst({
@@ -137,12 +140,43 @@ export class ExercisesService {
       throw new ForbiddenException('Solo el dueño del grupo o el creador del ejercicio puede eliminarlo')
     }
 
+    // Eliminación explícita en orden para evitar problemas de cascada
     try {
-      await this.prisma.exercise.delete({ where: { id } })
-      this.logger.log(`✓ Exercise "${id}" deleted successfully`)
-    } catch (prismaError: any) {
-      this.logger.error(`✕ Prisma delete failed | id="${id}" | error="${prismaError.message}"`, prismaError.stack)
-      throw prismaError
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Obtener todos los performance records del ejercicio
+        const perfRecords = await tx.performanceRecord.findMany({
+          where: { exerciseId: id },
+          select: { id: true },
+        })
+        const perfIds = perfRecords.map(p => p.id)
+
+        if (perfIds.length > 0) {
+          this.logger.log(`→ Deleting ${perfIds.length} performance records with disputes and votes`)
+
+          // 2. Eliminar dispute votes de las disputas de estos performance records
+          await tx.disputeVote.deleteMany({
+            where: { dispute: { performanceId: { in: perfIds } } },
+          })
+
+          // 3. Eliminar las disputas
+          await tx.dispute.deleteMany({
+            where: { performanceId: { in: perfIds } },
+          })
+
+          // 4. Eliminar los performance records
+          await tx.performanceRecord.deleteMany({
+            where: { exerciseId: id },
+          })
+        }
+
+        // 5. Finalmente eliminar el ejercicio
+        await tx.exercise.delete({ where: { id } })
+      })
+
+      this.logger.log(`✓ Exercise "${id}" deleted successfully (with ${exercise.performances.length} performances)`)
+    } catch (error: any) {
+      this.logger.error(`✕ Delete failed | id="${id}" | error="${error.message}"`, error.stack)
+      throw error
     }
     return true
   }

@@ -21,8 +21,15 @@ export function useRanking(exerciseId: string) {
 
   const [disputeMutation] = useMutation(CREATE_DISPUTE_MUTATION)
 
-  const upsertPerformance = async (value: number) => {
-    return upsertMutation({ variables: { input: { exerciseId, value } } })
+  const upsertPerformance = async (value: number, reps?: number, weight?: number) => {
+    const input: any = { exerciseId }
+    if (reps != null && weight != null) {
+      input.reps = reps
+      input.weight = weight
+    } else {
+      input.value = value
+    }
+    return upsertMutation({ variables: { input } })
   }
 
   const createDispute = async (performanceId: string, reason: string) => {

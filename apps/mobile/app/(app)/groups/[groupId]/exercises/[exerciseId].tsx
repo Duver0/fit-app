@@ -15,7 +15,7 @@ import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
-const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
+const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
 
 const MEDAL_COLORS: Record<number, string> = {
   1: '#FFD700',
@@ -32,6 +32,8 @@ export default function ExerciseDetailScreen() {
 
   const [showUpsert, setShowUpsert] = useState(false)
   const [newValue, setNewValue] = useState('')
+  const [newReps, setNewReps] = useState('')
+  const [newWeight, setNewWeight] = useState('')
   const [showDispute, setShowDispute] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeVotingPerformanceId, setDisputeVotingPerformanceId] = useState<string | null>(null)
@@ -77,12 +79,25 @@ export default function ExerciseDetailScreen() {
     setDeletingExercise(true)
     console.log('[DeleteExercise] iniciando eliminación | exerciseId:', exerciseId)
     try {
-      const { errors } = await deleteExercise({ variables: { id: exerciseId } })
-      if (errors?.[0]) {
-        console.error('[DeleteExercise] error en respuesta:', errors[0].message, errors)
-        showErrorToast(errors[0].message)
+      // Usar el client directamente para tener más control sobre el error
+      const result = await client.mutate({
+        mutation: DELETE_EXERCISE_MUTATION,
+        variables: { id: exerciseId },
+      })
+
+      if (result.errors && result.errors.length > 0) {
+        const msg = result.errors[0]?.message || 'Error al eliminar el ejercicio'
+        console.error('[DeleteExercise] error en respuesta:', msg, result.errors)
+        showErrorToast(msg)
         return
       }
+
+      if (result.data?.deleteExercise !== true) {
+        console.error('[DeleteExercise] respuesta inesperada:', result)
+        showErrorToast('Error inesperado al eliminar el ejercicio')
+        return
+      }
+
       console.log('[DeleteExercise] eliminado correctamente')
       // Refrescar queries del dashboard (best-effort, no bloquea)
       client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
@@ -90,14 +105,18 @@ export default function ExerciseDetailScreen() {
       router.back()
     } catch (e: any) {
       const graphQLError = e?.graphQLErrors?.[0]
-      const errorMsg = graphQLError?.message || e?.message || 'Error desconocido'
+      const networkError = e?.networkError
+      const errorMsg = graphQLError?.message || networkError?.message || e?.message || 'Error desconocido'
       console.error('[DeleteExercise] exception:', {
         message: errorMsg,
         graphQLErrors: e?.graphQLErrors,
         networkError: e?.networkError,
         stack: e?.stack,
+        error: e,
       })
       showErrorToast(errorMsg)
+      // Reabrir confirmación para que el usuario pueda reintentar
+      setShowDeleteConfirm(true)
     } finally {
       setDeletingExercise(false)
     }
@@ -156,13 +175,30 @@ export default function ExerciseDetailScreen() {
   const rest = ranking.filter((r: any) => r.rank > 3)
 
   const handleUpsert = async () => {
-    if (!newValue) return
-    try {
-      await upsertPerformance(parseFloat(newValue))
-      setShowUpsert(false)
-      setNewValue('')
-    } catch (e: any) {
-      console.error(e)
+    const isRepsAndWeight = exercise?.unit === 'REPS_AND_WEIGHT'
+
+    if (isRepsAndWeight) {
+      if (!newReps || !newWeight) return
+      const reps = parseInt(newReps, 10)
+      const weight = parseFloat(newWeight)
+      if (isNaN(reps) || isNaN(weight) || reps < 1 || weight <= 0) return
+      try {
+        await upsertPerformance(0, reps, weight)
+        setShowUpsert(false)
+        setNewReps('')
+        setNewWeight('')
+      } catch (e: any) {
+        console.error(e)
+      }
+    } else {
+      if (!newValue) return
+      try {
+        await upsertPerformance(parseFloat(newValue))
+        setShowUpsert(false)
+        setNewValue('')
+      } catch (e: any) {
+        console.error(e)
+      }
     }
   }
 
@@ -265,9 +301,20 @@ export default function ExerciseDetailScreen() {
         </View>
 
         {/* Value */}
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginRight: 8 }}>
-          {item.value} {unitLabel}
-        </Text>
+        {item.reps != null && item.weight != null ? (
+          <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>
+              {item.reps} × {item.weight} kg
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+              Vol: {item.value}
+            </Text>
+          </View>
+        ) : (
+          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginRight: 8 }}>
+            {item.value} {unitLabel}
+          </Text>
+        )}
 
         {/* Dispute buttons */}
         <TouchableOpacity
@@ -420,7 +467,15 @@ export default function ExerciseDetailScreen() {
             <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
               {myPerformance ? (
                 <TouchableOpacity
-                  onPress={() => { setNewValue(myPerformance.value.toString()); setShowUpsert(true) }}
+                  onPress={() => {
+                    if (exercise?.unit === 'REPS_AND_WEIGHT') {
+                      setNewReps((myPerformance.reps || '').toString())
+                      setNewWeight((myPerformance.weight || '').toString())
+                    } else {
+                      setNewValue(myPerformance.value.toString())
+                    }
+                    setShowUpsert(true)
+                  }}
                   style={{
                     backgroundColor: colors.primary + '15',
                     borderRadius: 16,
@@ -434,9 +489,20 @@ export default function ExerciseDetailScreen() {
                 >
                   <View>
                     <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Tu marca</Text>
-                    <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
-                      {myPerformance.value} {unitLabel}
-                    </Text>
+                    {exercise?.unit === 'REPS_AND_WEIGHT' && myPerformance.reps != null && myPerformance.weight != null ? (
+                      <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
+                        {myPerformance.reps} reps × {myPerformance.weight} kg
+                      </Text>
+                    ) : (
+                      <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
+                        {myPerformance.value} {unitLabel}
+                      </Text>
+                    )}
+                    {exercise?.unit === 'REPS_AND_WEIGHT' && (
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+                        Volumen: {myPerformance.value}
+                      </Text>
+                    )}
                   </View>
                   <Text style={{ color: colors.primary, fontWeight: '600' }}>Actualizar</Text>
                 </TouchableOpacity>
@@ -474,9 +540,20 @@ export default function ExerciseDetailScreen() {
                     return (
                       <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
                         <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} style={{ marginBottom: 6 }} />
-                        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
-                          {record.value} {unitLabel}
-                        </Text>
+                        {record.reps != null && record.weight != null ? (
+                          <View style={{ alignItems: 'center' }}>
+                            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
+                              {record.reps} × {record.weight}
+                            </Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                              Vol: {record.value}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
+                            {record.value} {unitLabel}
+                          </Text>
+                        )}
                         <View style={{
                           width: 50,
                           height: barHeight,
@@ -548,18 +625,52 @@ export default function ExerciseDetailScreen() {
             <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
               {myPerformance ? 'Actualizar marca' : 'Registrar marca'}
             </Text>
-            <TextInput
-              placeholder={`Valor en ${unitLabel || 'kg'}`}
-              placeholderTextColor={colors.textSecondary}
-              value={newValue} onChangeText={setNewValue}
-              keyboardType="decimal-pad"
-              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
-            />
-            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
-              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowUpsert(false)} style={{ padding: 12, alignItems: 'center' }}>
+
+            {exercise?.unit === 'REPS_AND_WEIGHT' ? (
+              <>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Repeticiones</Text>
+                <TextInput
+                  placeholder="Ej: 6"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newReps} onChangeText={setNewReps}
+                  keyboardType="number-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
+                />
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso (kg)</Text>
+                <TextInput
+                  placeholder="Ej: 20"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newWeight} onChangeText={setNewWeight}
+                  keyboardType="decimal-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
+                />
+                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
+                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  placeholder={`Valor en ${unitLabel || 'kg'}`}
+                  placeholderTextColor={colors.textSecondary}
+                  value={newValue} onChangeText={setNewValue}
+                  keyboardType="decimal-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
+                />
+                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
+                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity onPress={() => {
+              setShowUpsert(false)
+              setNewValue('')
+              setNewReps('')
+              setNewWeight('')
+            }} style={{ padding: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
             </TouchableOpacity>
           </View>

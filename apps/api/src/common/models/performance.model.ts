@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, Int } from '@nestjs/graphql'
+import { ObjectType, Field, ID, Int, Float } from '@nestjs/graphql'
 import { User } from './user.model'
 import { Exercise } from './exercise.model'
 
@@ -18,6 +18,12 @@ export class PerformanceRecord {
 
   @Field()
   value: number
+
+  @Field(() => Int, { nullable: true, description: 'Número de repeticiones (solo para ejercicios REPS_AND_WEIGHT)' })
+  reps?: number
+
+  @Field(() => Float, { nullable: true, description: 'Peso en kg (solo para ejercicios REPS_AND_WEIGHT)' })
+  weight?: number
 
   @Field()
   recordedAt: Date

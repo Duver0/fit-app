@@ -37,6 +37,7 @@ enum ExerciseUnit {
   MIN
   SEC
   M
+  REPS_AND_WEIGHT
 
   @@map("exercise_unit")
 }
@@ -155,6 +156,8 @@ model PerformanceRecord {
   userId     String   @map("user_id") @db.Uuid
   groupId    String   @map("group_id") @db.Uuid
   value      Float
+  reps       Int?     @map("reps")
+  weight     Float?   @map("weight")
   recordedAt DateTime @default(now()) @map("recorded_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

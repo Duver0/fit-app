@@ -123,6 +123,8 @@ export const RANKING_QUERY = gql`
       items {
         id
         value
+        reps
+        weight
         rank
         user {
           id
@@ -149,6 +151,8 @@ export const TOP3_RANKING_QUERY = gql`
       top {
         id
         value
+        reps
+        weight
         rank
         user {
           id
@@ -165,6 +169,8 @@ export const UPSERT_PERFORMANCE_MUTATION = gql`
     upsertPerformance(input: $input) {
       id
       value
+      reps
+      weight
     }
   }
 `
@@ -174,6 +180,8 @@ export const MY_PERFORMANCE_QUERY = gql`
     myPerformance(exerciseId: $exerciseId) {
       id
       value
+      reps
+      weight
       recordedAt
       updatedAt
     }
@@ -369,6 +377,8 @@ export const DISPUTES_QUERY = gql`
       performance {
         id
         value
+        reps
+        weight
       }
     }
   }
@@ -397,6 +407,8 @@ export const MY_DISPUTES_QUERY = gql`
       performance {
         id
         value
+        reps
+        weight
         exercise {
           id
           name

@@ -21,6 +21,7 @@ export enum ExerciseUnit {
   MIN = 'MIN',
   SEC = 'SEC',
   M = 'M',
+  REPS_AND_WEIGHT = 'REPS_AND_WEIGHT',
 }
 
 export enum DisputeStatus {

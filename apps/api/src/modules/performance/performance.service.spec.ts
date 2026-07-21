@@ -13,7 +13,13 @@ describe('PerformanceService', () => {
     groupId: 'group-1',
     name: 'Bench Press',
     unit: ExerciseUnit.KG,
+    imageUrl: null,
     createdBy: 'user-1',
+    wgerId: null,
+    wgerCategory: null,
+    wgerMuscles: null,
+    wgerEquipment: null,
+    wgerInstructions: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -25,6 +31,8 @@ describe('PerformanceService', () => {
     userId: 'user-2',
     groupId: 'group-1',
     value: 100,
+    reps: null,
+    weight: null,
     recordedAt: new Date(),
     updatedAt: new Date(),
   }
