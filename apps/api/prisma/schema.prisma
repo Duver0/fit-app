@@ -203,6 +203,27 @@ model DisputeVote {
   @@map("dispute_votes")
 }
 
+model GroupImageCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  category       String   @map("category")
+  searchTerm     String   @map("search_term")
+  provider       String   @map("provider")
+  imageUrl       String   @map("image_url") @db.Text
+  thumbnailUrl   String   @map("thumbnail_url") @db.Text
+  author         String   @map("author")
+  attributionUrl String   @map("attribution_url") @db.Text
+  imageId        String   @map("image_id")
+  width          Int      @default(0)
+  height         Int      @default(0)
+  downloadedAt   DateTime @default(now()) @map("downloaded_at")
+  expiresAt      DateTime @map("expires_at")
+
+  @@index([category])
+  @@index([category, searchTerm])
+  @@index([expiresAt])
+  @@map("group_image_cache")
+}
+
 model AuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   action    String

@@ -445,3 +445,18 @@ export const SEARCH_EXERCISES_QUERY = gql`
     }
   }
 `
+
+export const GROUP_IMAGES_QUERY = gql`
+  query GroupImages($category: String!, $limit: Int) {
+    groupImages(category: $category, limit: $limit) {
+      id
+      provider
+      url
+      thumbnail
+      author
+      attributionUrl
+      width
+      height
+    }
+  }
+`

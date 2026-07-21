@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, KeyboardAvoidingView, Platform, Image, Pressable, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -10,6 +10,7 @@ import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
+import { useGroupImages } from '../../../../src/hooks/useGroupImages'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -54,6 +55,21 @@ export default function GroupDashboardScreen() {
   const exercises: any[] = exercisesData?.exercises || []
   const group = groupData?.group
   const isOwner = currentUser?.id && group?.owner?.id === currentUser.id
+
+  // --- Dynamic category images ---
+  const uniqueCategories = [...new Set(exercises.map((e: any) => e.wgerCategory).filter(Boolean))] as string[]
+  const [categoryImages, setCategoryImages] = useState<Record<string, string>>({})
+  const { getImagesForCategory } = useGroupImages()
+
+  useEffect(() => {
+    uniqueCategories.forEach(async (cat: string) => {
+      const imgs = await getImagesForCategory(cat, 1)
+      if (imgs.length > 0) {
+        setCategoryImages(prev => ({ ...prev, [cat]: imgs[0].thumbnail }))
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(uniqueCategories)])
 
   // --- Menu handlers ---
   const handleEditGroup = () => {
@@ -315,7 +331,7 @@ export default function GroupDashboardScreen() {
               alignItems: 'center',
             }}
           >
-            {/* Exercise image */}
+            {/* Exercise image: prioridad 1 = imagen de categoría, 2 = wger imageUrl, 3 = inicial */}
             <View style={{
               width: 56,
               height: 56,
@@ -326,7 +342,13 @@ export default function GroupDashboardScreen() {
               marginRight: 14,
               overflow: 'hidden',
             }}>
-              {getImageUrl(ex.imageUrl) ? (
+              {categoryImages[ex.wgerCategory] ? (
+                <Image
+                  source={{ uri: categoryImages[ex.wgerCategory] }}
+                  style={{ width: 56, height: 56, borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+              ) : getImageUrl(ex.imageUrl) ? (
                 <Image
                   source={{ uri: getImageUrl(ex.imageUrl) }}
                   style={{ width: 56, height: 56, borderRadius: 12 }}

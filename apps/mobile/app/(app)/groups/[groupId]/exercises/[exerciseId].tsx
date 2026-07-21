@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Alert, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -12,6 +12,7 @@ import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
+import { useGroupImages } from '../../../../../src/hooks/useGroupImages'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
 
@@ -41,6 +42,20 @@ export default function ExerciseDetailScreen() {
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
+
+  // --- Dynamic category image ---
+  const [categoryImage, setCategoryImage] = useState<string | null>(null)
+  const { getImagesForCategory } = useGroupImages()
+
+  useEffect(() => {
+    if (exercise?.wgerCategory) {
+      getImagesForCategory(exercise.wgerCategory, 1).then((imgs) => {
+        if (imgs.length > 0) {
+          setCategoryImage(imgs[0].thumbnail)
+        }
+      })
+    }
+  }, [exercise?.wgerCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION, {
     refetchQueries: [
@@ -339,9 +354,15 @@ export default function ExerciseDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            {/* Header with image */}
+            {/* Header with image: prioridad 1 = imagen de categoría, 2 = wger imageUrl, 3 = inicial */}
             <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
-              {getImageUrl(exercise?.imageUrl) ? (
+              {categoryImage ? (
+                <Image
+                  source={{ uri: categoryImage }}
+                  style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}
+                  resizeMode="cover"
+                />
+              ) : getImageUrl(exercise?.imageUrl) ? (
                 <Image
                   source={{ uri: getImageUrl(exercise?.imageUrl) }}
                   style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}

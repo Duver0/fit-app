@@ -1,3 +1,4 @@
+export { GroupImage } from './group-image.model'
 export { User, AuthPayload, UserConnection, UserRole } from './user.model'
 export { Group, GroupMember, GroupConnection } from './group.model'
 export { Invitation } from './invitation.model'
