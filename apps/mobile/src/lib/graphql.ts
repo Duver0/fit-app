@@ -97,7 +97,6 @@ export const GROUP_QUERY = gql`
         wgerCategory
         wgerMuscles
         wgerEquipment
-        wgerInstructions
         createdBy {
           id
         }
@@ -418,7 +417,6 @@ export const EXERCISES_QUERY = gql`
       wgerCategory
       wgerMuscles
       wgerEquipment
-      wgerInstructions
       createdBy {
         id
         name

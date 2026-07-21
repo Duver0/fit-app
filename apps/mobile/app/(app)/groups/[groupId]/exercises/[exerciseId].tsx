@@ -496,8 +496,8 @@ export default function ExerciseDetailScreen() {
                     const barHeight = pos === 1 ? 120 : pos === 2 ? 90 : 60
                     return (
                       <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
-                        <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} />
-                        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700', marginVertical: 4 }}>
+                        <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} style={{ marginBottom: 6 }} />
+                        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
                           {record.value} {unitLabel}
                         </Text>
                         <View style={{
