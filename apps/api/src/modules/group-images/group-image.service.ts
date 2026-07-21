@@ -130,6 +130,44 @@ export class GroupImageService {
   }
 
   /**
+   * Busca imágenes por query textual en todos los proveedores.
+   * Útil para avatares de grupo: el usuario escribe un término (ej: 'running', 'yoga')
+   * y se obtienen fotos de stock de Unsplash/Pexels/Pixabay.
+   * A diferencia de getImagesForCategory, NO cachea los resultados.
+   */
+  async searchImages(query: string, limit: number = 8): Promise<GroupImage[]> {
+    if (!query.trim() || this.providers.length === 0) return []
+
+    const allImages: Map<string, GroupImage> = new Map()
+    const perProvider = Math.max(1, Math.ceil(limit / this.providers.length))
+
+    for (const provider of this.providers) {
+      if (allImages.size >= limit) break
+
+      try {
+        const options: ImageSearchOptions = {
+          query: query.trim(),
+          perPage: perProvider,
+          page: 1,
+        }
+
+        const results = await this.retryWithBackoff(() => provider.search(options), 2)
+
+        for (const img of results) {
+          if (allImages.size >= limit) break
+          if (!allImages.has(img.id)) {
+            allImages.set(img.id, img)
+          }
+        }
+      } catch (error) {
+        this.logger.warn(`Provider "${provider.name}" failed for query "${query}": ${(error as Error).message}`)
+      }
+    }
+
+    return Array.from(allImages.values())
+  }
+
+  /**
    * Reintentos con backoff exponencial.
    */
   private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number): Promise<T> {

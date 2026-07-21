@@ -460,3 +460,18 @@ export const GROUP_IMAGES_QUERY = gql`
     }
   }
 `
+
+export const SEARCH_GROUP_AVATAR_QUERY = gql`
+  query SearchGroupImages($query: String!, $limit: Int) {
+    searchGroupImages(query: $query, limit: $limit) {
+      id
+      provider
+      url
+      thumbnail
+      author
+      attributionUrl
+      width
+      height
+    }
+  }
+`

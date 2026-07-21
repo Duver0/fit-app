@@ -24,4 +24,12 @@ export class GroupImageResolver {
   ): Promise<GroupImage[]> {
     return this.groupImageService.refreshCache(category)
   }
+
+  @Query(() => [GroupImage], { description: 'Busca imágenes de stock por texto (ej: "running", "yoga") en Unsplash/Pexels/Pixabay. Sin caché — consulta en vivo.' })
+  async searchGroupImages(
+    @Args('query') query: string,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+  ): Promise<GroupImage[]> {
+    return this.groupImageService.searchImages(query, limit ?? 8)
+  }
 }
