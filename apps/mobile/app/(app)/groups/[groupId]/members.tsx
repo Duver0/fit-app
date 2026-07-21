@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator, Image } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
 import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
+import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 
@@ -117,9 +118,16 @@ export default function MembersScreen() {
             backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8,
             flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
           }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>{item.user.name.charAt(0)}</Text>
-            </View>
+            {getImageUrl(item.user.avatarUrl) ? (
+              <Image
+                source={{ uri: getImageUrl(item.user.avatarUrl) }}
+                style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+              />
+            ) : (
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>{item.user.name.charAt(0)}</Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontWeight: '500' }}>{item.user.name}</Text>
             </View>
@@ -166,9 +174,13 @@ export default function MembersScreen() {
                 backgroundColor: colors.background, borderRadius: 12, padding: 14, marginBottom: 16,
                 borderWidth: 1, borderColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12,
               }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
-                </View>
+                {getImageUrl(selectedUser.avatarUrl) ? (
+                  <Image source={{ uri: getImageUrl(selectedUser.avatarUrl) }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                ) : (
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedUser.name}</Text>
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{selectedUser.email}</Text>
@@ -196,15 +208,19 @@ export default function MembersScreen() {
                 backgroundColor: colors.background, borderRadius: 12, marginBottom: 16, maxHeight: 200,
                 borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
               }}>
-                {searchResults.map((u: any) => (
-                  <TouchableOpacity
-                    key={u.id}
-                    onPress={() => setSelectedUser(u)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                  >
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
-                    </View>
+                  {searchResults.map((u: any) => (
+                    <TouchableOpacity
+                      key={u.id}
+                      onPress={() => setSelectedUser(u)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    >
+                      {getImageUrl(u.avatarUrl) ? (
+                        <Image source={{ uri: getImageUrl(u.avatarUrl) }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                      ) : (
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                          <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
+                        </View>
+                      )}
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '500' }}>{u.name}</Text>
                       <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{u.email}</Text>

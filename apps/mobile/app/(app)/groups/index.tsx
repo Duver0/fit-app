@@ -1,7 +1,8 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native'
 import { router } from 'expo-router'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useGroups } from '../../../src/hooks/useGroups'
+import { getImageUrl } from '../../../src/lib/api'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import InvitationBell from '../../../src/components/InvitationBell'
 
@@ -61,14 +62,21 @@ export default function GroupsScreen() {
               borderColor: colors.border,
             }}
           >
-            <View style={{
-              width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary,
-              justifyContent: 'center', alignItems: 'center', marginRight: 12,
-            }}>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text }}>
-                {item.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            {getImageUrl(item.avatarUrl) ? (
+              <Image
+                source={{ uri: getImageUrl(item.avatarUrl) }}
+                style={{ width: 48, height: 48, borderRadius: 24, marginRight: 12 }}
+              />
+            ) : (
+              <View style={{
+                width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary,
+                justifyContent: 'center', alignItems: 'center', marginRight: 12,
+              }}>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text }}>
+                  {item.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
