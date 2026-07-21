@@ -333,7 +333,7 @@ export default function ExerciseDetailScreen() {
       </Modal>
 
       <FlatList
-        data={rest}
+        data={ranking}
         keyExtractor={(item: any) => item.id}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 100 }}
