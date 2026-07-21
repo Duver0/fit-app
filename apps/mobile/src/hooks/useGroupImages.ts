@@ -35,12 +35,20 @@ export function useGroupImages() {
    */
   const searchImages = async (query: string, limit = 8): Promise<GroupImage[]> => {
     if (!query.trim()) return []
+    console.log('[useGroupImages] searchImages query=', query, 'limit=', limit)
     const result = await searchImagesQuery({ variables: { query: query.trim(), limit } })
-    // Propagar errores de GraphQL en vez de devolver [] silenciosamente
+    console.log('[useGroupImages] searchImages raw result:', JSON.stringify({
+      data: result.data,
+      error: result.error ? { message: result.error.message, graphQLErrors: result.error.graphQLErrors } : null,
+      loading: result.loading,
+    }))
     if (result.error) {
+      console.warn('[useGroupImages] searchImages GraphQL error:', result.error.message, result.error.graphQLErrors)
       throw new Error(result.error.message)
     }
-    return result.data?.searchGroupImages || []
+    const images = result.data?.searchGroupImages || []
+    console.log('[useGroupImages] searchImages returning', images.length, 'images')
+    return images
   }
 
   return {

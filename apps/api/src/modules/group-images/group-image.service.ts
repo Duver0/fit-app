@@ -150,14 +150,16 @@ export class GroupImageService {
   async searchImages(query: string, limit: number = 8): Promise<GroupImage[]> {
     if (!query.trim()) return []
     if (this.providers.length === 0) {
-      this.logger.warn(`searchImages("${query}") called but no providers are initialized`)
+      this.logger.warn(`[searchImages] "${query}" — NO providers initialized`)
       return []
     }
 
-    this.logger.debug(`searchImages("${query}", limit=${limit}) — active providers: ${this.providers.map(p => p.name).join(', ')}`)
+    const providerNames = this.providers.map(p => p.name).join(', ')
+    this.logger.log(`[searchImages] "${query}" limit=${limit} providers=[${providerNames}]`)
 
     const allImages: Map<string, GroupImage> = new Map()
     const perProvider = Math.max(1, Math.ceil(limit / this.providers.length))
+    const providerResults: { name: string; count: number }[] = []
 
     for (const provider of this.providers) {
       if (allImages.size >= limit) break
@@ -169,7 +171,11 @@ export class GroupImageService {
           page: 1,
         }
 
+        this.logger.log(`[searchImages] calling provider "${provider.name}" with query="${query}" perPage=${perProvider}`)
         const results = await this.retryWithBackoff(() => provider.search(options), 2)
+        this.logger.log(`[searchImages] provider "${provider.name}" returned ${results.length} results`)
+
+        providerResults.push({ name: provider.name, count: results.length })
 
         for (const img of results) {
           if (allImages.size >= limit) break
@@ -178,7 +184,20 @@ export class GroupImageService {
           }
         }
       } catch (error) {
-        this.logger.warn(`Provider "${provider.name}" failed for query "${query}": ${(error as Error).message}`)
+        this.logger.warn(`[searchImages] provider "${provider.name}" threw: ${(error as Error).message}`)
+        providerResults.push({ name: provider.name, count: -1 })
+      }
+    }
+
+    const total = allImages.size
+    this.logger.log(`[searchImages] "${query}" → total=${total} per-provider=${JSON.stringify(providerResults)}`)
+
+    if (total === 0 && providerResults.every(r => r.count === 0)) {
+      this.logger.warn(`[searchImages] "${query}" — ALL providers returned 0 results. Check API keys or network.`)
+      // Log env var presence (not values) for debugging
+      for (const key of ['UNSPLASH_ACCESS_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY']) {
+        const val = process.env[key]
+        this.logger.log(`[searchImages] env.${key} present=${!!val} length=${val?.length || 0}`)
       }
     }
 
