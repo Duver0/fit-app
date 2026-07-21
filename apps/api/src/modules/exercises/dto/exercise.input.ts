@@ -65,6 +65,11 @@ export class UpdateExerciseInput {
   @IsOptional()
   @IsUrl({}, { message: 'Debe ser una URL válida' })
   imageUrl?: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string
 }
 
 @InputType()
@@ -83,6 +88,11 @@ export class CreateExerciseInput {
   @IsOptional()
   @IsEnum(ExerciseUnit)
   unit?: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string
 
   @Field({ nullable: true })
   @IsOptional()

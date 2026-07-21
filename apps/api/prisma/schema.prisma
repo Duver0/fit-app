@@ -82,9 +82,10 @@ model Group {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  owner       User            @relation(fields: [ownerId], references: [id])
+  owner       User                @relation(fields: [ownerId], references: [id])
   members     GroupMember[]
   exercises   Exercise[]
+  categories  ExerciseCategory[]
   invitations Invitation[]
   performances PerformanceRecord[]
 
@@ -124,9 +125,25 @@ model Invitation {
   @@map("invitations")
 }
 
+model ExerciseCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  groupId   String   @map("group_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@unique([groupId, name])
+  @@index([groupId])
+  @@map("exercise_categories")
+}
+
 model Exercise {
   id        String       @id @default(uuid()) @db.Uuid
   groupId   String       @map("group_id") @db.Uuid
+  categoryId String?     @map("category_id") @db.Uuid
   name      String
   unit      ExerciseUnit @default(KG)
   imageUrl  String?      @map("image_url") @db.Text
@@ -142,6 +159,7 @@ model Exercise {
   wgerInstructions String?  @map("wger_instructions") @db.Text
 
   group        Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  category     ExerciseCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   creator      User                @relation(fields: [createdBy], references: [id])
   performances PerformanceRecord[]
 

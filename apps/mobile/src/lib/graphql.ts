@@ -93,6 +93,11 @@ export const GROUP_QUERY = gql`
         name
         unit
         imageUrl
+        categoryId
+        category {
+          id
+          name
+        }
         wgerId
         wgerCategory
         wgerMuscles
@@ -100,6 +105,10 @@ export const GROUP_QUERY = gql`
         createdBy {
           id
         }
+      }
+      categories {
+        id
+        name
       }
     }
   }
@@ -295,6 +304,11 @@ export const CREATE_EXERCISE_MUTATION = gql`
       name
       unit
       imageUrl
+      categoryId
+      category {
+        id
+        name
+      }
     }
   }
 `
@@ -317,6 +331,11 @@ export const UPDATE_EXERCISE_MUTATION = gql`
       name
       imageUrl
       unit
+      categoryId
+      category {
+        id
+        name
+      }
     }
   }
 `
@@ -425,6 +444,11 @@ export const EXERCISES_QUERY = gql`
       name
       unit
       imageUrl
+      categoryId
+      category {
+        id
+        name
+      }
       wgerId
       wgerCategory
       wgerMuscles
@@ -435,6 +459,39 @@ export const EXERCISES_QUERY = gql`
         avatarUrl
       }
     }
+  }
+`
+
+export const EXERCISE_CATEGORIES_QUERY = gql`
+  query ExerciseCategories($groupId: String!) {
+    exerciseCategories(groupId: $groupId) {
+      id
+      name
+    }
+  }
+`
+
+export const CREATE_EXERCISE_CATEGORY_MUTATION = gql`
+  mutation CreateExerciseCategory($input: CreateExerciseCategoryInput!) {
+    createExerciseCategory(input: $input) {
+      id
+      name
+    }
+  }
+`
+
+export const UPDATE_EXERCISE_CATEGORY_MUTATION = gql`
+  mutation UpdateExerciseCategory($id: String!, $input: UpdateExerciseCategoryInput!) {
+    updateExerciseCategory(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`
+
+export const DELETE_EXERCISE_CATEGORY_MUTATION = gql`
+  mutation DeleteExerciseCategory($id: String!) {
+    deleteExerciseCategory(id: $id)
   }
 `
 

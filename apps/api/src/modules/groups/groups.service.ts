@@ -30,7 +30,8 @@ export class GroupsService {
       include: {
         owner: true,
         members: { include: { user: true } },
-        exercises: { include: { creator: true } },
+        exercises: { include: { creator: true, category: true } },
+        categories: { include: { exercises: { include: { creator: true } } }, orderBy: { name: 'asc' } },
         _count: { select: { members: true } },
       },
     })

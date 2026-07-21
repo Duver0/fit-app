@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql'
 import { User } from '../../common/models/user.model'
 import { Exercise } from './exercise.model'
+import { ExerciseCategory } from './exercise-category.model'
 
 @ObjectType()
 export class GroupMember {
@@ -42,6 +43,9 @@ export class Group {
 
   @Field(() => [Exercise])
   exercises: Exercise[]
+
+  @Field(() => [ExerciseCategory])
+  categories: ExerciseCategory[]
 
   @Field(() => Date)
   createdAt: Date

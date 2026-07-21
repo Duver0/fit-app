@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module'
 import { GroupsModule } from './modules/groups/groups.module'
 import { InvitationsModule } from './modules/invitations/invitations.module'
 import { ExercisesModule } from './modules/exercises/exercises.module'
+import { ExerciseCategoriesModule } from './modules/exercise-categories/exercise-categories.module'
 import { PerformanceModule } from './modules/performance/performance.module'
 import { RankingModule } from './modules/ranking/ranking.module'
 import { DisputesModule } from './modules/disputes/disputes.module'
@@ -38,6 +39,7 @@ import { join } from 'path'
     GroupsModule,
     InvitationsModule,
     ExercisesModule,
+    ExerciseCategoriesModule,
     PerformanceModule,
     RankingModule,
     DisputesModule,

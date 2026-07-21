@@ -10,24 +10,31 @@ export class ExercisesService {
   async findByGroup(groupId: string) {
     return this.prisma.exercise.findMany({
       where: { groupId },
-      include: { creator: true },
+      include: { creator: true, category: true },
     })
   }
 
   async findById(id: string) {
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
-      include: { creator: true },
+      include: { creator: true, category: true },
     })
     if (!exercise) throw new NotFoundException()
     return exercise
   }
 
-  async create(userId: string, data: { groupId: string; name: string; unit?: string; imageUrl?: string }) {
+  async create(userId: string, data: { groupId: string; name: string; unit?: string; categoryId?: string; imageUrl?: string }) {
     const membership = await this.prisma.groupMember.findFirst({
       where: { groupId: data.groupId, userId },
     })
     if (!membership) throw new ForbiddenException('You must be a group member to create exercises')
+
+    if (data.categoryId) {
+      const category = await this.prisma.exerciseCategory.findUnique({ where: { id: data.categoryId } })
+      if (!category || category.groupId !== data.groupId) {
+        throw new NotFoundException('Categoría no encontrada en este grupo')
+      }
+    }
 
     return this.prisma.exercise.create({
       data: {
@@ -35,9 +42,10 @@ export class ExercisesService {
         name: data.name,
         createdBy: userId,
         unit: (data.unit as ExerciseUnit) || ExerciseUnit.KG,
+        ...(data.categoryId ? { categoryId: data.categoryId } : {}),
         ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
       },
-      include: { creator: true },
+      include: { creator: true, category: true },
     })
   }
 
@@ -57,7 +65,7 @@ export class ExercisesService {
     })
   }
 
-  async update(id: string, userId: string, data: { name?: string; imageUrl?: string }) {
+  async update(id: string, userId: string, data: { name?: string; imageUrl?: string; categoryId?: string | null }) {
     const exercise = await this.prisma.exercise.findUnique({ where: { id } })
     if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
 
@@ -70,10 +78,17 @@ export class ExercisesService {
       throw new ForbiddenException('Solo el dueño del grupo o el creador del ejercicio puede editarlo')
     }
 
+    if (data.categoryId) {
+      const category = await this.prisma.exerciseCategory.findUnique({ where: { id: data.categoryId } })
+      if (!category || category.groupId !== exercise.groupId) {
+        throw new NotFoundException('Categoría no encontrada en este grupo')
+      }
+    }
+
     return this.prisma.exercise.update({
       where: { id },
       data,
-      include: { creator: true },
+      include: { creator: true, category: true },
     })
   }
 

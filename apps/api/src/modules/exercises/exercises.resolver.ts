@@ -84,7 +84,11 @@ export class ExercisesResolver {
     @CurrentUser() user: User,
     @Args('input') input: UpdateExerciseInput,
   ) {
-    return this.exercisesService.update(input.id, user.id, { name: input.name, imageUrl: input.imageUrl })
+    return this.exercisesService.update(input.id, user.id, {
+      name: input.name,
+      imageUrl: input.imageUrl,
+      categoryId: input.categoryId,
+    })
   }
 
   @Mutation(() => Exercise)

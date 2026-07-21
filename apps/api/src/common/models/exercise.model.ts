@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql'
 import { ExerciseUnit } from '@prisma/client'
 import { User } from './user.model'
+import { ExerciseCategory } from './exercise-category.model'
 
 export { ExerciseUnit }
 
@@ -13,6 +14,12 @@ export class Exercise {
 
   @Field()
   groupId: string
+
+  @Field({ nullable: true })
+  categoryId?: string
+
+  @Field(() => ExerciseCategory, { nullable: true })
+  category?: ExerciseCategory
 
   @Field()
   name: string
