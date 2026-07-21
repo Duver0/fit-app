@@ -32,4 +32,9 @@ export class GroupImageResolver {
   ): Promise<GroupImage[]> {
     return this.groupImageService.searchImages(query, limit ?? 8)
   }
+
+  @Query(() => [String], { description: 'Diagnóstico: lista los proveedores de imágenes activos (unsplash, pexels, pixabay). Vacío si no hay ninguno configurado.' })
+  async activeImageProviders(): Promise<string[]> {
+    return this.groupImageService.getActiveProviders()
+  }
 }

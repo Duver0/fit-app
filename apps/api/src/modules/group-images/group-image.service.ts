@@ -32,7 +32,10 @@ export class GroupImageService {
     ]
 
     for (const { Provider, envKey, name } of providers) {
-      const key = this.configService.get<string>(envKey)
+      // Intentar con ConfigService primero, fallback a process.env directo
+      // (útil para entornos Docker donde la env var está en el proceso pero
+      // ConfigService puede no encontrarla por diferencia de cwd)
+      const key = this.configService.get<string>(envKey) || process.env[envKey]
       if (key) {
         try {
           const instance = new (Provider as any)()
@@ -135,8 +138,22 @@ export class GroupImageService {
    * y se obtienen fotos de stock de Unsplash/Pexels/Pixabay.
    * A diferencia de getImagesForCategory, NO cachea los resultados.
    */
+  /**
+   * Retorna los nombres de los proveedores que se inicializaron correctamente.
+   * Útil para diagnóstico en producción.
+   */
+  getActiveProviders(): string[] {
+    return this.providers.map(p => p.name)
+  }
+
   async searchImages(query: string, limit: number = 8): Promise<GroupImage[]> {
-    if (!query.trim() || this.providers.length === 0) return []
+    if (!query.trim()) return []
+    if (this.providers.length === 0) {
+      this.logger.warn(`searchImages("${query}") called but no providers are initialized`)
+      return []
+    }
+
+    this.logger.debug(`searchImages("${query}", limit=${limit}) — active providers: ${this.providers.map(p => p.name).join(', ')}`)
 
     const allImages: Map<string, GroupImage> = new Map()
     const perProvider = Math.max(1, Math.ceil(limit / this.providers.length))
