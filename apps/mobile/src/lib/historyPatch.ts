@@ -38,5 +38,20 @@ export function patchHistoryForBasePath() {
     return originalReplaceState(state, title, url)
   } as typeof window.history.replaceState
 
+  /**
+   * Fix initial navigation: expo-router lee window.location.pathname para
+   * determinar la ruta inicial, pero si el pathname incluye el basePath
+   * (ej: /fit-app/groups/...), no encuentra rutas que coincidan y termina
+   * en el index. Reemplazamos el estado inicial para que expo-router vea
+   * una URL limpia (sin el basePath). El <base href> se encarga de la
+   * resolución de recursos estáticos, y las navegaciones posteriores
+   * recuperan el basePath vía el patch de pushState/replaceState.
+   */
+  const currentPath = window.location.pathname
+  if (currentPath.startsWith(basePath + '/')) {
+    const cleanPath = currentPath.slice(basePath.length) || '/'
+    originalReplaceState(null, '', cleanPath)
+  }
+
   patched = true
 }
