@@ -1,9 +1,10 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { Injectable, ForbiddenException, NotFoundException, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ExerciseUnit } from '@prisma/client'
 
 @Injectable()
 export class ExercisesService {
+  private readonly logger = new Logger(ExercisesService.name)
   constructor(private prisma: PrismaService) {}
 
   async findByGroup(groupId: string) {
@@ -115,20 +116,34 @@ export class ExercisesService {
   }
 
   async delete(id: string, userId: string) {
+    this.logger.log(`→ delete() called | id="${id}" | userId="${userId}"`)
+
     const exercise = await this.prisma.exercise.findUnique({ where: { id } })
-    if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
+    if (!exercise) {
+      this.logger.warn(`✕ Exercise not found | id="${id}"`)
+      throw new NotFoundException('Ejercicio no encontrado')
+    }
+    this.logger.log(`✓ Exercise found | name="${exercise.name}" | groupId="${exercise.groupId}" | createdBy="${exercise.createdBy}"`)
 
     // Allow deletion if user is the group owner OR the exercise creator
     const membership = await this.prisma.groupMember.findFirst({
       where: { groupId: exercise.groupId, userId, role: 'OWNER' },
     })
     const isCreator = exercise.createdBy === userId
+    this.logger.log(`Auth check | isOwner=${!!membership} | isCreator=${isCreator} (createdBy="${exercise.createdBy}" === userId="${userId}")`)
 
     if (!membership && !isCreator) {
+      this.logger.warn(`✕ Forbidden | userId="${userId}" is neither owner nor creator of exercise "${id}"`)
       throw new ForbiddenException('Solo el dueño del grupo o el creador del ejercicio puede eliminarlo')
     }
 
-    await this.prisma.exercise.delete({ where: { id } })
+    try {
+      await this.prisma.exercise.delete({ where: { id } })
+      this.logger.log(`✓ Exercise "${id}" deleted successfully`)
+    } catch (prismaError: any) {
+      this.logger.error(`✕ Prisma delete failed | id="${id}" | error="${prismaError.message}"`, prismaError.stack)
+      throw prismaError
+    }
     return true
   }
 

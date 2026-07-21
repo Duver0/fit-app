@@ -75,20 +75,28 @@ export default function ExerciseDetailScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
+            console.log('[DeleteExercise] iniciando eliminación | exerciseId:', exerciseId)
             try {
               const { errors } = await deleteExercise({ variables: { id: exerciseId } })
               if (errors?.[0]) {
-                console.error('[DeleteExercise] error:', errors[0].message, errors)
+                console.error('[DeleteExercise] error en respuesta:', errors[0].message, errors)
                 showErrorToast(errors[0].message)
                 return
               }
+              console.log('[DeleteExercise] eliminado correctamente')
               // Refrescar queries del dashboard (best-effort, no bloquea)
               client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
               showSuccessToast('Ejercicio eliminado')
               router.back()
             } catch (e: any) {
-              const errorMsg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error desconocido'
-              console.error('[DeleteExercise] exception:', errorMsg, e)
+              const graphQLError = e?.graphQLErrors?.[0]
+              const errorMsg = graphQLError?.message || e?.message || 'Error desconocido'
+              console.error('[DeleteExercise] exception:', {
+                message: errorMsg,
+                graphQLErrors: e?.graphQLErrors,
+                networkError: e?.networkError,
+                stack: e?.stack,
+              })
               showErrorToast(errorMsg)
             }
           },

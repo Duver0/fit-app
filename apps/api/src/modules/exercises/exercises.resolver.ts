@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql'
-import { UseGuards } from '@nestjs/common'
+import { UseGuards, Logger } from '@nestjs/common'
 import { ExercisesService } from './exercises.service'
 import { WgerService } from './wger.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
@@ -37,6 +37,8 @@ export class ExerciseFieldsResolver {
 @Resolver()
 @UseGuards(GqlAuthGuard)
 export class ExercisesResolver {
+  private readonly logger = new Logger(ExercisesResolver.name)
+
   constructor(
     private exercisesService: ExercisesService,
     private wgerService: WgerService,
@@ -96,6 +98,14 @@ export class ExercisesResolver {
 
   @Mutation(() => Boolean)
   async deleteExercise(@CurrentUser() user: User, @Args('id') id: string) {
-    return this.exercisesService.delete(id, user.id)
+    this.logger.log(`→ deleteExercise mutation | id="${id}" | user="${user.id}" | user.auth0Id="${user.auth0Id}"`)
+    try {
+      const result = await this.exercisesService.delete(id, user.id)
+      this.logger.log(`✓ deleteExercise success | id="${id}" | result=${result}`)
+      return result
+    } catch (error: any) {
+      this.logger.error(`✕ deleteExercise failed | id="${id}" | error="${error.message}"`, error.stack)
+      throw error
+    }
   }
 }
