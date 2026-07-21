@@ -7,6 +7,7 @@ import { useRanking } from '../../../../../src/hooks/useRanking'
 import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
+import { client } from '../../../../../src/lib/apollo'
 import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
@@ -42,12 +43,7 @@ export default function ExerciseDetailScreen() {
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
 
-  const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION, {
-    refetchQueries: [
-      { query: GROUP_QUERY, variables: { id: groupId } },
-      { query: EXERCISES_QUERY, variables: { groupId } },
-    ],
-  })
+  const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION)
 
   const [updateExercise, { loading: updating }] = useMutation(UPDATE_EXERCISE_MUTATION, {
     refetchQueries: [
@@ -80,11 +76,20 @@ export default function ExerciseDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteExercise({ variables: { id: exerciseId } })
+              const { errors } = await deleteExercise({ variables: { id: exerciseId } })
+              if (errors?.[0]) {
+                console.error('[DeleteExercise] error:', errors[0].message, errors)
+                showErrorToast(errors[0].message)
+                return
+              }
+              // Refrescar queries del dashboard (best-effort, no bloquea)
+              client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
               showSuccessToast('Ejercicio eliminado')
               router.back()
             } catch (e: any) {
-              showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
+              const errorMsg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error desconocido'
+              console.error('[DeleteExercise] exception:', errorMsg, e)
+              showErrorToast(errorMsg)
             }
           },
         },
