@@ -1,5 +1,5 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql'
-import { UseGuards, Logger } from '@nestjs/common'
+import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { GroupImage, ProviderDiagResult } from '../../common/models'
 import { GroupImageService } from './group-image.service'
@@ -7,8 +7,6 @@ import { GroupImageService } from './group-image.service'
 @Resolver()
 @UseGuards(GqlAuthGuard)
 export class GroupImageResolver {
-  private readonly logger = new Logger(GroupImageResolver.name)
-
   constructor(private readonly groupImageService: GroupImageService) {}
 
   @Query(() => [GroupImage], { description: 'Obtiene imágenes para una categoría de grupo muscular (Chest, Back, etc.)' })
@@ -32,10 +30,7 @@ export class GroupImageResolver {
     @Args('query') query: string,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ): Promise<GroupImage[]> {
-    this.logger.log(`[searchGroupImages] query="${query}" limit=${limit ?? 8}`)
-    const result = await this.groupImageService.searchImages(query, limit ?? 8)
-    this.logger.log(`[searchGroupImages] → ${result.length} results`)
-    return result
+    return this.groupImageService.searchImages(query, limit ?? 8)
   }
 
   @Query(() => [String], { description: 'Diagnóstico: lista los proveedores de imágenes activos (unsplash, pexels, pixabay). Vacío si no hay ninguno configurado.' })
