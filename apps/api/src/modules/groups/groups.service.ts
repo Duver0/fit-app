@@ -39,9 +39,13 @@ export class GroupsService {
   }
 
   async create(userId: string, data: { name: string; description?: string; avatarUrl?: string }) {
+    // Asignar avatar aleatorio de DiceBear (identicon) si no se especifica uno
+    const avatarUrl = data.avatarUrl || `https://api.dicebear.com/10.x/identicon/png?seed=${encodeURIComponent(data.name)}&size=200`
+
     const group = await this.prisma.group.create({
       data: {
         ...data,
+        avatarUrl,
         ownerId: userId,
         members: { create: { userId, role: 'OWNER' } },
       },

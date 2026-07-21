@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView, Image } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
-import { uploadGroupAvatar, getImageUrl } from '../../../../src/lib/api'
+import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
+import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -33,19 +33,20 @@ export default function GroupSettingsScreen() {
   const [exerciseUnit, setExerciseUnit] = useState<string>('KG')
 
   const [initialized, setInitialized] = useState(false)
-  const [avatarUri, setAvatarUri] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false)
 
   const group = groupData?.group
   const me = meData?.me
   const isOwner = me?.id && group?.owner?.id === me.id
   const isLoading = meLoading || groupLoading
 
-  const displayAvatar = avatarUri || getImageUrl(group?.avatarUrl)
+  const displayAvatar = avatarUrl || getImageUrl(group?.avatarUrl)
 
   if (!initialized && group) {
     setName(group.name || '')
     setDescription(group.description || '')
-    setAvatarUri(null)
+    setAvatarUrl(null)
     setInitialized(true)
   }
 
@@ -73,27 +74,15 @@ export default function GroupSettingsScreen() {
     )
   }
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    })
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri)
-    }
+  const handleAvatarSelected = (url: string) => {
+    setAvatarUrl(url)
+    setAvatarPickerVisible(false)
   }
 
   const handleSave = async () => {
     try {
-      let serverAvatarUrl: string | undefined
-      if (avatarUri) {
-        serverAvatarUrl = await uploadGroupAvatar(avatarUri)
-      }
-
       await updateGroup({
-        variables: { id: groupId, input: { name, description, ...(serverAvatarUrl ? { avatarUrl: serverAvatarUrl } : {}) } },
+        variables: { id: groupId, input: { name, description, ...(avatarUrl ? { avatarUrl } : {}) } },
       })
       showSuccessToast('Cambios guardados correctamente')
     } catch (e: any) {
@@ -174,7 +163,7 @@ export default function GroupSettingsScreen() {
 
         {/* Group photo */}
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>Foto del grupo</Text>
-        <TouchableOpacity onPress={handlePickImage} style={{ alignItems: 'center', marginBottom: 24 }}>
+        <TouchableOpacity onPress={() => setAvatarPickerVisible(true)} style={{ alignItems: 'center', marginBottom: 24 }}>
           {displayAvatar ? (
             <Image
               source={{ uri: displayAvatar }}
@@ -234,6 +223,13 @@ export default function GroupSettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <AvatarPickerModal
+        visible={avatarPickerVisible}
+        context="group"
+        onSelect={handleAvatarSelected}
+        onCancel={() => setAvatarPickerVisible(false)}
+      />
 
       <Modal visible={showExerciseModal} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>

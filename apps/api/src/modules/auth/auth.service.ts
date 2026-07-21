@@ -40,6 +40,10 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } })
     if (existing) throw new ConflictException('Email already registered')
 
+    // Asignar avatar aleatorio de DiceBear (avataaars) usando el nombre como seed
+    const avatarSeed = encodeURIComponent(`${input.name}-${Date.now()}`)
+    const avatarUrl = `https://api.dicebear.com/10.x/avataaars/png?seed=${avatarSeed}&size=200`
+
     const passwordHash = await bcrypt.hash(input.password, 10)
     const user = await this.prisma.user.create({
       data: {
@@ -48,6 +52,7 @@ export class AuthService {
         name: input.name,
         phone: input.phone,
         passwordHash,
+        avatarUrl,
       },
     })
     return this.generateToken(user)

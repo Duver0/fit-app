@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
 import { useMutation } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
 import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
-import { uploadAvatar, getImageUrl } from '../../src/lib/api'
+import { getImageUrl } from '../../src/lib/api'
 import { showErrorToast, showSuccessToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
+import AvatarPickerModal from '../../src/components/ui/AvatarPickerModal'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()
@@ -20,21 +20,15 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(user?.name ?? '')
   const [phone, setPhone] = useState(user?.phone ?? '')
-  const [avatarUri, setAvatarUri] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false)
 
   const [updateProfile] = useMutation(UPDATE_PROFILE_MUTATION)
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    })
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri)
-    }
+  const handleAvatarSelected = (url: string) => {
+    setAvatarUrl(url)
+    setAvatarPickerVisible(false)
   }
 
   const handleSave = async () => {
@@ -44,14 +38,9 @@ export default function ProfileScreen() {
     }
     setSaving(true)
     try {
-      let serverAvatarUrl: string | undefined
-      if (avatarUri) {
-        serverAvatarUrl = await uploadAvatar(avatarUri)
-      }
-
       const variables: Record<string, string> = { name: name.trim() }
       if (phone.trim()) variables.phone = phone.trim()
-      if (serverAvatarUrl) variables.avatarUrl = serverAvatarUrl
+      if (avatarUrl) variables.avatarUrl = avatarUrl
 
       const { data } = await updateProfile({ variables })
 
@@ -71,11 +60,11 @@ export default function ProfileScreen() {
   const handleCancelEdit = () => {
     setName(user?.name ?? '')
     setPhone(user?.phone ?? '')
-    setAvatarUri(null)
+    setAvatarUrl(null)
     setIsEditing(false)
   }
 
-  const displayAvatar = avatarUri || getImageUrl(user?.avatarUrl)
+  const displayAvatar = avatarUrl || getImageUrl(user?.avatarUrl)
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -84,7 +73,7 @@ export default function ProfileScreen() {
           <ScreenHeader title="Editar Perfil" />
 
           <View style={{ padding: 24 }}>
-            <TouchableOpacity onPress={handlePickImage} style={{ alignItems: 'center', marginBottom: 32 }}>
+            <TouchableOpacity onPress={() => setAvatarPickerVisible(true)} style={{ alignItems: 'center', marginBottom: 32 }}>
               {displayAvatar ? (
                 <Image
                   source={{ uri: displayAvatar }}
@@ -147,6 +136,13 @@ export default function ProfileScreen() {
               <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancelar</Text>
             </TouchableOpacity>
           </View>
+
+          <AvatarPickerModal
+            visible={avatarPickerVisible}
+            context="user"
+            onSelect={handleAvatarSelected}
+            onCancel={() => setAvatarPickerVisible(false)}
+          />
         </>
       ) : (
         <>
@@ -156,7 +152,7 @@ export default function ProfileScreen() {
               <TouchableOpacity onPress={() => {
                 setName(user?.name ?? '')
                 setPhone(user?.phone ?? '')
-                setAvatarUri(null)
+                setAvatarUrl(null)
                 setIsEditing(true)
               }} style={{
                 backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8,

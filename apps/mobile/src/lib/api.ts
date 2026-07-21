@@ -86,18 +86,8 @@ async function uploadFile(
 }
 
 // ---------------------------------------------------------------------------
-// API pública
+// API pública (solo para imágenes de ejercicios — avatares usan DiceBear)
 // ---------------------------------------------------------------------------
-export async function uploadAvatar(uri: string): Promise<string> {
-  const data = await uploadFile(uri, '/upload/avatar', 'avatar.jpg')
-  return data.avatarUrl
-}
-
-export async function uploadGroupAvatar(uri: string): Promise<string> {
-  const data = await uploadFile(uri, '/upload/group', 'group-avatar.jpg')
-  return data.avatarUrl
-}
-
 export async function uploadExerciseImage(uri: string): Promise<string> {
   const data = await uploadFile(uri, '/upload/exercise', 'exercise.jpg')
   return data.imageUrl

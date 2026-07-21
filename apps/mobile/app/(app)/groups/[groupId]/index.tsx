@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, KeyboardAvoidingView, Platform, Image, Pressable, Alert } from 'react-native'
-import { useImagePicker } from '../../../../src/hooks/useImagePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
 import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY } from '../../../../src/lib/graphql'
-import { uploadGroupAvatar, getImageUrl } from '../../../../src/lib/api'
+import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
+import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -35,14 +35,9 @@ export default function GroupDashboardScreen() {
   })
   const [deleteGroupMutation, { loading: deleting }] = useMutation(DELETE_GROUP_MUTATION)
 
-  // --- Image picker ---
-  const { pickImage, ImageEditorModal, isLoading: imageLoading } = useImagePicker({
-    context: 'grupo',
-    aspectRatio: '1:1',
-  })
-
   // --- State ---
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -78,13 +73,15 @@ export default function GroupDashboardScreen() {
     }
   }
 
-  const handleChangeImage = async () => {
+  const handleChangeImage = () => {
     setShowMenu(false)
+    setAvatarPickerVisible(true)
+  }
+
+  const handleAvatarSelected = async (url: string) => {
+    setAvatarPickerVisible(false)
     try {
-      const image = await pickImage()
-      if (!image) return
-      const avatarUrl = await uploadGroupAvatar(image.uri)
-      await updateGroup({ variables: { id: groupId, input: { avatarUrl } } })
+      await updateGroup({ variables: { id: groupId, input: { avatarUrl: url } } })
       showSuccessToast('Imagen del grupo actualizada')
     } catch (e: any) {
       showErrorToast(e?.message || 'Error al actualizar la imagen')
@@ -605,7 +602,12 @@ export default function GroupDashboardScreen() {
         </View>
       </Modal>
 
-      {ImageEditorModal}
+      <AvatarPickerModal
+        visible={avatarPickerVisible}
+        context="group"
+        onSelect={handleAvatarSelected}
+        onCancel={() => setAvatarPickerVisible(false)}
+      />
     </View>
   )
 }
