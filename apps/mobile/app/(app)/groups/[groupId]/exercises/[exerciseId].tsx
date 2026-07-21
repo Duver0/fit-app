@@ -170,6 +170,15 @@ export default function ExerciseDetailScreen() {
     }
   }
 
+  const handleSelectStockImage = async (imageUrl: string) => {
+    try {
+      await updateExercise({ variables: { input: { id: exerciseId, imageUrl } } })
+      showSuccessToast('Imagen actualizada')
+    } catch (e: any) {
+      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
+    }
+  }
+
   // Split ranking into top 3 and rest
   const top3 = ranking.filter((r: any) => r.rank <= 3)
   const rest = ranking.filter((r: any) => r.rank > 3)
@@ -911,6 +920,7 @@ export default function ExerciseDetailScreen() {
         visible={showDbSearch}
         onClose={() => setShowDbSearch(false)}
         onSelect={handleSelectFromDb}
+        onSelectImage={handleSelectStockImage}
       />
     </View>
   )

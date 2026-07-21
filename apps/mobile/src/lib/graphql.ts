@@ -487,3 +487,5 @@ export const SEARCH_GROUP_AVATAR_QUERY = gql`
     }
   }
 `
+
+export const SEARCH_STOCK_IMAGES_QUERY = SEARCH_GROUP_AVATAR_QUERY
