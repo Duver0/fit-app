@@ -5,6 +5,7 @@ import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
 import { NotFoundException, ConflictException } from '@nestjs/common'
+import { UploadService } from '../../common/services/upload.service'
 import { UserRole } from '@prisma/client'
 
 describe('AdminService', () => {
@@ -26,6 +27,7 @@ describe('AdminService', () => {
     owner: { id: 'user-1', name: 'Owner' },
     members: [],
     memberCount: 5,
+    exercises: [],
   }
 
   const mockUser = {
@@ -56,6 +58,10 @@ describe('AdminService', () => {
               findUnique: jest.fn(),
               delete: jest.fn(),
             },
+            exercise: {
+              findMany: jest.fn(),
+              deleteMany: jest.fn(),
+            },
             $transaction: jest.fn(),
           },
         },
@@ -80,6 +86,13 @@ describe('AdminService', () => {
             findAll: jest.fn(),
           },
         },
+        {
+          provide: UploadService,
+          useValue: {
+            deleteFileByUrl: jest.fn(),
+            deleteFilesByUrls: jest.fn(),
+          },
+        },
       ],
     }).compile()
 
@@ -97,7 +110,10 @@ describe('AdminService', () => {
 
       const result = await service.deleteGroup('group-1', 'admin-1')
       expect(result).toBe(true)
-      expect(prisma.group.findUnique).toHaveBeenCalledWith({ where: { id: 'group-1' } })
+      expect(prisma.group.findUnique).toHaveBeenCalledWith({
+        where: { id: 'group-1' },
+        include: { exercises: { select: { imageUrl: true } } },
+      })
       expect(prisma.group.delete).toHaveBeenCalledWith({ where: { id: 'group-1' } })
     })
 
@@ -129,6 +145,7 @@ describe('AdminService', () => {
   describe('deleteUser', () => {
     it('should delete user by id with transaction', async () => {
       jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
+      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue([])
       jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: any) => {
         const tx = {
           groupMember: { deleteMany: jest.fn() },

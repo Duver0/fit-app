@@ -60,4 +60,39 @@ export class UploadService {
     this.validate(file)
     return this.saveFile(file, 'exercises')
   }
+
+  /**
+   * Elimina un archivo del disco dada su URL pública.
+   * Es seguro llamarlo aunque la URL sea nula o el archivo no exista.
+   */
+  deleteFileByUrl(fileUrl: string | null | undefined): void {
+    if (!fileUrl) return
+
+    try {
+      const uploadDir = this.config.get('UPLOAD_DIR', './uploads')
+      // La URL es algo como "http://localhost:4000/uploads/exercises/uuid.jpg"
+      // Extraemos la parte después de /uploads/
+      const parts = fileUrl.split('/uploads/')
+      if (parts.length < 2) return
+
+      const relativePath = parts[1]
+      const filePath = path.join(uploadDir, relativePath)
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+        this.logger.log(`Deleted file: ${filePath}`)
+      }
+    } catch (e) {
+      this.logger.warn(`Could not delete file ${fileUrl}: ${e instanceof Error ? e.message : e}`)
+    }
+  }
+
+  /**
+   * Elimina múltiples archivos por sus URLs.
+   */
+  deleteFilesByUrls(urls: (string | null | undefined)[]): void {
+    for (const url of urls) {
+      this.deleteFileByUrl(url)
+    }
+  }
 }

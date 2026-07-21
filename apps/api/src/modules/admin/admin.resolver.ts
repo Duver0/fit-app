@@ -2,14 +2,14 @@ import { Resolver, Mutation, Query, Args, Int } from '@nestjs/graphql'
 import { UseGuards, SetMetadata } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
-import { RolesGuard, ROLES_KEY } from '../auth/guards/roles.guard'
+import { AdminGuard, ADMIN_ROLES_KEY } from '../../common/guards/admin.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { Group, GroupConnection, UserConnection, ExerciseConnection, User } from '../../common/models'
 import { UpdateGroupInput } from '../groups/dto/group.input'
 
 @Resolver()
-@UseGuards(GqlAuthGuard, RolesGuard)
-@SetMetadata(ROLES_KEY, ['SUPER_ADMIN'])
+@UseGuards(GqlAuthGuard, AdminGuard)
+@SetMetadata(ADMIN_ROLES_KEY, ['SUPER_ADMIN'])
 export class AdminResolver {
   constructor(private adminService: AdminService) {}
 
@@ -40,25 +40,25 @@ export class AdminResolver {
   @Mutation(() => Boolean)
   async adminDeleteGroup(
     @CurrentUser() admin: User,
-    @Args('groupId') groupId: string,
+    @Args('id') id: string,
   ) {
-    return this.adminService.deleteGroup(groupId, admin.id)
+    return this.adminService.deleteGroup(id, admin.id)
   }
 
   @Mutation(() => Boolean)
   async adminDeleteUser(
     @CurrentUser() admin: User,
-    @Args('userId') userId: string,
+    @Args('id') id: string,
   ) {
-    return this.adminService.deleteUser(userId, admin.id)
+    return this.adminService.deleteUser(id, admin.id)
   }
 
   @Mutation(() => Boolean)
   async adminDeleteExercise(
     @CurrentUser() admin: User,
-    @Args('exerciseId') exerciseId: string,
+    @Args('id') id: string,
   ) {
-    return this.adminService.deleteExercise(exerciseId)
+    return this.adminService.deleteExercise(id)
   }
 
   @Mutation(() => Group)

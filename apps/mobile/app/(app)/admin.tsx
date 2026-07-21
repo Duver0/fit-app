@@ -25,11 +25,11 @@ const ADMIN_USERS = gql`
 `
 
 const ADMIN_DELETE_GROUP = gql`
-  mutation AdminDeleteGroup($groupId: String!) { adminDeleteGroup(groupId: $groupId) }
+  mutation AdminDeleteGroup($id: String!) { adminDeleteGroup(id: $id) }
 `
 
 const ADMIN_DELETE_USER = gql`
-  mutation AdminDeleteUser($userId: String!) { adminDeleteUser(userId: $userId) }
+  mutation AdminDeleteUser($id: String!) { adminDeleteUser(id: $id) }
 `
 
 type Tab = 'groups' | 'users'
@@ -60,7 +60,7 @@ export default function AdminScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteGroupMutation({ variables: { groupId: id } })
+            await deleteGroupMutation({ variables: { id } })
             showSuccessToast(`Grupo "${name}" eliminado correctamente`)
           } catch (e: any) {
             const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el grupo'
@@ -79,7 +79,7 @@ export default function AdminScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteUserMutation({ variables: { userId: id } })
+            await deleteUserMutation({ variables: { id } })
             showSuccessToast(`Usuario "${name}" eliminado correctamente`)
           } catch (e: any) {
             const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar el usuario'
