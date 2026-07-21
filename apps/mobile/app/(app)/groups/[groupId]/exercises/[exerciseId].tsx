@@ -510,11 +510,11 @@ export default function ExerciseDetailScreen() {
                     Top 3 destacado
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 160 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 200 }}>
                   {[2, 1, 3].map((pos) => {
                     const record = top3.find((r: any) => r.rank === pos)
                     if (!record) return <View key={pos} style={{ width: 100 }} />
-                    const barHeight = pos === 1 ? 120 : pos === 2 ? 90 : 60
+                    const barHeight = pos === 1 ? 80 : pos === 2 ? 60 : 40
                     return (
                       <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
                         <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} style={{ marginBottom: 6 }} />
