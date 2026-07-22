@@ -8,7 +8,7 @@ import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
 import { client } from '../../../../../src/lib/apollo'
-import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION, CHANGE_EXERCISE_CATEGORY_MUTATION } from '../../../../../src/lib/graphql'
+import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION, CHANGE_EXERCISE_CATEGORY_MUTATION, CREATE_EXERCISE_CATEGORY_MUTATION } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
 import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
@@ -51,6 +51,11 @@ export default function ExerciseDetailScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingExercise, setDeletingExercise] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [catCreateMode, setCatCreateMode] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [createCategory] = useMutation(CREATE_EXERCISE_CATEGORY_MUTATION, {
+    refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
+  })
   const [changingCategory, setChangingCategory] = useState(false)
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
@@ -1034,11 +1039,50 @@ export default function ExerciseDetailScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
             <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Cambiar categoría</Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                Categoría actual: {exercise?.category?.name || 'Sin categoría'}
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>Cambiar categoría</Text>
+                {!catCreateMode && (
+                  <TouchableOpacity onPress={() => setCatCreateMode(true)}>
+                    <Ionicons name="add-circle" size={28} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
+              {catCreateMode ? (
+                <View style={{ marginBottom: 16 }}>
+                  <TextInput
+                    value={newCatName}
+                    onChangeText={setNewCatName}
+                    placeholder="Nombre de la nueva categoría"
+                    placeholderTextColor={colors.textSecondary}
+                    style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (!newCatName.trim()) return
+                      try {
+                        await createCategory({ variables: { input: { groupId, name: newCatName.trim() } } })
+                        setCatCreateMode(false)
+                        setNewCatName('')
+                      } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                    }}
+                    disabled={!newCatName.trim()}
+                    style={{ backgroundColor: colors.primary, borderRadius: 12, padding: 12, alignItems: 'center', opacity: !newCatName.trim() ? 0.6 : 1 }}
+                  >
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>Crear categoría</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setCatCreateMode(false); setNewCatName('') }} style={{ padding: 8, alignItems: 'center', marginTop: 4 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                  Categoría actual: {exercise?.category?.name || 'Sin categoría'}
+                </Text>
+              )}
+
+              {!catCreateMode && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                 <TouchableOpacity
                   onPress={async () => {
@@ -1084,6 +1128,7 @@ export default function ExerciseDetailScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+              )}
 
               <TouchableOpacity onPress={() => setShowCategoryModal(false)} style={{ padding: 12, alignItems: 'center' }}>
                 <Text style={{ color: colors.textSecondary }}>Cancelar</Text>

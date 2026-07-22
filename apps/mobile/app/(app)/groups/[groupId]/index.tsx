@@ -59,6 +59,7 @@ export default function GroupDashboardScreen() {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
   const [catName, setCatName] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [showInlineCatCreate, setShowInlineCatCreate] = useState(false)
 
   const [searchUsers] = useLazyQuery(SEARCH_USERS_QUERY)
   const [exerciseName, setExerciseName] = useState('')
@@ -636,7 +637,54 @@ export default function GroupDashboardScreen() {
                     <Text style={{ color: exerciseCategoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exerciseCategoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
+                {!showInlineCatCreate && (
+                  <TouchableOpacity
+                    onPress={() => setShowInlineCatCreate(true)}
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+                      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
+                      flexDirection: 'row', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    <Ionicons name="add" size={16} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Nueva</Text>
+                  </TouchableOpacity>
+                )}
               </View>
+              {showInlineCatCreate && (
+                <View style={{ marginBottom: 16, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.primary }}>
+                  <TextInput
+                    value={catName}
+                    onChangeText={setCatName}
+                    placeholder="Nombre de la categoría"
+                    placeholderTextColor={colors.textSecondary}
+                    style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
+                    autoFocus
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!catName.trim()) return
+                        try {
+                          const res = await createCategory({ variables: { input: { groupId, name: catName.trim() } } })
+                          const newCatId = res.data?.createExerciseCategory?.id
+                          if (newCatId) setExerciseCategoryId(newCatId)
+                          setCatName('')
+                          setShowInlineCatCreate(false)
+                        } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                      }}
+                      disabled={!catName.trim()}
+                      style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 8, padding: 10, alignItems: 'center', opacity: !catName.trim() ? 0.6 : 1 }}
+                    >
+                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>Crear</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 10, alignItems: 'center' }}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Unidad de medida</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
