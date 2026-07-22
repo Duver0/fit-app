@@ -276,20 +276,18 @@ export default function GroupDashboardScreen() {
         activeOpacity={0.7}
         style={{
           width: cardSize,
-          height: cardSize,
           borderRadius: 20,
           backgroundColor: colors.surface,
           borderWidth: 2,
           borderColor: colors.border,
-          padding: 12,
+          padding: 14,
         }}
       >
-        {/* 2x2 miniature grid of exercises - fixed height */}
+        {/* 2x2 miniature grid centered */}
         <View style={{
           flexDirection: 'row', flexWrap: 'wrap', gap: 4,
           width: gridSize, height: gridSize,
           alignSelf: 'center',
-          marginTop: 4,
         }}>
           {previewExercises.map(ex => renderSubIcon(ex, subIconSize))}
           {/* Fill remaining slots if less than 4 exercises */}
@@ -307,14 +305,8 @@ export default function GroupDashboardScreen() {
           ))}
         </View>
 
-        {/* Spacer to push title down */}
-        <View style={{ flex: 1 }} />
-
-        {/* Separator line */}
-        <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.5, marginBottom: 8 }} />
-
-        {/* Category name centered at bottom */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Category name centered below grid */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
           <Text
             numberOfLines={1}
             style={{
