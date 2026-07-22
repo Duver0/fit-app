@@ -58,7 +58,6 @@ export default function GroupDashboardScreen() {
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
   const [catName, setCatName] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [showInlineCatCreate, setShowInlineCatCreate] = useState(false)
 
   const [searchUsers] = useLazyQuery(SEARCH_USERS_QUERY)
@@ -75,11 +74,6 @@ export default function GroupDashboardScreen() {
     () => exercises.filter((e: any) => !e.categoryId),
     [exercises],
   )
-
-  const activeExercises = useMemo(() => {
-    if (!selectedCategoryId) return uncategorizedExercises
-    return exercises.filter((e: any) => e.categoryId === selectedCategoryId)
-  }, [exercises, selectedCategoryId, uncategorizedExercises])
 
   // Card dimensions: 2 columns with gap
   const cardSize = (screenWidth - 16 * 2 - CATEGORY_CARD_GAP) / 2
@@ -236,7 +230,6 @@ export default function GroupDashboardScreen() {
           onPress: async () => {
             try {
               await deleteCategory({ variables: { id: catId } })
-              if (selectedCategoryId === catId) setSelectedCategoryId(null)
               showSuccessToast('Categoría eliminada')
             } catch (e: any) {
               showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
@@ -274,20 +267,19 @@ export default function GroupDashboardScreen() {
   const renderCategoryCard = (cat: any, index: number) => {
     const catExercises = exercises.filter((e: any) => e.categoryId === cat.id)
     const previewExercises = catExercises.slice(0, 4)
-    const isSelected = selectedCategoryId === cat.id
 
     return (
       <TouchableOpacity
         key={cat.id}
-        onPress={() => setSelectedCategoryId(isSelected ? null : cat.id)}
+        onPress={() => router.push(`/(app)/groups/${groupId}/categories/${cat.id}`)}
         activeOpacity={0.7}
         style={{
           width: cardSize,
           height: cardSize,
           borderRadius: 20,
-          backgroundColor: isSelected ? colors.primary : colors.surface,
+          backgroundColor: colors.surface,
           borderWidth: 2,
-          borderColor: isSelected ? colors.primary : colors.border,
+          borderColor: colors.border,
           padding: 12,
           justifyContent: 'space-between',
         }}
@@ -303,7 +295,7 @@ export default function GroupDashboardScreen() {
                 width: subIconSize,
                 height: subIconSize,
                 borderRadius: 6,
-                backgroundColor: isSelected ? 'rgba(255,255,255,0.1)' : colors.background,
+                backgroundColor: colors.background,
                 opacity: 0.4,
               }}
             />
@@ -315,7 +307,7 @@ export default function GroupDashboardScreen() {
           <Text
             numberOfLines={1}
             style={{
-              color: isSelected ? colors.text : colors.text,
+              color: colors.text,
               fontSize: 13,
               fontWeight: '700',
               flex: 1,
@@ -323,7 +315,7 @@ export default function GroupDashboardScreen() {
           >
             {cat.name}
           </Text>
-          <Text style={{ color: isSelected ? colors.text : colors.textSecondary, fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
             {catExercises.length}
           </Text>
         </View>
@@ -419,7 +411,7 @@ export default function GroupDashboardScreen() {
       </Modal>
 
       <FlatList
-        data={activeExercises}
+        data={uncategorizedExercises}
         keyExtractor={(item: any) => item.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -469,22 +461,12 @@ export default function GroupDashboardScreen() {
 
             {/* Section label */}
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
-              <Ionicons
-                name={selectedCategoryId ? 'folder' : 'folder-open-outline'}
-                size={16}
-                color={selectedCategoryId ? colors.primary : colors.textSecondary}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={{
-                color: selectedCategoryId ? colors.text : colors.textSecondary,
-                fontSize: 14, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1,
-              }}>
-                {selectedCategoryId
-                  ? categories.find((c: any) => c.id === selectedCategoryId)?.name || 'Ejercicios'
-                  : 'Sin categoría'}
+              <Ionicons name="folder-open-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 }}>
+                Sin categoría
               </Text>
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                {activeExercises.length}
+                {uncategorizedExercises.length}
               </Text>
             </View>
           </View>
@@ -492,19 +474,16 @@ export default function GroupDashboardScreen() {
         ListEmptyComponent={
           <View style={{ padding: 16 }}>
             <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 8 }}>
+              <Ionicons name="document-text-outline" size={40} color={colors.textSecondary} />
+              <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 12, marginBottom: 4 }}>
                 {exercises.length === 0
                   ? 'No hay ejercicios en este grupo aún'
-                  : selectedCategoryId
-                    ? 'No hay ejercicios en esta categoría'
-                    : 'No hay ejercicios sin categoría'}
+                  : 'No hay ejercicios sin categoría'}
               </Text>
               <Text style={{ color: colors.textSecondary, textAlign: 'center', fontSize: 13 }}>
                 {exercises.length === 0
                   ? 'Creá el primer ejercicio para empezar a competir'
-                  : selectedCategoryId
-                    ? 'Agregá ejercicios a esta categoría al crearlos o editarlos'
-                    : 'Creá un ejercicio sin categoría o seleccioná una categoría arriba'}
+                  : 'Arrastrá ejercicios a una categoría o creá nuevos con categoría'}
               </Text>
             </View>
           </View>
