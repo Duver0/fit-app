@@ -8,7 +8,7 @@ export class ExerciseCategoriesService {
   async findByGroup(groupId: string) {
     return this.prisma.exerciseCategory.findMany({
       where: { groupId },
-      include: { exercises: { include: { creator: true } } },
+      include: { exercises: { include: { creator: true } }, creator: true },
       orderBy: { name: 'asc' },
     })
   }
@@ -16,7 +16,7 @@ export class ExerciseCategoriesService {
   async findById(id: string) {
     const category = await this.prisma.exerciseCategory.findUnique({
       where: { id },
-      include: { exercises: { include: { creator: true } } },
+      include: { exercises: { include: { creator: true } }, creator: true },
     })
     if (!category) throw new NotFoundException('Categoría no encontrada')
     return category
@@ -34,8 +34,8 @@ export class ExerciseCategoriesService {
     if (existing) throw new ForbiddenException('Ya existe una categoría con ese nombre en este grupo')
 
     return this.prisma.exerciseCategory.create({
-      data: { groupId: data.groupId, name: data.name },
-      include: { exercises: true },
+      data: { groupId: data.groupId, name: data.name, createdBy: userId },
+      include: { exercises: true, creator: true },
     })
   }
 
@@ -43,10 +43,13 @@ export class ExerciseCategoriesService {
     const category = await this.prisma.exerciseCategory.findUnique({ where: { id } })
     if (!category) throw new NotFoundException('Categoría no encontrada')
 
-    const membership = await this.prisma.groupMember.findFirst({
+    const isOwner = await this.prisma.groupMember.findFirst({
       where: { groupId: category.groupId, userId, role: 'OWNER' },
     })
-    if (!membership) throw new ForbiddenException('Solo el dueño del grupo puede editar categorías')
+    const isCreator = category.createdBy === userId
+    if (!isOwner && !isCreator) {
+      throw new ForbiddenException('Solo el dueño del grupo o el creador de la categoría puede editarla')
+    }
 
     const existing = await this.prisma.exerciseCategory.findUnique({
       where: { groupId_name: { groupId: category.groupId, name: data.name } },
@@ -56,7 +59,7 @@ export class ExerciseCategoriesService {
     return this.prisma.exerciseCategory.update({
       where: { id },
       data: { name: data.name },
-      include: { exercises: true },
+      include: { exercises: true, creator: true },
     })
   }
 
@@ -64,10 +67,13 @@ export class ExerciseCategoriesService {
     const category = await this.prisma.exerciseCategory.findUnique({ where: { id } })
     if (!category) throw new NotFoundException('Categoría no encontrada')
 
-    const membership = await this.prisma.groupMember.findFirst({
+    const isOwner = await this.prisma.groupMember.findFirst({
       where: { groupId: category.groupId, userId, role: 'OWNER' },
     })
-    if (!membership) throw new ForbiddenException('Solo el dueño del grupo puede eliminar categorías')
+    const isCreator = category.createdBy === userId
+    if (!isOwner && !isCreator) {
+      throw new ForbiddenException('Solo el dueño del grupo o el creador de la categoría puede eliminarla')
+    }
 
     // Remove category reference from exercises
     await this.prisma.exercise.updateMany({
