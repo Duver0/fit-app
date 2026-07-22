@@ -15,6 +15,11 @@ import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
+const KG_TO_LB = 2.20462
+
+function kgToLb(kg: number): number { return Math.round(kg * KG_TO_LB * 100) / 100 }
+function lbToKg(lb: number): number { return Math.round(lb / KG_TO_LB * 100) / 100 }
+
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
 
 const MEDAL_COLORS: Record<number, string> = {
@@ -32,8 +37,10 @@ export default function ExerciseDetailScreen() {
 
   const [showUpsert, setShowUpsert] = useState(false)
   const [newValue, setNewValue] = useState('')
+  const [newValueLb, setNewValueLb] = useState('')
   const [newReps, setNewReps] = useState('')
   const [newWeight, setNewWeight] = useState('')
+  const [newWeightLb, setNewWeightLb] = useState('')
   const [showDispute, setShowDispute] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeVotingPerformanceId, setDisputeVotingPerformanceId] = useState<string | null>(null)
@@ -185,6 +192,7 @@ export default function ExerciseDetailScreen() {
 
   const handleUpsert = async () => {
     const isRepsAndWeight = exercise?.unit === 'REPS_AND_WEIGHT'
+    const isWeight = exercise?.unit === 'KG'
 
     if (isRepsAndWeight) {
       if (!newReps || !newWeight) return
@@ -196,6 +204,7 @@ export default function ExerciseDetailScreen() {
         setShowUpsert(false)
         setNewReps('')
         setNewWeight('')
+        setNewWeightLb('')
       } catch (e: any) {
         console.error(e)
       }
@@ -205,6 +214,7 @@ export default function ExerciseDetailScreen() {
         await upsertPerformance(parseFloat(newValue))
         setShowUpsert(false)
         setNewValue('')
+        setNewValueLb('')
       } catch (e: any) {
         console.error(e)
       }
@@ -317,6 +327,15 @@ export default function ExerciseDetailScreen() {
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
               Vol: {item.value}
+            </Text>
+          </View>
+        ) : exercise?.unit === 'KG' ? (
+          <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>
+              {item.value} kg
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+              {kgToLb(item.value)} lb
             </Text>
           </View>
         ) : (
@@ -477,12 +496,16 @@ export default function ExerciseDetailScreen() {
               {myPerformance ? (
                 <TouchableOpacity
                   onPress={() => {
-                    if (exercise?.unit === 'REPS_AND_WEIGHT') {
-                      setNewReps((myPerformance.reps || '').toString())
-                      setNewWeight((myPerformance.weight || '').toString())
-                    } else {
-                      setNewValue(myPerformance.value.toString())
-                    }
+                      if (exercise?.unit === 'REPS_AND_WEIGHT') {
+                        setNewReps((myPerformance.reps || '').toString())
+                        const w = myPerformance.weight || 0
+                        setNewWeight(w.toString())
+                        setNewWeightLb(kgToLb(w).toString())
+                      } else {
+                        const val = myPerformance.value || 0
+                        setNewValue(val.toString())
+                        setNewValueLb(kgToLb(val).toString())
+                      }
                     setShowUpsert(true)
                   }}
                   style={{
@@ -502,6 +525,15 @@ export default function ExerciseDetailScreen() {
                       <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
                         {myPerformance.reps} reps × {myPerformance.weight} kg
                       </Text>
+                    ) : exercise?.unit === 'KG' ? (
+                      <View>
+                        <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
+                          {myPerformance.value} kg
+                        </Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                          {kgToLb(myPerformance.value)} lb
+                        </Text>
+                      </View>
                     ) : (
                       <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
                         {myPerformance.value} {unitLabel}
@@ -556,6 +588,15 @@ export default function ExerciseDetailScreen() {
                             </Text>
                             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                               Vol: {record.value}
+                            </Text>
+                          </View>
+                        ) : exercise?.unit === 'KG' ? (
+                          <View style={{ alignItems: 'center' }}>
+                            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
+                              {record.value} kg
+                            </Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                              {kgToLb(record.value)} lb
                             </Text>
                           </View>
                         ) : (
@@ -645,15 +686,64 @@ export default function ExerciseDetailScreen() {
                   keyboardType="number-pad"
                   style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
                 />
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso (kg)</Text>
-                <TextInput
-                  placeholder="Ej: 20"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newWeight} onChangeText={setNewWeight}
-                  keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
-                />
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  <TextInput
+                    placeholder="kg"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newWeight}
+                    onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
+                    keyboardType="decimal-pad"
+                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
+                  />
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>kg</Text>
+                  </View>
+                  <TextInput
+                    placeholder="lb"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newWeightLb}
+                    onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
+                    keyboardType="decimal-pad"
+                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
+                  />
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>lb</Text>
+                  </View>
+                </View>
                 <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
+                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
+                </TouchableOpacity>
+              </>
+            ) : exercise?.unit === 'KG' ? (
+              <>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Peso</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  <TextInput
+                    placeholder="kg"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newValue}
+                    onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
+                    keyboardType="decimal-pad"
+                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
+                  />
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>kg</Text>
+                  </View>
+                  <TextInput
+                    placeholder="lb"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newValueLb}
+                    onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
+                    keyboardType="decimal-pad"
+                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
+                  />
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>lb</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
                   style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
                 </TouchableOpacity>
@@ -677,8 +767,10 @@ export default function ExerciseDetailScreen() {
             <TouchableOpacity onPress={() => {
               setShowUpsert(false)
               setNewValue('')
+              setNewValueLb('')
               setNewReps('')
               setNewWeight('')
+              setNewWeightLb('')
             }} style={{ padding: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
             </TouchableOpacity>
