@@ -697,11 +697,9 @@ export default function GroupDashboardScreen() {
             <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>Categorías</Text>
-                {isOwner && (
-                  <TouchableOpacity onPress={() => { setShowCatModal(false); setTimeout(() => setShowCatCreateModal(true), 300) }}>
-                    <Ionicons name="add-circle" size={28} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => { setShowCatModal(false); setTimeout(() => setShowCatCreateModal(true), 300) }}>
+                  <Ionicons name="add-circle" size={28} color={colors.primary} />
+                </TouchableOpacity>
               </View>
 
               {categories.length === 0 ? (
