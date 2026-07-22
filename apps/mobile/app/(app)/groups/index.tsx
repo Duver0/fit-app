@@ -90,61 +90,66 @@ export default function GroupsScreen() {
             {/* Color accent bar */}
             <View style={{ height: 4, backgroundColor: colors.primary }} />
 
-            <View style={{ padding: 20 }}>
-              {/* Top row: avatar + name */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                {getImageUrl(item.avatarUrl) ? (
-                  <Image
-                    source={{ uri: getImageUrl(item.avatarUrl) }}
-                    style={{ width: 64, height: 64, borderRadius: 20, marginRight: 16 }}
-                  />
-                ) : (
-                  <View style={{
-                    width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary + '20',
-                    justifyContent: 'center', alignItems: 'center', marginRight: 16,
-                  }}>
-                    <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.primary }}>
-                      {getInitials(item.name)}
+            <View style={{ flexDirection: 'row', minHeight: 100 }}>
+              {/* Left: tall image */}
+              {getImageUrl(item.avatarUrl) ? (
+                <Image
+                  source={{ uri: getImageUrl(item.avatarUrl) }}
+                  style={{ width: 100, borderRadius: 0 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{
+                  width: 100,
+                  backgroundColor: colors.primary + '20',
+                  justifyContent: 'center', alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.primary }}>
+                    {getInitials(item.name)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Right: content */}
+              <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
+                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.description ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
+
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="people" size={14} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                      {item.memberCount}
                     </Text>
                   </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {item.description ? (
-                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  ) : null}
+                  {item.owner && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Ionicons name="person" size={14} color={colors.textSecondary} />
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                        {item.owner.name}
+                      </Text>
+                    </View>
+                  )}
+                  {item.createdAt && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        {timeAgo(item.createdAt)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </View>
 
-              {/* Meta row */}
-              <View style={{ flexDirection: 'row', gap: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="people" size={16} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    {item.memberCount} {item.memberCount === 1 ? 'miembro' : 'miembros'}
-                  </Text>
-                </View>
-                {item.owner && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="person" size={16} color={colors.textSecondary} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>
-                      {item.owner.name}
-                    </Text>
-                  </View>
-                )}
-                {item.createdAt && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      {timeAgo(item.createdAt)}
-                    </Text>
-                  </View>
-                )}
+              {/* Chevron */}
+              <View style={{ justifyContent: 'center', paddingRight: 16 }}>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </View>
             </View>
           </TouchableOpacity>
