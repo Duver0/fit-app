@@ -33,7 +33,20 @@ const ADMIN_DELETE_USER = gql`
   mutation AdminDeleteUser($id: String!) { adminDeleteUser(id: $id) }
 `
 
-type Tab = 'groups' | 'users'
+const ADMIN_EXERCISES = gql`
+  query AdminExercises($page: Int, $limit: Int) {
+    adminExercises(page: $page, limit: $limit) {
+      items { id name unit groupId createdAt createdBy { id name email } }
+      totalCount currentPage totalPages
+    }
+  }
+`
+
+const ADMIN_DELETE_EXERCISE = gql`
+  mutation AdminDeleteExercise($id: String!) { adminDeleteExercise(id: $id) }
+`
+
+type Tab = 'groups' | 'users' | 'exercises'
 
 export default function AdminScreen() {
   const { colors } = useTheme()
@@ -42,12 +55,14 @@ export default function AdminScreen() {
 
   const { data: groupsData, refetch: refetchGroups } = useQuery(ADMIN_GROUPS, { variables: { page: 1, limit: 50 } })
   const { data: usersData, refetch: refetchUsers } = useQuery(ADMIN_USERS, { variables: { page: 1, limit: 50 } })
+  const { data: exercisesData, refetch: refetchExercises } = useQuery(ADMIN_EXERCISES, { variables: { page: 1, limit: 50 } })
   const [deleteGroupMutation] = useMutation(ADMIN_DELETE_GROUP, { refetchQueries: [{ query: ADMIN_GROUPS, variables: { page: 1, limit: 50 } }] })
   const [deleteUserMutation] = useMutation(ADMIN_DELETE_USER, { refetchQueries: [{ query: ADMIN_USERS, variables: { page: 1, limit: 50 } }] })
+  const [deleteExerciseMutation] = useMutation(ADMIN_DELETE_EXERCISE, { refetchQueries: [{ query: ADMIN_EXERCISES, variables: { page: 1, limit: 50 } }] })
 
   // Estado para el modal de confirmación
   const [confirmState, setConfirmState] = useState<{
-    type: 'group' | 'user'
+    type: 'group' | 'user' | 'exercise'
     id: string
     name: string
   } | null>(null)
@@ -68,9 +83,12 @@ export default function AdminScreen() {
       if (type === 'group') {
         await deleteGroupMutation({ variables: { id } })
         showSuccessToast(`Grupo "${name}" eliminado correctamente`)
-      } else {
+      } else if (type === 'user') {
         await deleteUserMutation({ variables: { id } })
         showSuccessToast(`Usuario "${name}" eliminado correctamente`)
+      } else {
+        await deleteExerciseMutation({ variables: { id } })
+        showSuccessToast(`Ejercicio "${name}" eliminado correctamente`)
       }
     } catch (e: any) {
       const msg = e?.graphQLErrors?.[0]?.message || e?.message || 'Error al eliminar'
@@ -93,6 +111,10 @@ export default function AdminScreen() {
           <TouchableOpacity onPress={() => setTab('users')}
             style={{ flex: 1, backgroundColor: tab === 'users' ? colors.primary : colors.surface, borderRadius: 24, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: tab === 'users' ? colors.text : colors.textSecondary, fontWeight: '600' }}>Usuarios</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setTab('exercises')}
+            style={{ flex: 1, backgroundColor: tab === 'exercises' ? colors.primary : colors.surface, borderRadius: 24, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ color: tab === 'exercises' ? colors.text : colors.textSecondary, fontWeight: '600' }}>Ejercicios</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -137,10 +159,36 @@ export default function AdminScreen() {
         />
       )}
 
+      {tab === 'exercises' && (
+        <FlatList
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          data={exercisesData?.adminExercises?.items || []}
+          keyExtractor={(item: any) => item.id}
+          renderItem={({ item }: any) => (
+            <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                  {item.unit} · Creado por {item.createdBy?.name || item.createdBy?.email || '—'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setConfirmState({ type: 'exercise', id: item.id, name: item.name })} style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: colors.error, fontSize: 13 }}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
+
       {/* Modal de confirmación — funciona en web y nativo */}
       <ConfirmModal
         visible={confirmState !== null}
-        title={confirmState?.type === 'group' ? 'Eliminar grupo' : 'Eliminar usuario'}
+        title={
+          confirmState?.type === 'group' ? 'Eliminar grupo' :
+          confirmState?.type === 'exercise' ? 'Eliminar ejercicio' :
+          'Eliminar usuario'
+        }
         message={
           confirmState
             ? `¿Eliminar "${confirmState.name}"? Esta acción no se puede deshacer.`
