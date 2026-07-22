@@ -1,27 +1,6 @@
-import { useEffect } from 'react'
-import { BackHandler } from 'react-native'
-import { Stack, useNavigation } from 'expo-router'
-import { useTheme } from '../../../src/theme/ThemeProvider'
+import { Stack } from 'expo-router'
 
 export default function GroupsLayout() {
-  const { colors } = useTheme()
-  const navigation = useNavigation()
-
-  // Android hardware back button: navega hacia atrás en el Stack
-  // en vez de salir al inicio del Tab.
-  useEffect(() => {
-    const onBackPress = () => {
-      if (navigation.canGoBack()) {
-        navigation.goBack()
-        return true // consumimos el evento
-      }
-      return false // dejamos que el sistema lo maneje (salir de la app)
-    }
-
-    BackHandler.addEventListener('hardwareBackPress', onBackPress)
-    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress)
-  }, [navigation])
-
   return (
     <Stack
       screenOptions={{

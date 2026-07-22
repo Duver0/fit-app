@@ -14,7 +14,9 @@ const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_W
 export default function CategoryExercisesScreen() {
   const { colors } = useTheme()
   const { groupId, categoryId } = useLocalSearchParams<{ groupId: string; categoryId: string }>()
-  const { data: groupData, loading, refetch } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
+  const { data: groupData, loading, refetch } = useQuery(GROUP_QUERY, {
+    variables: { id: groupId },
+  })
   const [createExercise, { loading: creating }] = useMutation(CREATE_EXERCISE_MUTATION, {
     refetchQueries: [
       { query: GROUP_QUERY, variables: { id: groupId } },
@@ -25,29 +27,19 @@ export default function CategoryExercisesScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [exerciseName, setExerciseName] = useState('')
   const [exerciseUnit, setExerciseUnit] = useState('KG')
-  const [catCreateMode, setCatCreateMode] = useState(false)
-  const [catName, setCatName] = useState('')
-  const [createCategory] = useMutation(CREATE_EXERCISE_CATEGORY_MUTATION, {
-    refetchQueries: [{ query: GROUP_QUERY, variables: { id: groupId } }],
-  })
 
   const category = groupData?.group?.categories?.find((c: any) => c.id === categoryId)
   const exercises: any[] = groupData?.group?.exercises || []
   const categoryExercises = exercises.filter((e: any) => e.categoryId === categoryId)
-  const categories: any[] = groupData?.group?.categories || []
 
   const handleCreateExercise = async () => {
     if (!exerciseName.trim()) return
     try {
-      const vars: any = {
-        input: {
-          groupId,
-          name: exerciseName.trim(),
-          unit: exerciseUnit,
-          categoryId,
+      await createExercise({
+        variables: {
+          input: { groupId, name: exerciseName.trim(), unit: exerciseUnit, categoryId },
         },
-      }
-      await createExercise({ variables: vars })
+      })
       showSuccessToast(`Ejercicio "${exerciseName.trim()}" creado`)
       setShowCreateModal(false)
       setExerciseName('')
@@ -98,14 +90,6 @@ export default function CategoryExercisesScreen() {
   )
 
   const UNITS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M']
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    )
-  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
