@@ -688,27 +688,27 @@ export default function ExerciseDetailScreen() {
                 />
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                  <TextInput
-                    placeholder="kg"
-                    placeholderTextColor={colors.textSecondary}
-                    value={newWeight}
-                    onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
-                    keyboardType="decimal-pad"
-                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
-                  />
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>kg</Text>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <TextInput
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newWeight}
+                      onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
+                      keyboardType="decimal-pad"
+                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 12, paddingRight: 32, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                    />
+                    <Text style={{ position: 'absolute', right: 10, top: 0, bottom: 0, textAlignVertical: 'center', color: colors.textSecondary, fontSize: 13, lineHeight: 44 }}>kg</Text>
                   </View>
-                  <TextInput
-                    placeholder="lb"
-                    placeholderTextColor={colors.textSecondary}
-                    value={newWeightLb}
-                    onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
-                    keyboardType="decimal-pad"
-                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
-                  />
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>lb</Text>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <TextInput
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newWeightLb}
+                      onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
+                      keyboardType="decimal-pad"
+                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 12, paddingRight: 32, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                    />
+                    <Text style={{ position: 'absolute', right: 10, top: 0, bottom: 0, textAlignVertical: 'center', color: colors.textSecondary, fontSize: 13, lineHeight: 44 }}>lb</Text>
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
@@ -720,27 +720,27 @@ export default function ExerciseDetailScreen() {
               <>
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Peso</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                  <TextInput
-                    placeholder="kg"
-                    placeholderTextColor={colors.textSecondary}
-                    value={newValue}
-                    onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
-                    keyboardType="decimal-pad"
-                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
-                  />
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>kg</Text>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <TextInput
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newValue}
+                      onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
+                      keyboardType="decimal-pad"
+                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 12, paddingRight: 32, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                    />
+                    <Text style={{ position: 'absolute', right: 10, top: 0, bottom: 0, textAlignVertical: 'center', color: colors.textSecondary, fontSize: 13, lineHeight: 44 }}>kg</Text>
                   </View>
-                  <TextInput
-                    placeholder="lb"
-                    placeholderTextColor={colors.textSecondary}
-                    value={newValueLb}
-                    onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
-                    keyboardType="decimal-pad"
-                    style={{ flex: 1, backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, borderWidth: 1, borderColor: colors.border }}
-                  />
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>lb</Text>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <TextInput
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newValueLb}
+                      onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
+                      keyboardType="decimal-pad"
+                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 12, paddingRight: 32, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                    />
+                    <Text style={{ position: 'absolute', right: 10, top: 0, bottom: 0, textAlignVertical: 'center', color: colors.textSecondary, fontSize: 13, lineHeight: 44 }}>lb</Text>
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
