@@ -267,6 +267,7 @@ export default function GroupDashboardScreen() {
   const renderCategoryCard = (cat: any, index: number) => {
     const catExercises = exercises.filter((e: any) => e.categoryId === cat.id)
     const previewExercises = catExercises.slice(0, 4)
+    const gridSize = subIconSize * 2 + 4 // 2 columns + gap
 
     return (
       <TouchableOpacity
@@ -281,11 +282,15 @@ export default function GroupDashboardScreen() {
           borderWidth: 2,
           borderColor: colors.border,
           padding: 12,
-          justifyContent: 'space-between',
         }}
       >
-        {/* 2x2 miniature grid of exercises inside */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, flex: 1, alignContent: 'flex-start' }}>
+        {/* 2x2 miniature grid of exercises - fixed height */}
+        <View style={{
+          flexDirection: 'row', flexWrap: 'wrap', gap: 4,
+          width: gridSize, height: gridSize,
+          alignSelf: 'center',
+          marginTop: 4,
+        }}>
           {previewExercises.map(ex => renderSubIcon(ex, subIconSize))}
           {/* Fill remaining slots if less than 4 exercises */}
           {Array.from({ length: Math.max(0, 4 - previewExercises.length) }).map((_, i) => (
@@ -302,22 +307,33 @@ export default function GroupDashboardScreen() {
           ))}
         </View>
 
-        {/* Category name at bottom */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+        {/* Spacer to push title down */}
+        <View style={{ flex: 1 }} />
+
+        {/* Separator line */}
+        <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.5, marginBottom: 8 }} />
+
+        {/* Category name centered at bottom */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
           <Text
             numberOfLines={1}
             style={{
               color: colors.text,
               fontSize: 13,
               fontWeight: '700',
-              flex: 1,
             }}
           >
             {cat.name}
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
-            {catExercises.length}
-          </Text>
+          <View style={{
+            backgroundColor: colors.primary + '20',
+            borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2,
+            marginLeft: 6,
+          }}>
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>
+              {catExercises.length}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     )
