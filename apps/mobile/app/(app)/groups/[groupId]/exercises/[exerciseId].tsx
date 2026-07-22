@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Pressable } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -8,7 +8,7 @@ import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
 import { client } from '../../../../../src/lib/apollo'
-import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION } from '../../../../../src/lib/graphql'
+import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION, CHANGE_EXERCISE_CATEGORY_MUTATION } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
 import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
@@ -50,6 +50,8 @@ export default function ExerciseDetailScreen() {
   const [showDbSearch, setShowDbSearch] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingExercise, setDeletingExercise] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [changingCategory, setChangingCategory] = useState(false)
 
   const { disputes, isLoading: disputesLoading, isVoting, vote } = useDisputes(disputeVotingPerformanceId || '')
 
@@ -65,6 +67,13 @@ export default function ExerciseDetailScreen() {
   })
 
   const [enrichExercise] = useMutation(ENRICH_EXERCISE_MUTATION, {
+    refetchQueries: [
+      { query: GROUP_QUERY, variables: { id: groupId } },
+      { query: EXERCISES_QUERY, variables: { groupId } },
+    ],
+  })
+
+  const [changeCategoryMutation] = useMutation(CHANGE_EXERCISE_CATEGORY_MUTATION, {
     refetchQueries: [
       { query: GROUP_QUERY, variables: { id: groupId } },
       { query: EXERCISES_QUERY, variables: { groupId } },
@@ -149,6 +158,11 @@ export default function ExerciseDetailScreen() {
   const handleChangeImage = () => {
     setShowMenu(false)
     setShowDbSearch(true)
+  }
+
+  const handleChangeCategory = () => {
+    setShowMenu(false)
+    setShowCategoryModal(true)
   }
 
   const handleSelectFromDb = async (item: any) => {
@@ -365,11 +379,11 @@ export default function ExerciseDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader
         title={exercise?.name || 'Ejercicio'}
-        rightAction={isOwner ? (
+        rightAction={(
           <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
           </TouchableOpacity>
-        ) : undefined}
+        )}
       />
 
       {/* Dropdown menu como Modal para que flote sobre todo sin superponerse */}
@@ -393,26 +407,37 @@ export default function ExerciseDetailScreen() {
               elevation: 8,
             }}>
               <TouchableOpacity
-                onPress={handleEditExercise}
+                onPress={handleChangeCategory}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
               >
-                <Ionicons name="pencil-outline" size={18} color={colors.text} />
-                <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+                <Ionicons name="folder-outline" size={18} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar categoría</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleChangeImage}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-              >
-                <Ionicons name="image-outline" size={18} color={colors.text} />
-                <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleDeleteExercise}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
-              >
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
-                <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
-              </TouchableOpacity>
+              {isOwner && (
+                <>
+                  <TouchableOpacity
+                    onPress={handleEditExercise}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Ionicons name="pencil-outline" size={18} color={colors.text} />
+                    <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleChangeImage}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Ionicons name="image-outline" size={18} color={colors.text} />
+                    <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleDeleteExercise}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
+                    <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar ejercicio</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </Pressable>
@@ -1006,6 +1031,70 @@ export default function ExerciseDetailScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Change category modal */}
+      <Modal visible={showCategoryModal} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+            <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Cambiar categoría</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                Categoría actual: {exercise?.category?.name || 'Sin categoría'}
+              </Text>
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!exercise?.categoryId) { setShowCategoryModal(false); return }
+                    setChangingCategory(true)
+                    try {
+                      await changeCategoryMutation({ variables: { id: exerciseId, categoryId: null } })
+                      showSuccessToast('Categoría removida')
+                      setShowCategoryModal(false)
+                    } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                    finally { setChangingCategory(false) }
+                  }}
+                  style={{
+                    backgroundColor: !exercise?.categoryId ? colors.primary : colors.background,
+                    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+                    borderWidth: 1, borderColor: !exercise?.categoryId ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: !exercise?.categoryId ? colors.text : colors.textSecondary, fontWeight: !exercise?.categoryId ? '600' : '400', fontSize: 13 }}>Sin categoría</Text>
+                </TouchableOpacity>
+                {(groupData?.group?.categories || []).map((cat: any) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={async () => {
+                      if (exercise?.categoryId === cat.id) { setShowCategoryModal(false); return }
+                      setChangingCategory(true)
+                      try {
+                        await changeCategoryMutation({ variables: { id: exerciseId, categoryId: cat.id } })
+                        showSuccessToast(`Categoría cambiada a "${cat.name}"`)
+                        setShowCategoryModal(false)
+                      } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                      finally { setChangingCategory(false) }
+                    }}
+                    disabled={changingCategory}
+                    style={{
+                      backgroundColor: exercise?.categoryId === cat.id ? colors.primary : colors.background,
+                      borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+                      borderWidth: 1, borderColor: exercise?.categoryId === cat.id ? colors.primary : colors.border,
+                      opacity: changingCategory ? 0.6 : 1,
+                    }}
+                  >
+                    <Text style={{ color: exercise?.categoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exercise?.categoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)} style={{ padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <ExerciseDbSearchModal

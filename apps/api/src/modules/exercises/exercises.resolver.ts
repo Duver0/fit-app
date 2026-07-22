@@ -64,6 +64,15 @@ export class ExercisesResolver {
   }
 
   @Mutation(() => Exercise)
+  async changeExerciseCategory(
+    @CurrentUser() user: User,
+    @Args('id') id: string,
+    @Args('categoryId', { type: () => String, nullable: true }) categoryId?: string | null,
+  ) {
+    return this.exercisesService.changeCategory(id, user.id, categoryId ?? null)
+  }
+
+  @Mutation(() => Exercise)
   async createExercise(
     @CurrentUser() user: User,
     @Args('input') input: CreateExerciseInput,

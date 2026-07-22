@@ -340,6 +340,19 @@ export const UPDATE_EXERCISE_MUTATION = gql`
   }
 `
 
+export const CHANGE_EXERCISE_CATEGORY_MUTATION = gql`
+  mutation ChangeExerciseCategory($id: String!, $categoryId: String) {
+    changeExerciseCategory(id: $id, categoryId: $categoryId) {
+      id
+      categoryId
+      category {
+        id
+        name
+      }
+    }
+  }
+`
+
 export const DELETE_EXERCISE_MUTATION = gql`
   mutation DeleteExercise($id: String!) {
     deleteExercise(id: $id)

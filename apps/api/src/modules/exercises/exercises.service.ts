@@ -92,6 +92,30 @@ export class ExercisesService {
     })
   }
 
+  async changeCategory(id: string, userId: string, categoryId: string | null) {
+    const exercise = await this.prisma.exercise.findUnique({ where: { id } })
+    if (!exercise) throw new NotFoundException('Ejercicio no encontrado')
+
+    // Any group member can change the category
+    const membership = await this.prisma.groupMember.findFirst({
+      where: { groupId: exercise.groupId, userId },
+    })
+    if (!membership) throw new ForbiddenException('Debes ser miembro del grupo para cambiar la categoría')
+
+    if (categoryId) {
+      const category = await this.prisma.exerciseCategory.findUnique({ where: { id: categoryId } })
+      if (!category || category.groupId !== exercise.groupId) {
+        throw new NotFoundException('Categoría no encontrada en este grupo')
+      }
+    }
+
+    return this.prisma.exercise.update({
+      where: { id },
+      data: { categoryId: categoryId || null },
+      include: { creator: true, category: true },
+    })
+  }
+
   async enrichFromWger(
     id: string,
     userId: string,
