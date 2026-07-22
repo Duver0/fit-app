@@ -375,11 +375,11 @@ export default function GroupDashboardScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader
         title={group?.name || 'Ejercicios'}
-        rightAction={isOwner ? (
+        rightAction={
           <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
           </TouchableOpacity>
-        ) : undefined}
+        }
       />
 
       {/* Dropdown menu */}
@@ -391,22 +391,28 @@ export default function GroupDashboardScreen() {
               borderRadius: 12, borderWidth: 1, borderColor: colors.border, minWidth: 200,
               shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8,
             }}>
-              <TouchableOpacity onPress={handleEditGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <Ionicons name="pencil-outline" size={18} color={colors.text} />
-                <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleChangeImage} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <Ionicons name="image-outline" size={18} color={colors.text} />
-                <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
-              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity onPress={handleEditGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <Ionicons name="pencil-outline" size={18} color={colors.text} />
+                  <Text style={{ color: colors.text, fontSize: 14 }}>Editar nombre</Text>
+                </TouchableOpacity>
+              )}
+              {isOwner && (
+                <TouchableOpacity onPress={handleChangeImage} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <Ionicons name="image-outline" size={18} color={colors.text} />
+                  <Text style={{ color: colors.text, fontSize: 14 }}>Cambiar imagen</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => { setShowMenu(false); setShowCatModal(true) }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                 <Ionicons name="folder-outline" size={18} color={colors.text} />
                 <Text style={{ color: colors.text, fontSize: 14 }}>Categorías</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDeleteGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
-                <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar grupo</Text>
-              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity onPress={handleDeleteGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
+                  <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  <Text style={{ color: colors.error, fontSize: 14 }}>Eliminar grupo</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </Pressable>
@@ -708,7 +714,7 @@ export default function GroupDashboardScreen() {
               <TouchableOpacity onPress={handleCreateExercise} disabled={!exerciseName.trim() || creating} style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: (!exerciseName.trim() || creating) ? 0.6 : 1 }}>
                 <Text style={{ color: colors.text, fontWeight: '600' }}>{creating ? 'Creando…' : 'Crear ejercicio'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setShowCreateModal(false); setExerciseName(''); setExerciseUnit('KG'); setExerciseCategoryId(null) }} style={{ padding: 12, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => { setShowCreateModal(false); setExerciseName(''); setExerciseUnit('KG'); setExerciseCategoryId(null); setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 12, alignItems: 'center' }}>
                 <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
               </TouchableOpacity>
             </View>
