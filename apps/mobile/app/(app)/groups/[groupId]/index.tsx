@@ -78,8 +78,10 @@ export default function GroupDashboardScreen() {
   // Card dimensions: 2 columns with gap
   const cardSize = (screenWidth - 16 * 2 - CATEGORY_CARD_GAP) / 2
 
-  // Sub-icon size within the 2x2 grid inside a category card
-  const subIconSize = (cardSize - 24 - 8) / 2
+  // Available content width inside the card (padding 12 + border 2 each side)
+  const cardContentWidth = cardSize - 12 * 2 - 2 * 2
+  // Sub-icon size: 2 per row with 4px gap
+  const subIconSize = Math.floor((cardContentWidth - 4) / 2)
 
   // --- Menu handlers ---
   const handleEditGroup = () => {
@@ -280,7 +282,7 @@ export default function GroupDashboardScreen() {
           backgroundColor: colors.surface,
           borderWidth: 2,
           borderColor: colors.border,
-          padding: 14,
+          padding: 12,
         }}
       >
         {/* 2x2 miniature grid centered */}
