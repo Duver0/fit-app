@@ -8,10 +8,10 @@
  * This module intercepts pushState/replaceState and prepends the base path
  * when the target URL doesn't already include it.
  *
- * NOTA: La limpieza inicial del pathname (remover el basePath) se hace en un
- * script inline en el HTML que se ejecuta ANTES de que cargue el bundle principal.
- * Esto asegura que Expo Router vea la URL limpia desde el inicio.
- * Ver: deploy-frontend.yml step 4a (inyección de script inline).
+ * El route matching de Expo Router usa stripBaseUrl con process.env.EXPO_BASE_URL
+ * (definido en un script inline en el HTML) para quitar el prefijo /fit-app/ de la URL
+ * al hacer matching. Pero pushState/replaceState necesitan este parche para mantener
+ * el prefijo en la barra de direcciones.
  */
 
 let patched = false

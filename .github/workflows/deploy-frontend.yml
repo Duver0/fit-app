@@ -38,6 +38,7 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fit-app-api-3zds.onrender.com/graphql' }}
           EXPO_PUBLIC_BASE_URL: /fit-app/
+          EXPO_BASE_URL: /fit-app/
           PUBLIC_URL: /fit-app/
           NODE_ENV: production
           # Ensure the icon is passed along
@@ -168,10 +169,10 @@ jobs:
           for f in $(find . -name "*.html"); do
             echo "  Processing: $f"
 
-            # Step 4a: Add <base> tag and inline script right after <head>
-            # The inline script cleans the URL before Expo Router initializes,
-            # removing the /fit-app/ prefix so deep links work on reload.
-            sed -i 's|<head>|<head><base href="/fit-app/" /><script>(function(){var a=document.querySelector("base"),b=a&&a.getAttribute("href");if(b&&b!=="/"){var c=b.replace(/\/$/,"");var d=new URLSearchParams(window.location.search),e=d.get("redirect");if(e){window.history.replaceState(null,"",e.startsWith("/")?e:"/"+e)}else{var f=window.location.pathname;f.startsWith(c+"/")&&window.history.replaceState(null,"",f.slice(c.length)||"/")}}})();<\/script>|' "$f"
+            # Step 4a: Add <base> tag right after <head>
+            # Also sets process.env.EXPO_BASE_URL so Expo Router's internal
+            # stripBaseUrl can remove the /fit-app/ prefix when matching routes.
+            sed -i 's|<head>|<head><base href="/fit-app/" /><script>process.env=process.env||{};process.env.EXPO_BASE_URL="/fit-app/";<\/script>|' "$f"
 
             # Step 4b: Inject ALL head tags before </head> in a SINGLE sed
             # This avoids the problem of each sed creating a new </head>

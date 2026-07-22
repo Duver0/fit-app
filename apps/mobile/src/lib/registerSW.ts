@@ -4,6 +4,11 @@
  * The service worker script is served from the same base path as the app,
  * so it works on both root (/) and subpath (/fit-app/) deployments.
  *
+ * Derives the base URL from the <base> tag's href, NOT from
+ * window.location.pathname, because the pathname may have been cleaned
+ * by the inline URL-cleanup script in the HTML (removing the /fit-app/
+ * prefix so Expo Router can match routes on initial load).
+ *
  * Call this once from the root layout's useEffect to ensure
  * the service worker is registered after the page loads.
  *
@@ -16,10 +21,11 @@ export function registerServiceWorker(onUpdate?: () => void): void {
     return
   }
 
-  // Derive the base URL from the current pathname.
-  // On GitHub Pages with subpath /fit-app/, the SW will be at /fit-app/sw.js.
-  // On root deployments, it will be at /sw.js.
-  const baseUrl = window.location.pathname.replace(/\/$/, '')
+  // Derive the base URL from the <base> tag's href.
+  // This is reliable regardless of window.location.pathname value.
+  const baseEl = document.querySelector('base')
+  const baseHref = baseEl?.getAttribute('href') || process.env.EXPO_BASE_URL || '/'
+  const baseUrl = (baseHref || '/').replace(/\/$/, '')
   const swUrl = `${baseUrl}/sw.js`
 
   // Use the same base URL as the scope so the SW controls all pages under it.
