@@ -165,18 +165,17 @@ export default function GroupSettingsScreen() {
         {/* Group photo */}
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>Foto del grupo</Text>
         <TouchableOpacity onPress={() => setAvatarPickerVisible(true)} style={{ alignItems: 'center', marginBottom: 24 }}>
-          {displayAvatar ? (
-            <ImageWithFallback
-              source={{ uri: displayAvatar }}
-              style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }}
-              fallback={
-                <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{ fontSize: 40, fontWeight: 'bold', color: colors.text }}>
-                    {group?.name?.charAt(0)?.toUpperCase()}
-                  </Text>
-                </View>
-              }
-            />
+          <ImageWithFallback
+            source={{ uri: displayAvatar }}
+            style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }}
+            fallback={
+              <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 40, fontWeight: 'bold', color: colors.text }}>
+                  {group?.name?.charAt(0)?.toUpperCase()}
+                </Text>
+              </View>
+            }
+          />
           <Text style={{ color: colors.primary, fontSize: 14 }}>Cambiar foto</Text>
         </TouchableOpacity>
 

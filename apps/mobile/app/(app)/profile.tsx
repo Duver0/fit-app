@@ -179,11 +179,6 @@ export default function ProfileScreen() {
                   </View>
                 }
               />
-                  <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text }}>
-                    {user?.name?.charAt(0)?.toUpperCase()}
-                  </Text>
-                </View>
-              )}
               <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text }}>{user?.name}</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{user?.email}</Text>
               {user?.phone && (
