@@ -9,6 +9,7 @@ export const ME_QUERY = gql`
       phone
       avatarUrl
       role
+      routineEnabled
       createdAt
       updatedAt
     }
@@ -26,6 +27,7 @@ export const REGISTER_MUTATION = gql`
         phone
         avatarUrl
         role
+        routineEnabled
       }
     }
   }
@@ -42,6 +44,7 @@ export const LOGIN_MUTATION = gql`
         phone
         avatarUrl
         role
+        routineEnabled
       }
     }
   }
@@ -559,3 +562,139 @@ export const SEARCH_GROUP_AVATAR_QUERY = gql`
 `
 
 export const SEARCH_STOCK_IMAGES_QUERY = SEARCH_GROUP_AVATAR_QUERY
+
+// ---------------------------------------------------------------------------
+// Routine (Rutina)
+// ---------------------------------------------------------------------------
+
+export const TOGGLE_ROUTINE_MUTATION = gql`
+  mutation ToggleRoutine($enabled: Boolean!) {
+    toggleRoutine(enabled: $enabled) {
+      id
+      routineEnabled
+    }
+  }
+`
+
+export const MY_ROUTINE_DAYS_QUERY = gql`
+  query MyRoutineDays {
+    myRoutineDays {
+      id
+      dayOfWeek
+      exercises {
+        id
+        sortOrder
+        exercise {
+          id
+          name
+          unit
+          imageUrl
+          groupId
+        }
+        myPerformance {
+          id
+          value
+          reps
+          weight
+        }
+      }
+    }
+  }
+`
+
+export const ROUTINE_DAY_QUERY = gql`
+  query RoutineDay($dayOfWeek: Int!) {
+    routineDay(dayOfWeek: $dayOfWeek) {
+      id
+      dayOfWeek
+      exercises {
+        id
+        sortOrder
+        exercise {
+          id
+          name
+          unit
+          imageUrl
+          groupId
+          group {
+            id
+            name
+          }
+        }
+        myPerformance {
+          id
+          value
+          reps
+          weight
+        }
+      }
+    }
+  }
+`
+
+export const ADD_EXERCISE_TO_DAY_MUTATION = gql`
+  mutation AddExerciseToDay($dayOfWeek: Int!, $exerciseId: String!) {
+    addExerciseToDay(dayOfWeek: $dayOfWeek, exerciseId: $exerciseId) {
+      id
+      dayOfWeek
+      exercises {
+        id
+        sortOrder
+        exercise {
+          id
+          name
+          unit
+          imageUrl
+          groupId
+          group {
+            id
+            name
+          }
+        }
+        myPerformance {
+          id
+          value
+          reps
+          weight
+        }
+      }
+    }
+  }
+`
+
+export const REMOVE_EXERCISE_FROM_DAY_MUTATION = gql`
+  mutation RemoveExerciseFromDay($dayOfWeek: Int!, $exerciseId: String!) {
+    removeExerciseFromDay(dayOfWeek: $dayOfWeek, exerciseId: $exerciseId) {
+      id
+      dayOfWeek
+      exercises {
+        id
+        sortOrder
+      }
+    }
+  }
+`
+
+export const REORDER_EXERCISES_MUTATION = gql`
+  mutation ReorderExercises($dayOfWeek: Int!, $exerciseIds: [String!]!) {
+    reorderExercises(dayOfWeek: $dayOfWeek, exerciseIds: $exerciseIds) {
+      id
+      dayOfWeek
+      exercises {
+        id
+        sortOrder
+        exercise {
+          id
+          name
+          unit
+        }
+        myPerformance {
+          id
+          value
+          reps
+          weight
+        }
+      }
+    }
+  }
+`

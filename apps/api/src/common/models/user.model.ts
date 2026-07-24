@@ -28,6 +28,9 @@ export class User {
   @Field(() => UserRole)
   role: UserRole
 
+  @Field({ defaultValue: false, description: 'Whether the routine tab is enabled for this user' })
+  routineEnabled: boolean
+
   @Field()
   createdAt: Date
 

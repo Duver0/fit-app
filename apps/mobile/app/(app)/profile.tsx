@@ -4,7 +4,7 @@ import { useMutation } from '@apollo/client'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useThemeStore } from '../../src/stores/themeStore'
-import { UPDATE_PROFILE_MUTATION } from '../../src/lib/graphql'
+import { UPDATE_PROFILE_MUTATION, TOGGLE_ROUTINE_MUTATION } from '../../src/lib/graphql'
 import { getImageUrl } from '../../src/lib/api'
 import { showErrorToast, showSuccessToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false)
 
   const [updateProfile] = useMutation(UPDATE_PROFILE_MUTATION)
+  const [toggleRoutine] = useMutation(TOGGLE_ROUTINE_MUTATION)
 
   const handleAvatarSelected = (url: string) => {
     setAvatarUrl(url)
@@ -63,6 +64,19 @@ export default function ProfileScreen() {
     setPhone(user?.phone ?? '')
     setAvatarUrl(null)
     setIsEditing(false)
+  }
+
+  const handleToggleRoutine = async () => {
+    const newValue = !user?.routineEnabled
+    try {
+      const { data } = await toggleRoutine({ variables: { enabled: newValue } })
+      if (data?.toggleRoutine) {
+        updateUser(data.toggleRoutine)
+      }
+      showSuccessToast(newValue ? 'Rutina activada' : 'Rutina desactivada')
+    } catch (e: any) {
+      showErrorToast(e.message || 'Error al cambiar la preferencia')
+    }
   }
 
   const displayAvatar = avatarUrl || getImageUrl(user?.avatarUrl)
@@ -200,6 +214,24 @@ export default function ProfileScreen() {
                 <View style={{
                   width: 20, height: 20, borderRadius: 10, backgroundColor: colors.surface,
                   alignSelf: isDark ? 'flex-end' : 'flex-start',
+                }} />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleToggleRoutine} style={{
+              backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12,
+              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              borderWidth: 1, borderColor: colors.border,
+            }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>Mostrar pestaña Rutina</Text>
+              <View style={{
+                width: 44, height: 24, borderRadius: 12,
+                backgroundColor: user?.routineEnabled ? colors.primary : colors.border,
+                justifyContent: 'center', paddingHorizontal: 2,
+              }}>
+                <View style={{
+                  width: 20, height: 20, borderRadius: 10, backgroundColor: colors.surface,
+                  alignSelf: user?.routineEnabled ? 'flex-end' : 'flex-start',
                 }} />
               </View>
             </TouchableOpacity>

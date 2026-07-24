@@ -8,3 +8,4 @@ export { PerformanceRecord, RankingConnection, ExerciseRankingPreview } from './
 export { Dispute, DisputeVote } from './dispute.model'
 export { UserSearchResult } from './user-search-result.model'
 export { ProviderDiagResult } from './image-provider-diag.model'
+export { RoutineDay, RoutineExercise } from './routine.model'

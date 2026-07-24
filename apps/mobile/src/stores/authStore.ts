@@ -9,6 +9,7 @@ export interface User {
   phone?: string | null
   avatarUrl?: string | null
   role: 'USER' | 'SUPER_ADMIN'
+  routineEnabled?: boolean
   createdAt?: string
   updatedAt?: string
 }
