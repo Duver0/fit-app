@@ -6,6 +6,14 @@ import { WgerExercise, WgerSearchResult } from '../../common/models/wger.model'
 const LANG_ENGLISH = 2
 const LANG_SPANISH = 4
 
+// In-memory cache TTL (30 minutes)
+const CACHE_TTL_MS = 30 * 60 * 1000
+
+interface CacheEntry {
+  data: WgerSearchResult
+  timestamp: number
+}
+
 interface WgerImageRaw {
   image: string
   thumbnails?: {
@@ -44,12 +52,32 @@ interface WgerRawResponse {
 export class WgerService {
   private readonly logger = new Logger(WgerService.name)
   private readonly baseUrl: string
+  private readonly searchCache = new Map<string, CacheEntry>()
 
   constructor(private config: ConfigService) {
     this.baseUrl = this.config.get(
       'WGER_API_URL',
       'https://wger.de/api/v2',
     )
+  }
+
+  /**
+   * Genera una clave única para el caché en base a los parámetros de búsqueda.
+   */
+  private cacheKey(name: string, limit: number, offset: number): string {
+    return `${name.toLowerCase().trim()}|${limit}|${offset}`
+  }
+
+  /**
+   * Limpia entradas expiradas del caché.
+   */
+  private cleanExpiredCache(): void {
+    const now = Date.now()
+    for (const [key, entry] of this.searchCache.entries()) {
+      if (now - entry.timestamp > CACHE_TTL_MS) {
+        this.searchCache.delete(key)
+      }
+    }
   }
 
   /**
@@ -62,6 +90,19 @@ export class WgerService {
     limit: number = 20,
     offset: number = 0,
   ): Promise<WgerSearchResult> {
+    // Limpiar caché expirada periódicamente (una de cada 10 búsquedas)
+    if (Math.random() < 0.1) this.cleanExpiredCache()
+
+    // Revisar caché
+    const key = this.cacheKey(name, limit, offset)
+    const cached = this.searchCache.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      this.logger.log(`Cache hit for wger search: "${name}" (limit=${limit}, offset=${offset})`)
+      return cached.data
+    }
+
+    this.logger.log(`Cache miss for wger search: "${name}" — fetching from API`)
+
     // Pedimos un batch grande porque filtraremos muchos resultados
     const fetchLimit = 100
     const url = `${this.baseUrl}/exerciseinfo/?format=json&limit=${fetchLimit}&offset=${offset}&search=${encodeURIComponent(name)}`
@@ -98,21 +139,34 @@ export class WgerService {
 
     const nextOffset = result.next ? offset + fetchLimit : undefined
 
-    return {
+    const data: WgerSearchResult = {
       items,
       total: result.count,
       nextOffset,
       hasNextPage: result.next !== null,
     }
+
+    // Guardar en caché
+    this.searchCache.set(key, { data, timestamp: Date.now() })
+
+    return data
   }
 
   /**
    * Obtiene un ejercicio específico por su ID en wger.
+   * Cachea el resultado por ID (los datos de un ejercicio no cambian frecuentemente).
    */
   async findById(id: number): Promise<WgerExercise | null> {
-    const url = `${this.baseUrl}/exerciseinfo/${id}/?format=json`
-    this.logger.log(`Fetching wger exercise: ${url}`)
+    const key = `id:${id}`
+    const cached = this.searchCache.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      this.logger.log(`Cache hit for wger exercise #${id}`)
+      return cached.data as unknown as WgerExercise
+    }
 
+    this.logger.log(`Cache miss for wger exercise #${id} — fetching from API`)
+
+    const url = `${this.baseUrl}/exerciseinfo/${id}/?format=json`
     const response = await fetch(url)
     if (!response.ok) {
       if (response.status === 404) return null
@@ -121,7 +175,11 @@ export class WgerService {
     }
 
     const item: WgerExerciseRaw = await response.json()
-    return this.mapExercise(item)
+    const exercise = this.mapExercise(item)
+
+    this.searchCache.set(key, { data: exercise as unknown as WgerSearchResult, timestamp: Date.now() })
+
+    return exercise
   }
 
   private mapExercise(item: WgerExerciseRaw): WgerExercise {

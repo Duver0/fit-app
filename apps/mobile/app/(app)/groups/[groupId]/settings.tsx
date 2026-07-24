@@ -9,6 +9,7 @@ import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
 import BottomSheetModal from '../../../../src/components/ui/BottomSheetModal'
+import ImageWithFallback from '../../../../src/components/ui/ImageWithFallback'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -207,13 +208,13 @@ export default function GroupSettingsScreen() {
         </View>
 
         <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 32 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.danger, marginBottom: 16 }}>Zona de peligro</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.error, marginBottom: 16 }}>Zona de peligro</Text>
 
           <TouchableOpacity
             onPress={handleDelete}
             disabled={deleting}
             style={{
-              backgroundColor: colors.danger, borderRadius: 12, padding: 16, alignItems: 'center',
+              backgroundColor: colors.error, borderRadius: 12, padding: 16, alignItems: 'center',
               opacity: deleting ? 0.6 : 1,
             }}
           >

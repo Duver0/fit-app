@@ -1,15 +1,28 @@
 import { useState } from 'react'
-import { Image, ImageProps, ViewStyle } from 'react-native'
+import { ViewStyle } from 'react-native'
+import { Image, ImageContentFit, ImageSource } from 'expo-image'
+import { ImageStyle } from 'expo-image'
 
-interface Props extends Omit<ImageProps, 'onError'> {
+interface Props {
+  /** URL de la imagen */
+  source?: { uri?: string } | string | null
+  /** Estilo del contenedor de la imagen */
+  style?: ImageStyle | ViewStyle
+  /** Cómo se ajusta la imagen al contenedor */
+  resizeMode?: ImageContentFit
   /** Children se renderiza como fallback cuando la imagen falla */
   fallback?: React.ReactNode
   fallbackStyle?: ViewStyle
+  /** Clases adicionales o estilos para el contenedor */
+  className?: string
 }
 
 /**
- * Wrapper de Image que muestra un fallback si la URL da error (400, 404, etc.)
+ * Wrapper de expo-image que muestra un fallback si la URL da error (400, 404, etc.)
  * o si la URL es inválida.
+ *
+ * Usa expo-image con cachePolicy="disk" para evitar re-descargar imágenes
+ * del servidor de wger cada vez que se abre la app.
  *
  * Uso típico:
  * ```
@@ -23,13 +36,16 @@ interface Props extends Omit<ImageProps, 'onError'> {
 export default function ImageWithFallback({
   source,
   fallback,
-  fallbackStyle,
   ...props
 }: Props) {
   const [failed, setFailed] = useState(false)
 
+  // Extraer URI
+  const uri = typeof source === 'string' ? source : source?.uri
+  const expoSource: ImageSource = uri ? { uri } : (null as any)
+
   // Si no hay source o falló la carga, renderizar fallback
-  if (!source || failed) {
+  if (!uri || failed) {
     if (fallback) {
       return <>{fallback}</>
     }
@@ -38,9 +54,10 @@ export default function ImageWithFallback({
 
   return (
     <Image
-      source={source}
+      source={expoSource}
+      cachePolicy="disk"
       onError={() => setFailed(true)}
-      {...props}
+      {...(props as any)}
     />
   )
 }

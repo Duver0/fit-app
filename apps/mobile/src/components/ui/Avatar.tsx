@@ -1,11 +1,11 @@
 import {
   View,
   Text,
-  Image,
   ViewStyle,
   StyleSheet,
 } from 'react-native'
 import { useState } from 'react'
+import { Image } from 'expo-image'
 import { useTheme } from '../../theme/ThemeProvider'
 import { getImageUrl } from '../../lib/api'
 
@@ -64,6 +64,7 @@ export function Avatar({
       >
         <Image
           source={{ uri: resolvedUrl }}
+          cachePolicy="disk"
           style={[
             styles.image,
             {
