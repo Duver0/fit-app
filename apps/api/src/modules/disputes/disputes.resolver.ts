@@ -4,7 +4,7 @@ import { DisputesService } from './disputes.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { Dispute } from '../../common/models'
-import { CreateDisputeInput } from './dto/dispute.input'
+import { CreateDisputeInput, VoteDisputeInput, VoteOption } from './dto/dispute.input'
 import { User } from '../../common/models'
 
 @Resolver()
@@ -21,12 +21,19 @@ export class DisputesResolver {
   }
 
   @Mutation(() => Dispute)
-  async voteOnDispute(
+  async voteDispute(
+    @CurrentUser() user: User,
+    @Args('input') input: VoteDisputeInput,
+  ) {
+    return this.disputesService.vote(user.id, input.disputeId, input.vote)
+  }
+
+  @Mutation(() => Dispute)
+  async cancelDispute(
     @CurrentUser() user: User,
     @Args('disputeId') disputeId: string,
-    @Args('vote') vote: boolean,
   ) {
-    return this.disputesService.vote(user.id, disputeId, vote)
+    return this.disputesService.cancel(user.id, disputeId)
   }
 
   @Query(() => [Dispute])

@@ -8,6 +8,259 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                   String              @id @default(uuid()) @db.Uuid
+  auth0Id              String              @unique @map("auth0_id")
+  passwordHash         String?             @map("password_hash")
+  email                String              @unique
+  phone                String?             @map("phone")
+  name                 String
+  avatarUrl            String?             @map("avatar_url")
+  role                 UserRole            @default(USER)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  routineEnabled       Boolean             @default(false) @map("routine_enabled")
+  singleGroupAutoEnter Boolean             @default(false) @map("single_group_auto_enter")
+  disputeVotes         DisputeVote[]
+  cancellingDisputes   Dispute[]           @relation("DisputeCanceller")
+  initiatedDisputes    Dispute[]           @relation("DisputeInitiator")
+  createdCategories    ExerciseCategory[]
+  createdExercises     Exercise[]
+  memberships          GroupMember[]
+  ownedGroups          Group[]
+  sentInvitations      Invitation[]
+  performances         PerformanceRecord[]
+  routineDays          RoutineDay[]
+
+  @@map("users")
+}
+
+model RoutineDay {
+  id        String            @id @default(uuid()) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  dayOfWeek Int               @map("day_of_week")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+  name      String?           @map("name")
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises RoutineExercise[]
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+  @@map("routine_days")
+}
+
+model RoutineExercise {
+  id         String     @id @default(uuid()) @db.Uuid
+  dayId      String     @map("day_id") @db.Uuid
+  exerciseId String     @map("exercise_id") @db.Uuid
+  sortOrder  Int        @map("sort_order")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([dayId, exerciseId])
+  @@index([dayId, sortOrder])
+  @@map("routine_exercises")
+}
+
+model Group {
+  id           String              @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  avatarUrl    String?             @map("avatar_url")
+  ownerId      String              @map("owner_id") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  disputes     Dispute[]
+  categories   ExerciseCategory[]
+  exercises    Exercise[]
+  members      GroupMember[]
+  owner        User                @relation(fields: [ownerId], references: [id])
+  invitations  Invitation[]
+  performances PerformanceRecord[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String          @id @default(uuid()) @db.Uuid
+  userId   String          @map("user_id") @db.Uuid
+  groupId  String          @map("group_id") @db.Uuid
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now()) @map("joined_at")
+  isActive Boolean         @default(true) @map("is_active")
+  group    Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+  @@index([userId])
+  @@index([groupId, isActive])
+  @@map("group_members")
+}
+
+model Invitation {
+  id           String       @id @default(uuid()) @db.Uuid
+  groupId      String       @map("group_id") @db.Uuid
+  inviterId    String       @map("inviter_id") @db.Uuid
+  inviteeEmail String       @map("invitee_email")
+  status       InviteStatus @default(PENDING)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter      User         @relation(fields: [inviterId], references: [id])
+
+  @@index([groupId])
+  @@index([inviteeEmail])
+  @@map("invitations")
+}
+
+model ExerciseCategory {
+  id        String     @id @default(uuid()) @db.Uuid
+  groupId   String     @map("group_id") @db.Uuid
+  name      String
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  createdBy String     @map("created_by") @db.Uuid
+  creator   User       @relation(fields: [createdBy], references: [id])
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@unique([groupId, name])
+  @@index([groupId])
+  @@map("exercise_categories")
+}
+
+model Exercise {
+  id               String              @id @default(uuid()) @db.Uuid
+  groupId          String              @map("group_id") @db.Uuid
+  name             String
+  unit             ExerciseUnit        @default(KG)
+  createdBy        String              @map("created_by") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  imageUrl         String?             @map("image_url")
+  wgerId           Int?                @map("wger_id")
+  wgerCategory     String?             @map("wger_category")
+  wgerMuscles      String?             @map("wger_muscles")
+  wgerEquipment    String?             @map("wger_equipment")
+  wgerInstructions String?             @map("wger_instructions")
+  categoryId       String?             @map("category_id") @db.Uuid
+  category         ExerciseCategory?   @relation(fields: [categoryId], references: [id])
+  creator          User                @relation(fields: [createdBy], references: [id])
+  group            Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  performances     PerformanceRecord[]
+  routineExercises RoutineExercise[]
+
+  @@unique([groupId, name, unit])
+  @@index([groupId])
+  @@map("exercises")
+}
+
+model PerformanceRecord {
+  id                 String         @id @default(uuid()) @db.Uuid
+  exerciseId         String         @map("exercise_id") @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  groupId            String         @map("group_id") @db.Uuid
+  value              Float
+  recordedAt         DateTime       @default(now()) @map("recorded_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  reps               Int?           @map("reps")
+  weight             Float?         @map("weight")
+  deletedAt          DateTime?      @map("deleted_at")
+  deletedByDisputeId String?        @unique @map("deleted_by_dispute_id") @db.Uuid
+  disputeResult      DisputeStatus? @map("dispute_result")
+  disputedAt         DateTime?      @map("disputed_at")
+  disputes           Dispute[]      @relation("PerformanceDisputes")
+  deletingDispute    Dispute?       @relation("DeletingDispute", fields: [deletedByDisputeId], references: [id])
+  exercise           Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  group              Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user               User           @relation(fields: [userId], references: [id])
+
+  @@unique([exerciseId, userId, groupId])
+  @@index([groupId, exerciseId(sort: Desc)])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("performance_records")
+}
+
+model Dispute {
+  id                       String             @id @default(uuid()) @db.Uuid
+  performanceId            String             @map("performance_id") @db.Uuid
+  initiatedById            String             @map("initiated_by_id") @db.Uuid
+  reason                   String
+  status                   DisputeStatus      @default(OPEN)
+  createdAt                DateTime           @default(now()) @map("created_at")
+  resolvedAt               DateTime?          @map("resolved_at")
+  expiresAt                DateTime?          @map("expires_at")
+  cancelledAt              DateTime?          @map("cancelled_at")
+  cancelledById            String?            @map("cancelled_by_id") @db.Uuid
+  cooldownUntil            DateTime?          @map("cooldown_until")
+  disputedValue            Float?             @map("disputed_value")
+  groupId                  String             @map("group_id") @db.Uuid
+  votes                    DisputeVote[]
+  canceller                User?              @relation("DisputeCanceller", fields: [cancelledById], references: [id])
+  group                    Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  initiator                User               @relation("DisputeInitiator", fields: [initiatedById], references: [id])
+  performance              PerformanceRecord  @relation("PerformanceDisputes", fields: [performanceId], references: [id], onDelete: Cascade)
+  deletedPerformanceRecord PerformanceRecord? @relation("DeletingDispute")
+
+  @@index([performanceId])
+  @@index([groupId, status])
+  @@index([status, expiresAt])
+  @@index([groupId, createdAt])
+  @@map("disputes")
+}
+
+model DisputeVote {
+  id        String     @id @default(uuid()) @db.Uuid
+  disputeId String     @map("dispute_id") @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  createdAt DateTime   @default(now()) @map("created_at")
+  vote      VoteOption
+  dispute   Dispute    @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@unique([disputeId, userId])
+  @@index([disputeId])
+  @@map("dispute_votes")
+}
+
+model GroupImageCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  category       String   @map("category")
+  searchTerm     String   @map("search_term")
+  provider       String   @map("provider")
+  imageUrl       String   @map("image_url")
+  thumbnailUrl   String   @map("thumbnail_url")
+  author         String   @map("author")
+  attributionUrl String   @map("attribution_url")
+  imageId        String   @map("image_id")
+  width          Int      @default(0)
+  height         Int      @default(0)
+  downloadedAt   DateTime @default(now()) @map("downloaded_at")
+  expiresAt      DateTime @map("expires_at")
+
+  @@index([category])
+  @@index([category, searchTerm])
+  @@index([expiresAt])
+  @@map("group_image_cache")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  actorId   String   @map("actor_id") @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
 enum UserRole {
   USER
   SUPER_ADMIN
@@ -46,252 +299,14 @@ enum DisputeStatus {
   OPEN
   APPROVED
   REJECTED
+  CANCELLED
 
   @@map("dispute_status")
 }
 
-model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  auth0Id   String   @unique @map("auth0_id")
-  passwordHash String? @map("password_hash")
-  email     String   @unique
-  phone     String?  @map("phone")
-  name      String
-  avatarUrl String?  @map("avatar_url") @db.Text
-  role            UserRole  @default(USER)
-  routineEnabled        Boolean   @default(false) @map("routine_enabled")
-  singleGroupAutoEnter  Boolean   @default(false) @map("single_group_auto_enter")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+enum VoteOption {
+  REAL
+  FAKE
 
-  memberships  GroupMember[]
-  performances PerformanceRecord[]
-  disputeVotes DisputeVote[]
-  ownedGroups  Group[]
-  sentInvitations Invitation[]
-  initiatedDisputes Dispute[]
-  createdExercises  Exercise[]
-  createdCategories ExerciseCategory[]
-  routineDays       RoutineDay[]
-
-  @@map("users")
-}
-
-model RoutineDay {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  dayOfWeek Int      @map("day_of_week")
-  name      String?  @map("name")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exercises RoutineExercise[]
-
-  @@unique([userId, dayOfWeek])
-  @@index([userId])
-  @@map("routine_days")
-}
-
-model RoutineExercise {
-  id         String   @id @default(uuid()) @db.Uuid
-  dayId      String   @map("day_id") @db.Uuid
-  exerciseId String   @map("exercise_id") @db.Uuid
-  sortOrder  Int      @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  day      RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exercise Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-
-  @@unique([dayId, exerciseId])
-  @@index([dayId, sortOrder])
-  @@map("routine_exercises")
-}
-
-model Group {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?  @db.Text
-  avatarUrl   String?  @map("avatar_url") @db.Text
-  ownerId     String   @map("owner_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  owner       User                @relation(fields: [ownerId], references: [id])
-  members     GroupMember[]
-  exercises   Exercise[]
-  categories  ExerciseCategory[]
-  invitations Invitation[]
-  performances PerformanceRecord[]
-
-  @@map("groups")
-}
-
-model GroupMember {
-  id       String          @id @default(uuid()) @db.Uuid
-  userId   String          @map("user_id") @db.Uuid
-  groupId  String          @map("group_id") @db.Uuid
-  role     GroupMemberRole @default(MEMBER)
-  joinedAt DateTime        @default(now()) @map("joined_at")
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, groupId])
-  @@index([groupId])
-  @@index([userId])
-  @@map("group_members")
-}
-
-model Invitation {
-  id           String       @id @default(uuid()) @db.Uuid
-  groupId      String       @map("group_id") @db.Uuid
-  inviterId    String       @map("inviter_id") @db.Uuid
-  inviteeEmail String       @map("invitee_email")
-  status       InviteStatus @default(PENDING)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-
-  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  inviter User  @relation(fields: [inviterId], references: [id])
-
-  @@index([groupId])
-  @@index([inviteeEmail])
-  @@map("invitations")
-}
-
-model ExerciseCategory {
-  id        String   @id @default(uuid()) @db.Uuid
-  groupId   String   @map("group_id") @db.Uuid
-  name      String
-  createdBy String   @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  creator   User       @relation(fields: [createdBy], references: [id])
-  exercises Exercise[]
-
-  @@unique([groupId, name])
-  @@index([groupId])
-  @@map("exercise_categories")
-}
-
-model Exercise {
-  id        String       @id @default(uuid()) @db.Uuid
-  groupId   String       @map("group_id") @db.Uuid
-  categoryId String?     @map("category_id") @db.Uuid
-  name      String
-  unit      ExerciseUnit @default(KG)
-  imageUrl  String?      @map("image_url") @db.Text
-  createdBy String       @map("created_by") @db.Uuid
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
-
-  // Datos enriquecidos desde wger.de
-  wgerId           Int?     @map("wger_id")
-  wgerCategory     String?  @map("wger_category") @db.Text
-  wgerMuscles      String?  @map("wger_muscles") @db.Text
-  wgerEquipment    String?  @map("wger_equipment") @db.Text
-  wgerInstructions String?  @map("wger_instructions") @db.Text
-
-  group        Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  category     ExerciseCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  creator      User                @relation(fields: [createdBy], references: [id])
-  performances     PerformanceRecord[]
-  routineExercises RoutineExercise[]
-
-  @@unique([groupId, name, unit])
-  @@index([groupId])
-  @@map("exercises")
-}
-
-model PerformanceRecord {
-  id         String   @id @default(uuid()) @db.Uuid
-  exerciseId String   @map("exercise_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  groupId    String   @map("group_id") @db.Uuid
-  value      Float
-  reps       Int?     @map("reps")
-  weight     Float?   @map("weight")
-  recordedAt DateTime @default(now()) @map("recorded_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  exercise Exercise          @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  user     User              @relation(fields: [userId], references: [id])
-  group    Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  disputes Dispute[]
-
-  @@unique([exerciseId, userId, groupId])
-  @@index([groupId, exerciseId(sort: Desc)])
-  @@index([userId])
-  @@map("performance_records")
-}
-
-model Dispute {
-  id              String        @id @default(uuid()) @db.Uuid
-  performanceId   String        @map("performance_id") @db.Uuid
-  initiatedById   String        @map("initiated_by_id") @db.Uuid
-  reason          String        @db.Text
-  status          DisputeStatus @default(OPEN)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  resolvedAt      DateTime?     @map("resolved_at")
-  expiresAt       DateTime      @map("expires_at")
-
-  performance PerformanceRecord @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  initiator   User             @relation(fields: [initiatedById], references: [id])
-  votes       DisputeVote[]
-
-  @@index([performanceId])
-  @@index([status])
-  @@map("disputes")
-}
-
-model DisputeVote {
-  id        String   @id @default(uuid()) @db.Uuid
-  disputeId String   @map("dispute_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  vote      Boolean
-  createdAt DateTime @default(now()) @map("created_at")
-
-  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id])
-
-  @@unique([disputeId, userId])
-  @@index([disputeId])
-  @@map("dispute_votes")
-}
-
-model GroupImageCache {
-  id             String   @id @default(uuid()) @db.Uuid
-  category       String   @map("category")
-  searchTerm     String   @map("search_term")
-  provider       String   @map("provider")
-  imageUrl       String   @map("image_url") @db.Text
-  thumbnailUrl   String   @map("thumbnail_url") @db.Text
-  author         String   @map("author")
-  attributionUrl String   @map("attribution_url") @db.Text
-  imageId        String   @map("image_id")
-  width          Int      @default(0)
-  height         Int      @default(0)
-  downloadedAt   DateTime @default(now()) @map("downloaded_at")
-  expiresAt      DateTime @map("expires_at")
-
-  @@index([category])
-  @@index([category, searchTerm])
-  @@index([expiresAt])
-  @@map("group_image_cache")
-}
-
-model AuditLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  action    String
-  entity    String
-  entityId  String   @map("entity_id")
-  actorId   String   @map("actor_id") @db.Uuid
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([entity, entityId])
-  @@map("audit_logs")
+  @@map("vote_option")
 }

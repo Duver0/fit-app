@@ -1,5 +1,10 @@
 import { InputType, Field } from '@nestjs/graphql'
-import { IsUUID, IsString, MinLength, MaxLength } from 'class-validator'
+import { IsUUID, IsString, MinLength, MaxLength, IsEnum } from 'class-validator'
+
+export enum VoteOption {
+  REAL = 'REAL',
+  FAKE = 'FAKE',
+}
 
 @InputType()
 export class CreateDisputeInput {
@@ -12,4 +17,15 @@ export class CreateDisputeInput {
   @MinLength(10)
   @MaxLength(1000)
   reason: string
+}
+
+@InputType()
+export class VoteDisputeInput {
+  @Field()
+  @IsUUID()
+  disputeId: string
+
+  @Field(() => VoteOption)
+  @IsEnum(VoteOption)
+  vote: VoteOption
 }

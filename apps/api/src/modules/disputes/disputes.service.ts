@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { VoteOption } from './dto/dispute.input'
 
 @Injectable()
 export class DisputesService {
@@ -14,14 +15,14 @@ export class DisputesService {
     if (record.userId === userId) throw new BadRequestException('Cannot dispute your own record')
 
     const membership = await this.prisma.groupMember.findFirst({
-      where: { groupId: record.groupId, userId },
+      where: { groupId: record.groupId, userId, isActive: true },
     })
-    if (!membership) throw new ForbiddenException('Not a member of this group')
+    if (!membership) throw new ForbiddenException('Not an active member of this group')
 
     const openDispute = await this.prisma.dispute.findFirst({
       where: { performanceId: input.performanceId, status: 'OPEN' },
     })
-    if (openDispute) throw new BadRequestException('A dispute is already open for this record')
+    if (openDispute) throw new ConflictException('A dispute is already open for this record')
 
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
@@ -29,26 +30,36 @@ export class DisputesService {
     return this.prisma.dispute.create({
       data: {
         performanceId: input.performanceId,
+        groupId: record.groupId,
         initiatedById: userId,
         reason: input.reason,
         expiresAt,
+        disputedValue: record.value,
       },
       include: { performance: true, initiator: true, votes: true },
     })
   }
 
-  async vote(userId: string, disputeId: string, vote: boolean) {
+  async vote(userId: string, disputeId: string, vote: VoteOption) {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: { performance: { include: { exercise: true } } },
     })
     if (!dispute) throw new NotFoundException()
     if (dispute.status !== 'OPEN') throw new BadRequestException('Dispute is already resolved')
+    if (dispute.expiresAt && dispute.expiresAt < new Date()) throw new BadRequestException('Dispute expired')
 
+    // Check if user is active member
     const membership = await this.prisma.groupMember.findFirst({
-      where: { groupId: dispute.performance.groupId, userId },
+      where: { groupId: dispute.performance.groupId, userId, isActive: true },
     })
-    if (!membership) throw new ForbiddenException()
+    if (!membership) throw new ForbiddenException('Not an active group member')
+
+    // Initiator cannot vote on their own dispute
+    if (dispute.initiatedById === userId) throw new ForbiddenException('Initiator cannot vote')
+
+    // Record owner cannot vote on their own dispute
+    if (dispute.performance.userId === userId) throw new ForbiddenException('Record owner cannot vote')
 
     const existingVote = await this.prisma.disputeVote.findUnique({
       where: { disputeId_userId: { disputeId, userId } },
@@ -72,7 +83,25 @@ export class DisputesService {
     })
   }
 
-  private async checkResolution(disputeId: string) {
+  async cancel(userId: string, disputeId: string) {
+    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } })
+    if (!dispute) throw new NotFoundException()
+    if (dispute.status !== 'OPEN') throw new BadRequestException('Only pending disputes can be cancelled')
+
+    const canCancel = dispute.initiatedById === userId ||
+      await this.prisma.groupMember.findFirst({ where: { groupId: dispute.groupId, userId, role: 'OWNER' } })
+    if (!canCancel) throw new ForbiddenException('Only creator or group owner can cancel')
+
+    const updated = await this.prisma.dispute.update({
+      where: { id: disputeId },
+      data: { status: 'CANCELLED', resolvedAt: new Date(), cancelledAt: new Date(), cancelledById: userId },
+      include: { votes: true, performance: true, initiator: true },
+    })
+
+    return updated
+  }
+
+  private async checkResolution(disputeId: string): Promise<void> {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: {
@@ -82,24 +111,48 @@ export class DisputesService {
     })
     if (!dispute || dispute.status !== 'OPEN') return
 
-    const membersCount = await this.prisma.groupMember.count({
-      where: { groupId: dispute.performance.groupId },
+    const activeMembers = await this.prisma.groupMember.count({
+      where: { groupId: dispute.performance.groupId, isActive: true },
     })
 
-    const approveVotes = dispute.votes.filter(v => v.vote).length
-    const percentage = (approveVotes / membersCount) * 100
+    // Eligible voters = active members - initiator - record owner
+    const eligibleVoters = activeMembers - 2
+    if (eligibleVoters <= 0) return // No one can vote
 
-    if (percentage >= 51) {
-      await this.prisma.$transaction([
-        this.prisma.dispute.update({
+    const votesCast = dispute.votes.length
+    if (votesCast < eligibleVoters) return // Not all voted yet
+
+    // All eligible voters have voted - resolve immediately
+    const fakeVotes = dispute.votes.filter(v => v.vote === 'FAKE').length
+    const realVotes = dispute.votes.filter(v => v.vote === 'REAL').length
+
+    const isApproved = fakeVotes > realVotes
+
+    await this.prisma.$transaction(async (tx) => {
+      if (isApproved) {
+        await tx.dispute.update({
           where: { id: disputeId },
-          data: { status: 'APPROVED', resolvedAt: new Date() },
-        }),
-        this.prisma.performanceRecord.delete({
+          data: {
+            status: 'APPROVED',
+            resolvedAt: new Date(),
+            cooldownUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+          },
+        })
+        await tx.performanceRecord.update({
           where: { id: dispute.performanceId },
-        }),
-      ])
-    }
+          data: { deletedAt: new Date(), deletedByDisputeId: disputeId, disputeResult: 'APPROVED' },
+        })
+      } else {
+        await tx.dispute.update({
+          where: { id: disputeId },
+          data: { status: 'REJECTED', resolvedAt: new Date() },
+        })
+        await tx.performanceRecord.update({
+          where: { id: dispute.performanceId },
+          data: { disputeResult: 'REJECTED' },
+        })
+      }
+    })
   }
 
   async findByPerformance(performanceId: string) {
