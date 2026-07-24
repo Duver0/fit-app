@@ -16,6 +16,7 @@ import { useLazyQuery } from '@apollo/client'
 import { useTheme } from '../../theme/ThemeProvider'
 import { SEARCH_EXERCISES_QUERY, SEARCH_STOCK_IMAGES_QUERY } from '../../lib/graphql'
 import { getImageUrl } from '../../lib/api'
+import ImageWithFallback from './ImageWithFallback'
 
 interface WgerExercise {
   id: number
@@ -183,29 +184,26 @@ export function ExerciseDbSearchModal({
           borderColor: colors.border,
         }}
       >
-        {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={{ width: 56, height: 56, borderRadius: 8, marginRight: 12 }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 8,
-              backgroundColor: colors.primary + '30',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-            }}
-          >
-            <Text style={{ fontSize: 20, color: colors.primary, fontWeight: '700' }}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <ImageWithFallback
+          source={{ uri: imageUri }}
+          style={{ width: 56, height: 56, borderRadius: 8, marginRight: 12 }}
+          resizeMode="cover"
+          fallback={
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 8,
+                backgroundColor: colors.primary + '30',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="fitness" size={28} color={colors.primary} />
+            </View>
+          }
+        />
 
         <View style={{ flex: 1 }}>
           <Text

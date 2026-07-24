@@ -9,6 +9,7 @@ import { GROUP_QUERY, INVITE_TO_GROUP_MUTATION, REMOVE_MEMBER_MUTATION, SEARCH_U
 import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
+import ImageWithFallback from '../../../../src/components/ui/ImageWithFallback'
 
 export default function MembersScreen() {
   const { colors } = useTheme()
@@ -118,16 +119,15 @@ export default function MembersScreen() {
             backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 8,
             flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
           }}>
-            {getImageUrl(item.user.avatarUrl) ? (
-              <Image
-                source={{ uri: getImageUrl(item.user.avatarUrl) }}
-                style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
-              />
-            ) : (
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>{item.user.name.charAt(0)}</Text>
-              </View>
-            )}
+            <ImageWithFallback
+              source={{ uri: getImageUrl(item.user.avatarUrl) }}
+              style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+              fallback={
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>{item.user.name.charAt(0)}</Text>
+                </View>
+              }
+            />
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontWeight: '500' }}>{item.user.name}</Text>
             </View>
@@ -174,13 +174,15 @@ export default function MembersScreen() {
                 backgroundColor: colors.background, borderRadius: 12, padding: 14, marginBottom: 16,
                 borderWidth: 1, borderColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12,
               }}>
-                {getImageUrl(selectedUser.avatarUrl) ? (
-                  <Image source={{ uri: getImageUrl(selectedUser.avatarUrl) }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-                ) : (
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
-                  </View>
-                )}
+                <ImageWithFallback
+                  source={{ uri: getImageUrl(selectedUser.avatarUrl) }}
+                  style={{ width: 36, height: 36, borderRadius: 18 }}
+                  fallback={
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontWeight: 'bold', color: colors.text }}>{selectedUser.name.charAt(0)}</Text>
+                    </View>
+                  }
+                />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedUser.name}</Text>
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{selectedUser.email}</Text>
@@ -214,13 +216,15 @@ export default function MembersScreen() {
                       onPress={() => setSelectedUser(u)}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
                     >
-                      {getImageUrl(u.avatarUrl) ? (
-                        <Image source={{ uri: getImageUrl(u.avatarUrl) }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-                      ) : (
-                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
-                          <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
-                        </View>
-                      )}
+                      <ImageWithFallback
+                        source={{ uri: getImageUrl(u.avatarUrl) }}
+                        style={{ width: 36, height: 36, borderRadius: 18 }}
+                        fallback={
+                          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text style={{ fontWeight: 'bold', color: colors.text }}>{u.name.charAt(0)}</Text>
+                          </View>
+                        }
+                      />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '500' }}>{u.name}</Text>
                       <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{u.email}</Text>

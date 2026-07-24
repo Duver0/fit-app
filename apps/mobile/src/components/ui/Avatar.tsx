@@ -5,6 +5,7 @@ import {
   ViewStyle,
   StyleSheet,
 } from 'react-native'
+import { useState } from 'react'
 import { useTheme } from '../../theme/ThemeProvider'
 import { getImageUrl } from '../../lib/api'
 
@@ -42,9 +43,12 @@ export function Avatar({
   const { colors } = useTheme()
   const bgColor = getColorFromName(name, colors)
   const fontSize = size * 0.4
+  const [imgFailed, setImgFailed] = useState(false)
 
   const resolvedUrl = getImageUrl(avatarUrl)
-  if (resolvedUrl) {
+
+  // Mostrar imagen solo si hay URL válida y no ha fallado la carga
+  if (resolvedUrl && !imgFailed) {
     return (
       <View
         style={[
@@ -68,12 +72,14 @@ export function Avatar({
               borderRadius: size / 2,
             },
           ]}
+          onError={() => setImgFailed(true)}
           accessibilityLabel={`Avatar for ${name}`}
         />
       </View>
     )
   }
 
+  // Fallback: iniciales
   return (
     <View
       style={[

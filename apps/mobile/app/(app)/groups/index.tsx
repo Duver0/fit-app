@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
 import { router } from 'expo-router'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useGroups } from '../../../src/hooks/useGroups'
@@ -6,6 +6,7 @@ import { getImageUrl } from '../../../src/lib/api'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import InvitationBell from '../../../src/components/InvitationBell'
 import { Ionicons } from '@expo/vector-icons'
+import ImageWithFallback from '../../../src/components/ui/ImageWithFallback'
 
 function timeAgo(dateStr: string): string {
   const now = Date.now()
@@ -89,23 +90,22 @@ export default function GroupsScreen() {
           >
             <View style={{ flexDirection: 'row', minHeight: 100 }}>
               {/* Left: tall image */}
-              {getImageUrl(item.avatarUrl) ? (
-                <Image
-                  source={{ uri: getImageUrl(item.avatarUrl) }}
-                  style={{ width: 100, borderRadius: 0 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={{
-                  width: 100,
-                  backgroundColor: colors.primary + '20',
-                  justifyContent: 'center', alignItems: 'center',
-                }}>
-                  <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.primary }}>
-                    {getInitials(item.name)}
-                  </Text>
-                </View>
-              )}
+              <ImageWithFallback
+                source={{ uri: getImageUrl(item.avatarUrl) }}
+                style={{ width: 100, borderRadius: 0 }}
+                resizeMode="cover"
+                fallback={
+                  <View style={{
+                    width: 100,
+                    backgroundColor: colors.primary + '20',
+                    justifyContent: 'center', alignItems: 'center',
+                  }}>
+                    <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.primary }}>
+                      {getInitials(item.name)}
+                    </Text>
+                  </View>
+                }
+              />
 
               {/* Right: content */}
               <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>

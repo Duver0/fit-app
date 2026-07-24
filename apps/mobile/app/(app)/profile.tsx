@@ -9,6 +9,7 @@ import { getImageUrl } from '../../src/lib/api'
 import { showErrorToast, showSuccessToast } from '../../src/lib/toast'
 import ScreenHeader from '../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../src/components/ui/AvatarPickerModal'
+import ImageWithFallback from '../../src/components/ui/ImageWithFallback'
 
 export default function ProfileScreen() {
   const { colors } = useTheme()
@@ -164,16 +165,20 @@ export default function ProfileScreen() {
 
           <View style={{ padding: 24 }}>
             <View style={{ alignItems: 'center', marginBottom: 32 }}>
-              {getImageUrl(user?.avatarUrl) ? (
-                <Image
-                  source={{ uri: getImageUrl(user?.avatarUrl) }}
-                  style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 12 }}
-                />
-              ) : (
-                <View style={{
-                  width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary,
-                  justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-                }}>
+              <ImageWithFallback
+                source={{ uri: getImageUrl(user?.avatarUrl) }}
+                style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 12 }}
+                fallback={
+                  <View style={{
+                    width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary,
+                    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+                  }}>
+                    <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text }}>
+                      {user?.name?.charAt(0)?.toUpperCase() || '?'}
+                    </Text>
+                  </View>
+                }
+              />
                   <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text }}>
                     {user?.name?.charAt(0)?.toUpperCase()}
                   </Text>

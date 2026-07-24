@@ -9,6 +9,7 @@ import { getImageUrl } from '../../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
+import ImageWithFallback from '../../../../../src/components/ui/ImageWithFallback'
 
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
 
@@ -70,13 +71,16 @@ export default function CategoryExercisesScreen() {
         width: 48, height: 48, borderRadius: 12, backgroundColor: colors.background,
         justifyContent: 'center', alignItems: 'center', marginRight: 12, overflow: 'hidden',
       }}>
-        {getImageUrl(item.imageUrl) ? (
-          <Image source={{ uri: getImageUrl(item.imageUrl) }} style={{ width: 48, height: 48, borderRadius: 12 }} resizeMode="cover" />
-        ) : (
-          <Text style={{ fontSize: 20, color: colors.primary, fontWeight: '700' }}>
-            {item.name.charAt(0).toUpperCase()}
-          </Text>
-        )}
+        <ImageWithFallback
+          source={{ uri: getImageUrl(item.imageUrl) }}
+          style={{ width: 48, height: 48, borderRadius: 12 }}
+          resizeMode="cover"
+          fallback={
+            <Text style={{ fontSize: 20, color: colors.primary, fontWeight: '700' }}>
+              {item.name.charAt(0).toUpperCase()}
+            </Text>
+          }
+        />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }} numberOfLines={1}>

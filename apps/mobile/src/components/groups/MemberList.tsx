@@ -1,6 +1,7 @@
-import { FlatList, View, Text, Image, TouchableOpacity, ViewStyle } from 'react-native'
+import { FlatList, View, Text, TouchableOpacity, ViewStyle } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
 import { getImageUrl } from '../../lib/api'
+import ImageWithFallback from '../ui/ImageWithFallback'
 
 interface MemberListUser {
   id: string
@@ -47,33 +48,32 @@ export function MemberList({
           borderColor: colors.border,
         }}
       >
-        {getImageUrl(item.user.avatarUrl) ? (
-          <Image
-            source={{ uri: getImageUrl(item.user.avatarUrl) }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              marginRight: 12,
-            }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: isOwnerMember ? colors.warning : colors.accent,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>
-              {item.user.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <ImageWithFallback
+          source={{ uri: getImageUrl(item.user.avatarUrl) }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            marginRight: 12,
+          }}
+          fallback={
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: colors.accent,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Text style={{ fontWeight: 'bold', color: colors.text, fontSize: 16 }}>
+                {item.user.name.charAt(0)}
+              </Text>
+            </View>
+          }
+        />
 
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontWeight: '500' }} numberOfLines={1}>

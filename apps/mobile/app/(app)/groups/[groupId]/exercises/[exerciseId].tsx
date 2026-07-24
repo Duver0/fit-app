@@ -14,6 +14,7 @@ import { ExerciseDbSearchModal } from '../../../../../src/components/ui/Exercise
 import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
+import ImageWithFallback from '../../../../../src/components/ui/ImageWithFallback'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
 const KG_TO_LB = 2.20462
@@ -316,17 +317,16 @@ export default function ExerciseDetailScreen() {
           alignItems: 'center',
           marginRight: 10,
         }}>
-          {getImageUrl(item.user?.avatarUrl) ? (
-            <Image
-              source={{ uri: getImageUrl(item.user?.avatarUrl) }}
-              style={{ width: 36, height: 36, borderRadius: 18 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
-              {item.user?.name?.charAt(0) || '?'}
-            </Text>
-          )}
+          <ImageWithFallback
+            source={{ uri: getImageUrl(item.user?.avatarUrl) }}
+            style={{ width: 36, height: 36, borderRadius: 18 }}
+            resizeMode="cover"
+            fallback={
+              <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
+                {item.user?.name?.charAt(0) || '?'}
+              </Text>
+            }
+          />
         </View>
 
         {/* Name */}
@@ -470,29 +470,28 @@ export default function ExerciseDetailScreen() {
           <View>
             {/* Header with image: imageUrl o inicial */}
             <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
-              {getImageUrl(exercise?.imageUrl) ? (
-                <Image
-                  source={{ uri: getImageUrl(exercise?.imageUrl) }}
-                  style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 24,
-                  backgroundColor: colors.surface,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}>
-                  <Text style={{ fontSize: 40, color: colors.primary, fontWeight: '700' }}>
-                    {exercise?.name?.charAt(0) || '?'}
-                  </Text>
-                </View>
-              )}
+              <ImageWithFallback
+                source={{ uri: getImageUrl(exercise?.imageUrl) }}
+                style={{ width: 120, height: 120, borderRadius: 24, marginBottom: 16 }}
+                resizeMode="cover"
+                fallback={
+                  <View style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 24,
+                    backgroundColor: colors.surface,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}>
+                    <Text style={{ fontSize: 40, color: colors.primary, fontWeight: '700' }}>
+                      {exercise?.name?.charAt(0) || '?'}
+                    </Text>
+                  </View>
+                }
+              />
               <Text style={{ fontSize: 26, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>
                 {exercise?.name}
               </Text>
@@ -653,17 +652,16 @@ export default function ExerciseDetailScreen() {
                             alignItems: 'center',
                             marginRight: 4,
                           }}>
-                            {getImageUrl(record.user?.avatarUrl) ? (
-                              <Image
-                                source={{ uri: getImageUrl(record.user?.avatarUrl) }}
-                                style={{ width: 24, height: 24, borderRadius: 12 }}
-                                resizeMode="cover"
-                              />
-                            ) : (
-                              <Text style={{ color: colors.text, fontSize: 10, fontWeight: '600' }}>
-                                {record.user?.name?.charAt(0) || '?'}
-                              </Text>
-                            )}
+                            <ImageWithFallback
+                              source={{ uri: getImageUrl(record.user?.avatarUrl) }}
+                              style={{ width: 24, height: 24, borderRadius: 12 }}
+                              resizeMode="cover"
+                              fallback={
+                                <Text style={{ color: colors.text, fontSize: 10, fontWeight: '600' }}>
+                                  {record.user?.name?.charAt(0) || '?'}
+                                </Text>
+                              }
+                            />
                           </View>
                           <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
                             {record.user?.name || 'Usuario'}
