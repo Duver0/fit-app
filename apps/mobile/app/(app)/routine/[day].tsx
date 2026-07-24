@@ -119,6 +119,7 @@ export default function RoutineDayScreen() {
   // --- Local state ---
   const [refreshing, setRefreshing] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null)
   const [showEditMark, setShowEditMark] = useState<{ exerciseId: string; exerciseName: string; unit: string; currentPerf: any } | null>(null)
 
@@ -137,10 +138,13 @@ export default function RoutineDayScreen() {
   const exercises = data?.routineDay?.exercises || []
   const allAvailableExercises = availableData?.myExercisesForRoutine || []
 
-  // Filter out exercises already in this day
+  // Filter out exercises already in this day + apply search filter
   const existingIds = new Set(exercises.map((e: any) => e.exercise.id))
+  const query = searchQuery.toLowerCase().trim()
   const availableExercises = allAvailableExercises.filter(
-    (ex: any) => !existingIds.has(ex.id),
+    (ex: any) =>
+      !existingIds.has(ex.id) &&
+      (!query || ex.name.toLowerCase().includes(query)),
   )
 
   const onRefresh = useCallback(async () => {
@@ -157,6 +161,7 @@ export default function RoutineDayScreen() {
     try {
       await addExerciseToDay({ variables: { dayOfWeek, exerciseId } })
       setShowAddModal(false)
+      setSearchQuery('')
     } catch {
       // error handled by onError callback
     }
@@ -484,16 +489,33 @@ export default function RoutineDayScreen() {
                 Agregar ejercicio
               </Text>
               <TouchableOpacity
-                onPress={() => setShowAddModal(false)}
+                onPress={() => { setShowAddModal(false); setSearchQuery('') }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
               Ejercicios de tus grupos donde tienes marcas registradas:
             </Text>
+
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Buscar ejercicio..."
+              placeholderTextColor={colors.textSecondary}
+              style={{
+                backgroundColor: colors.background,
+                color: colors.text,
+                borderRadius: 12,
+                padding: 12,
+                fontSize: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: 12,
+              }}
+            />
 
             {loadingAvailable ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
