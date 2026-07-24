@@ -125,9 +125,12 @@ describe('RoutinesService', () => {
             },
             groupMember: {
               findFirst: jest.fn(),
+              findMany: jest.fn(),
             },
             performanceRecord: {
               findUnique: jest.fn(),
+              findMany: jest.fn(),
+              upsert: jest.fn(),
             },
             $transaction: jest.fn(),
           },
@@ -295,7 +298,7 @@ describe('RoutinesService', () => {
         .spyOn(prisma.groupMember, 'findFirst')
         .mockResolvedValue(mockMembership as any)
       jest
-        .spyOn(prisma.performanceRecord, 'findUnique')
+        .spyOn(prisma.performanceRecord, 'upsert')
         .mockResolvedValue(mockPerformance as any)
       jest.spyOn(prisma.routineDay, 'upsert').mockResolvedValue(mockDay)
       jest
@@ -327,13 +330,20 @@ describe('RoutinesService', () => {
       expect(prisma.groupMember.findFirst).toHaveBeenCalledWith({
         where: { groupId: 'group-1', userId: 'user-1' },
       })
-      expect(prisma.performanceRecord.findUnique).toHaveBeenCalledWith({
+      expect(prisma.performanceRecord.upsert).toHaveBeenCalledWith({
         where: {
           exerciseId_userId_groupId: {
             exerciseId: 'exercise-1',
             userId: 'user-1',
             groupId: 'group-1',
           },
+        },
+        update: {},
+        create: {
+          exerciseId: 'exercise-1',
+          userId: 'user-1',
+          groupId: 'group-1',
+          value: 0,
         },
       })
       expect(prisma.routineDay.upsert).toHaveBeenCalledWith({
@@ -358,7 +368,7 @@ describe('RoutinesService', () => {
         .spyOn(prisma.groupMember, 'findFirst')
         .mockResolvedValue(mockMembership as any)
       jest
-        .spyOn(prisma.performanceRecord, 'findUnique')
+        .spyOn(prisma.performanceRecord, 'upsert')
         .mockResolvedValue(mockPerformance as any)
       jest.spyOn(prisma.routineDay, 'upsert').mockResolvedValue(mockDay)
       jest
@@ -417,7 +427,7 @@ describe('RoutinesService', () => {
       })
     })
 
-    it('debería lanzar BadRequestException si el usuario no tiene marca registrada', async () => {
+    it('debería auto-crear performance con value 0 si no existe marca registrada', async () => {
       jest
         .spyOn(prisma.exercise, 'findUnique')
         .mockResolvedValue(mockExercise as any)
@@ -425,12 +435,50 @@ describe('RoutinesService', () => {
         .spyOn(prisma.groupMember, 'findFirst')
         .mockResolvedValue(mockMembership as any)
       jest
-        .spyOn(prisma.performanceRecord, 'findUnique')
+        .spyOn(prisma.performanceRecord, 'upsert')
+        .mockResolvedValue({
+          ...mockPerformance,
+          value: 0,
+          id: 'perf-auto',
+        } as any)
+      jest.spyOn(prisma.routineDay, 'upsert').mockResolvedValue(mockDay)
+      jest
+        .spyOn(prisma.routineExercise, 'findUnique')
         .mockResolvedValue(null)
+      jest
+        .spyOn(prisma.routineExercise, 'findFirst')
+        .mockResolvedValue(null)
+      jest
+        .spyOn(prisma.routineExercise, 'create')
+        .mockResolvedValue(mockRoutineExercise)
 
-      await expect(
-        service.addExerciseToDay('user-1', 1, 'exercise-1'),
-      ).rejects.toThrow(BadRequestException)
+      // getRoutineDay internally called at the end
+      jest
+        .spyOn(prisma.routineDay, 'findUnique')
+        .mockResolvedValue(mockDayWithExercises)
+      jest
+        .spyOn(prisma.performanceRecord, 'findUnique')
+        .mockResolvedValue({ ...mockPerformance, value: 0 } as any)
+
+      const result = await service.addExerciseToDay('user-1', 1, 'exercise-1')
+
+      expect(result).not.toBeNull()
+      expect(prisma.performanceRecord.upsert).toHaveBeenCalledWith({
+        where: {
+          exerciseId_userId_groupId: {
+            exerciseId: 'exercise-1',
+            userId: 'user-1',
+            groupId: 'group-1',
+          },
+        },
+        update: {},
+        create: {
+          exerciseId: 'exercise-1',
+          userId: 'user-1',
+          groupId: 'group-1',
+          value: 0,
+        },
+      })
     })
 
     it('debería lanzar BadRequestException si ya existe el ejercicio en ese día', async () => {
@@ -441,7 +489,7 @@ describe('RoutinesService', () => {
         .spyOn(prisma.groupMember, 'findFirst')
         .mockResolvedValue(mockMembership as any)
       jest
-        .spyOn(prisma.performanceRecord, 'findUnique')
+        .spyOn(prisma.performanceRecord, 'upsert')
         .mockResolvedValue(mockPerformance as any)
       jest.spyOn(prisma.routineDay, 'upsert').mockResolvedValue(mockDay)
       jest

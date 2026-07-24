@@ -119,8 +119,8 @@ export class RoutinesService {
       throw new ForbiddenException('You are not a member of this exercise group')
     }
 
-    // Verify user has a performance record for this exercise
-    const performance = await this.prisma.performanceRecord.findUnique({
+    // Auto-create a performance record with value 0 if none exists
+    const performance = await this.prisma.performanceRecord.upsert({
       where: {
         exerciseId_userId_groupId: {
           exerciseId,
@@ -128,12 +128,14 @@ export class RoutinesService {
           groupId: exercise.groupId,
         },
       },
+      update: {},
+      create: {
+        exerciseId,
+        userId,
+        groupId: exercise.groupId,
+        value: 0,
+      },
     })
-    if (!performance) {
-      throw new BadRequestException(
-        'You must have a registered mark for this exercise before adding it to your routine',
-      )
-    }
 
     // Get or create routine day
     const day = await this.prisma.routineDay.upsert({
@@ -229,33 +231,58 @@ export class RoutinesService {
   }
 
   async getExercisesForRoutine(userId: string) {
-    // Get all performances of the user with their exercises and groups
-    const performances = await this.prisma.performanceRecord.findMany({
+    // Get all groups the user belongs to
+    const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
       include: {
-        exercise: {
+        group: {
           include: {
-            group: true,
+            exercises: {
+              include: {
+                group: true,
+              },
+            },
           },
         },
       },
     })
 
-    // Group by exercise (a user has only one performance per exercise per group)
-    // Map to return exercise + performance info
-    return performances.map((perf) => ({
-      id: perf.exercise.id,
-      name: perf.exercise.name,
-      unit: perf.exercise.unit,
-      imageUrl: perf.exercise.imageUrl,
-      groupId: perf.exercise.groupId,
-      group: perf.exercise.group,
-      myPerformance: {
-        id: perf.id,
-        value: perf.value,
-        reps: perf.reps,
-        weight: perf.weight,
-      },
-    }))
+    // Flatten all exercises from all groups
+    const exercises = memberships.flatMap((m) => m.group.exercises)
+
+    // Get user's performances for these exercises
+    const performances = await this.prisma.performanceRecord.findMany({
+      where: { userId },
+    })
+    const perfMap = new Map(performances.map((p) => [p.exerciseId, p]))
+
+    // Deduplicate by exerciseId (same exercise can't be in multiple groups)
+    const seen = new Set<string>()
+
+    return exercises
+      .filter((ex) => {
+        if (seen.has(ex.id)) return false
+        seen.add(ex.id)
+        return true
+      })
+      .map((ex) => {
+        const perf = perfMap.get(ex.id)
+        return {
+          id: ex.id,
+          name: ex.name,
+          unit: ex.unit,
+          imageUrl: ex.imageUrl,
+          groupId: ex.groupId,
+          group: ex.group,
+          myPerformance: perf
+            ? {
+                id: perf.id,
+                value: perf.value,
+                reps: perf.reps,
+                weight: perf.weight,
+              }
+            : null,
+        }
+      })
   }
 }

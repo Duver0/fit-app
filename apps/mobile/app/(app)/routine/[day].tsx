@@ -566,7 +566,7 @@ export default function RoutineDayScreen() {
                 </Text>
               </View>
               <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                Marca: {formatPerformance(item.myPerformance, item.exercise.unit)}
+                Marca: {item.myPerformance ? formatPerformance(item.myPerformance, item.exercise.unit) : '—'}
               </Text>
             </View>
 
@@ -763,7 +763,7 @@ export default function RoutineDayScreen() {
             {addTab === 'groups' ? (
               <>
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                  Ejercicios de tus grupos donde tienes marcas registradas:
+                  Todos los ejercicios de tus grupos. Los que no tienen marca se agregan con valor 0.
                 </Text>
 
                 <TextInput
@@ -792,8 +792,8 @@ export default function RoutineDayScreen() {
                     <Ionicons name="barbell-outline" size={40} color={colors.textSecondary} />
                     <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
                       {allAvailableExercises.length === 0
-                        ? 'No tienes marcas registradas en ningún grupo. Registra una marca primero.'
-                        : 'Ya agregaste todos tus ejercicios disponibles a este día.'}
+                        ? 'No hay ejercicios en tus grupos. Creá uno nuevo.'
+                        : 'Ya agregaste todos los ejercicios disponibles a este día.'}
                     </Text>
                   </View>
                 ) : (
@@ -822,6 +822,11 @@ export default function RoutineDayScreen() {
                           {item.group && (
                             <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
                               {item.group.name}
+                            </Text>
+                          )}
+                          {!item.myPerformance && (
+                            <Text style={{ color: colors.warning, fontSize: 11, marginTop: 2 }}>
+                              Sin marca registrada
                             </Text>
                           )}
                         </View>
