@@ -434,12 +434,6 @@ export default function ExerciseDetailScreen() {
                   </View>
                 }
               />
-              <Text style={{ fontSize: 26, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>
-                {exercise?.name}
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 4 }}>
-                Unidad: {unitLabel}
-              </Text>
 
               {/* Instrucciones wger */}
               {exercise?.wgerInstructions && (
@@ -452,12 +446,6 @@ export default function ExerciseDetailScreen() {
                   borderWidth: 1,
                   borderColor: colors.border,
                 }}>
-                  <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
-                    Instrucciones
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>
-                    {exercise.wgerInstructions}
-                  </Text>
                 </View>
               )}
             </View>
@@ -482,7 +470,6 @@ export default function ExerciseDetailScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
                     <View>
-                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Tu marca</Text>
                       <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
                         {myRank ? `#${myRank} · ` : ''}
                         {formatCompactValue(myPerformance)}
