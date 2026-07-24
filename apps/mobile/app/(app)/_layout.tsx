@@ -3,6 +3,7 @@ import { Tabs, Redirect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
+import TabBarButton from '../../src/components/ui/TabBarButton'
 
 export default function AppLayout() {
   const { colors } = useTheme()
@@ -32,6 +33,9 @@ export default function AppLayout() {
             title: 'Grupos',
             tabBarLabel: 'Grupos',
             tabBarIcon: ({ color, size }) => <Ionicons name="barbell" size={size} color={color} />,
+            tabBarButton: (props) => (
+              <TabBarButton {...props} rootHref="/(app)/groups" />
+            ),
           }}
         />
         <Tabs.Screen
@@ -40,7 +44,9 @@ export default function AppLayout() {
             title: 'Rutina',
             tabBarLabel: 'Rutina',
             tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
-            tabBarButton: routineEnabled ? undefined : () => <View style={{ display: 'none' }} />,
+            tabBarButton: routineEnabled
+              ? (props) => <TabBarButton {...props} rootHref="/(app)/routine" />
+              : () => <View style={{ display: 'none' }} />,
           }}
         />
         <Tabs.Screen
@@ -49,6 +55,9 @@ export default function AppLayout() {
             title: 'Perfil',
             tabBarLabel: 'Perfil',
             tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+            tabBarButton: (props) => (
+              <TabBarButton {...props} rootHref="/(app)/profile" />
+            ),
           }}
         />
         <Tabs.Screen
@@ -57,7 +66,9 @@ export default function AppLayout() {
             title: 'Admin',
             tabBarLabel: 'Admin',
             tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
-            tabBarButton: isAdmin ? undefined : () => <View style={{ display: 'none' }} />,
+            tabBarButton: isAdmin
+              ? (props) => <TabBarButton {...props} rootHref="/(app)/admin" />
+              : () => <View style={{ display: 'none' }} />,
           }}
         />
       </Tabs>

@@ -10,7 +10,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, router } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -398,7 +398,7 @@ export default function RoutineDayScreen() {
   if (loading && !data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title={dayName} showBack={false} />
+        <ScreenHeader title={dayName} showBack />
         <View style={{ padding: 16, gap: 12 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} height={80} borderRadius={16} />
@@ -412,7 +412,7 @@ export default function RoutineDayScreen() {
   if (error) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title={dayName} showBack={false} />
+        <ScreenHeader title={dayName} showBack />
         <ErrorState
           message={error.message || 'Error al cargar los ejercicios del día'}
           onRetry={() => refetch()}
@@ -423,13 +423,16 @@ export default function RoutineDayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Header with name edit button + add button */}
+      {/* Header with back arrow + name edit button + add button */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8,
         backgroundColor: colors.background,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8, padding: 4 }}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleStartEditName}
             accessibilityRole="button"
