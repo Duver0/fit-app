@@ -58,5 +58,6 @@ module.exports = {
   ],
   experiments: {
     typedRoutes: true,
+    baseUrl: '/fit-app',
   },
 }
