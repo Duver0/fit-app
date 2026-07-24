@@ -85,7 +85,7 @@ export default function ProfileScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {isEditing ? (
         <>
-          <ScreenHeader title="Editar Perfil" />
+          <ScreenHeader title="Editar Perfil" showBack={false} />
 
           <View style={{ padding: 24 }}>
             <TouchableOpacity onPress={() => setAvatarPickerVisible(true)} style={{ alignItems: 'center', marginBottom: 32 }}>
@@ -163,6 +163,7 @@ export default function ProfileScreen() {
         <>
           <ScreenHeader
             title="Mi Perfil"
+            showBack={false}
             rightAction={
               <TouchableOpacity onPress={() => {
                 setName(user?.name ?? '')

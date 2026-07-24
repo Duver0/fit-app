@@ -38,7 +38,7 @@ export default function RoutineIndexScreen() {
   if (loading && !data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title="Mi Rutina" />
+        <ScreenHeader title="Mi Rutina" showBack={false} />
         <View style={{ padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {Array.from({ length: 7 }).map((_, i) => (
             <View key={i} style={{ width: '48%', marginBottom: 12 }}>
@@ -54,7 +54,7 @@ export default function RoutineIndexScreen() {
   if (error) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title="Mi Rutina" />
+        <ScreenHeader title="Mi Rutina" showBack={false} />
         <ErrorState
           message={error.message || 'Error al cargar la rutina'}
           onRetry={() => refetch()}
@@ -73,7 +73,7 @@ export default function RoutineIndexScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="Mi Rutina" />
+      <ScreenHeader title="Mi Rutina" showBack={false} />
 
       <ScrollView
         contentContainerStyle={{ padding: 16 }}

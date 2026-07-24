@@ -300,7 +300,7 @@ export default function RoutineDayScreen() {
   if (loading && !data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title={dayName} />
+        <ScreenHeader title={dayName} showBack={false} />
         <View style={{ padding: 16, gap: 12 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} height={80} borderRadius={16} />
@@ -314,7 +314,7 @@ export default function RoutineDayScreen() {
   if (error) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title={dayName} />
+        <ScreenHeader title={dayName} showBack={false} />
         <ErrorState
           message={error.message || 'Error al cargar los ejercicios del día'}
           onRetry={() => refetch()}

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
 import { router } from 'expo-router'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -35,6 +36,13 @@ function getInitials(name: string): string {
 export default function GroupsScreen() {
   const { colors } = useTheme()
   const { groups, isLoading, error, refetch } = useGroups()
+
+  // Auto-navegar al único grupo
+  useEffect(() => {
+    if (!isLoading && groups.length === 1) {
+      router.replace(`/(app)/groups/${groups[0].id}`)
+    }
+  }, [isLoading, groups])
 
   if (isLoading) {
     return (
