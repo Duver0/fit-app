@@ -13,6 +13,7 @@ import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
 import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
+import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 
 const KG_TO_LB = 2.20462
@@ -699,110 +700,113 @@ export default function ExerciseDetailScreen() {
       />
 
       {/* Upsert Modal */}
-      <Modal visible={showUpsert} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
-              {myPerformance ? 'Actualizar marca' : 'Registrar marca'}
-            </Text>
+      <BottomSheetModal visible={showUpsert} onClose={() => {
+        setShowUpsert(false)
+        setNewValue('')
+        setNewValueLb('')
+        setNewReps('')
+        setNewWeight('')
+        setNewWeightLb('')
+      }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
+          {myPerformance ? 'Actualizar marca' : 'Registrar marca'}
+        </Text>
 
-            {exercise?.unit === 'REPS_AND_WEIGHT' ? (
-              <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Repeticiones</Text>
+        {exercise?.unit === 'REPS_AND_WEIGHT' ? (
+          <>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Repeticiones</Text>
+            <TextInput
+              placeholder="Ej: 6"
+              placeholderTextColor={colors.textSecondary}
+              value={newReps} onChangeText={setNewReps}
+              keyboardType="number-pad"
+              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
+            />
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso</Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
                 <TextInput
-                  placeholder="Ej: 6"
+                  placeholder="0 kg"
                   placeholderTextColor={colors.textSecondary}
-                  value={newReps} onChangeText={setNewReps}
-                  keyboardType="number-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
-                />
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <TextInput
-                      placeholder="0 kg"
-                      placeholderTextColor={colors.textSecondary}
-                      value={newWeight}
-                      onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
-                      keyboardType="decimal-pad"
-                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <TextInput
-                      placeholder="0 lb"
-                      placeholderTextColor={colors.textSecondary}
-                      value={newWeightLb}
-                      onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
-                      keyboardType="decimal-pad"
-                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
-                    />
-                  </View>
-                </View>
-                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
-                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-                </TouchableOpacity>
-              </>
-            ) : exercise?.unit === 'KG' ? (
-              <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Peso</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <TextInput
-                      placeholder="0 kg"
-                      placeholderTextColor={colors.textSecondary}
-                      value={newValue}
-                      onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
-                      keyboardType="decimal-pad"
-                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <TextInput
-                      placeholder="0 lb"
-                      placeholderTextColor={colors.textSecondary}
-                      value={newValueLb}
-                      onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
-                      keyboardType="decimal-pad"
-                      style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
-                    />
-                  </View>
-                </View>
-                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
-                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TextInput
-                  placeholder={`Valor en ${unitLabel || 'kg'}`}
-                  placeholderTextColor={colors.textSecondary}
-                  value={newValue} onChangeText={setNewValue}
+                  value={newWeight}
+                  onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
                   keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
                 />
-                <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
-                  style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            <TouchableOpacity onPress={() => {
-              setShowUpsert(false)
-              setNewValue('')
-              setNewValueLb('')
-              setNewReps('')
-              setNewWeight('')
-              setNewWeightLb('')
-            }} style={{ padding: 12, alignItems: 'center' }}>
-              <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  placeholder="0 lb"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newWeightLb}
+                  onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
+                  keyboardType="decimal-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                />
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
+              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+          </>
+        ) : exercise?.unit === 'KG' ? (
+          <>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Peso</Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  placeholder="0 kg"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newValue}
+                  onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
+                  keyboardType="decimal-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  placeholder="0 lb"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newValueLb}
+                  onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
+                  keyboardType="decimal-pad"
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                />
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
+              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TextInput
+              placeholder={`Valor en ${unitLabel || 'kg'}`}
+              placeholderTextColor={colors.textSecondary}
+              value={newValue} onChangeText={setNewValue}
+              keyboardType="decimal-pad"
+              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
+            />
+            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
+              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <TouchableOpacity onPress={() => {
+          setShowUpsert(false)
+          setNewValue('')
+          setNewValueLb('')
+          setNewReps('')
+          setNewWeight('')
+          setNewWeightLb('')
+        }} style={{ padding: 12, alignItems: 'center' }}>
+          <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+        </TouchableOpacity>
+      </BottomSheetModal>
 
       {/* Create Dispute Modal */}
       <Modal visible={!!showDispute} transparent animationType="slide">

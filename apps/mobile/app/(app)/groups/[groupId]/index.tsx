@@ -10,6 +10,7 @@ import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
+import BottomSheetModal from '../../../../src/components/ui/BottomSheetModal'
 
 const UNITS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
@@ -592,124 +593,118 @@ export default function GroupDashboardScreen() {
       </Modal>
 
       {/* Create exercise modal */}
-      <Modal visible={showCreateModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-            <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear ejercicio</Text>
+      <BottomSheetModal visible={showCreateModal} onClose={() => { setShowCreateModal(false); setExerciseName(''); setExerciseUnit('KG'); setExerciseCategoryId(null); setShowInlineCatCreate(false); setCatName('') }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear ejercicio</Text>
 
-              <TextInput
-                value={exerciseName}
-                onChangeText={setExerciseName}
-                placeholder="Nombre del ejercicio (ej: Press banca)"
-                placeholderTextColor={colors.textSecondary}
-                style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
-              />
+        <TextInput
+          value={exerciseName}
+          onChangeText={setExerciseName}
+          placeholder="Nombre del ejercicio (ej: Press banca)"
+          placeholderTextColor={colors.textSecondary}
+          style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
+        />
 
-              {/* Category selector */}
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Categoría (opcional)</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                <TouchableOpacity
-                  onPress={() => setExerciseCategoryId(null)}
-                  style={{
-                    backgroundColor: !exerciseCategoryId ? colors.primary : colors.background,
-                    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
-                    borderWidth: 1, borderColor: !exerciseCategoryId ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ color: !exerciseCategoryId ? colors.text : colors.textSecondary, fontWeight: !exerciseCategoryId ? '600' : '400', fontSize: 13 }}>Sin categoría</Text>
-                </TouchableOpacity>
-                {categories.map((cat: any) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => setExerciseCategoryId(cat.id)}
-                    style={{
-                      backgroundColor: exerciseCategoryId === cat.id ? colors.primary : colors.background,
-                      borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
-                      borderWidth: 1, borderColor: exerciseCategoryId === cat.id ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ color: exerciseCategoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exerciseCategoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
-                  </TouchableOpacity>
-                ))}
-                {!showInlineCatCreate && (
-                  <TouchableOpacity
-                    onPress={() => setShowInlineCatCreate(true)}
-                    style={{
-                      backgroundColor: colors.background,
-                      borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
-                      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
-                      flexDirection: 'row', alignItems: 'center', gap: 4,
-                    }}
-                  >
-                    <Ionicons name="add" size={16} color={colors.primary} />
-                    <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Nueva</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              {showInlineCatCreate && (
-                <View style={{ marginBottom: 16, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.primary }}>
-                  <TextInput
-                    value={catName}
-                    onChangeText={setCatName}
-                    placeholder="Nombre de la categoría"
-                    placeholderTextColor={colors.textSecondary}
-                    style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
-                    autoFocus
-                  />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      onPress={async () => {
-                        if (!catName.trim()) return
-                        try {
-                          const res = await createCategory({ variables: { input: { groupId, name: catName.trim() } } })
-                          const newCatId = res.data?.createExerciseCategory?.id
-                          if (newCatId) setExerciseCategoryId(newCatId)
-                          setCatName('')
-                          setShowInlineCatCreate(false)
-                        } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
-                      }}
-                      disabled={!catName.trim()}
-                      style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 8, padding: 10, alignItems: 'center', opacity: !catName.trim() ? 0.6 : 1 }}
-                    >
-                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>Crear</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => { setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 10, alignItems: 'center' }}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Cancelar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Unidad de medida</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                {UNITS.map((unit) => (
-                  <TouchableOpacity
-                    key={unit}
-                    onPress={() => setExerciseUnit(unit)}
-                    style={{
-                      backgroundColor: exerciseUnit === unit ? colors.primary : colors.background,
-                      borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12,
-                      borderWidth: 1, borderColor: exerciseUnit === unit ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ color: exerciseUnit === unit ? colors.text : colors.textSecondary, fontWeight: exerciseUnit === unit ? '600' : '400' }}>
-                      {UNIT_LABELS[unit]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TouchableOpacity onPress={handleCreateExercise} disabled={!exerciseName.trim() || creating} style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: (!exerciseName.trim() || creating) ? 0.6 : 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>{creating ? 'Creando…' : 'Crear ejercicio'}</Text>
+        {/* Category selector */}
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Categoría (opcional)</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => setExerciseCategoryId(null)}
+            style={{
+              backgroundColor: !exerciseCategoryId ? colors.primary : colors.background,
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+              borderWidth: 1, borderColor: !exerciseCategoryId ? colors.primary : colors.border,
+            }}
+          >
+            <Text style={{ color: !exerciseCategoryId ? colors.text : colors.textSecondary, fontWeight: !exerciseCategoryId ? '600' : '400', fontSize: 13 }}>Sin categoría</Text>
+          </TouchableOpacity>
+          {categories.map((cat: any) => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setExerciseCategoryId(cat.id)}
+              style={{
+                backgroundColor: exerciseCategoryId === cat.id ? colors.primary : colors.background,
+                borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+                borderWidth: 1, borderColor: exerciseCategoryId === cat.id ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{ color: exerciseCategoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exerciseCategoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
+          {!showInlineCatCreate && (
+            <TouchableOpacity
+              onPress={() => setShowInlineCatCreate(true)}
+              style={{
+                backgroundColor: colors.background,
+                borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+                borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
+                flexDirection: 'row', alignItems: 'center', gap: 4,
+              }}
+            >
+              <Ionicons name="add" size={16} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Nueva</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {showInlineCatCreate && (
+          <View style={{ marginBottom: 16, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.primary }}>
+            <TextInput
+              value={catName}
+              onChangeText={setCatName}
+              placeholder="Nombre de la categoría"
+              placeholderTextColor={colors.textSecondary}
+              style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!catName.trim()) return
+                  try {
+                    const res = await createCategory({ variables: { input: { groupId, name: catName.trim() } } })
+                    const newCatId = res.data?.createExerciseCategory?.id
+                    if (newCatId) setExerciseCategoryId(newCatId)
+                    setCatName('')
+                    setShowInlineCatCreate(false)
+                  } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                }}
+                disabled={!catName.trim()}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 8, padding: 10, alignItems: 'center', opacity: !catName.trim() ? 0.6 : 1 }}
+              >
+                <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>Crear</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setShowCreateModal(false); setExerciseName(''); setExerciseUnit('KG'); setExerciseCategoryId(null); setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 12, alignItems: 'center' }}>
-                <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+              <TouchableOpacity onPress={() => { setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 10, alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        )}
+
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Unidad de medida</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+          {UNITS.map((unit) => (
+            <TouchableOpacity
+              key={unit}
+              onPress={() => setExerciseUnit(unit)}
+              style={{
+                backgroundColor: exerciseUnit === unit ? colors.primary : colors.background,
+                borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12,
+                borderWidth: 1, borderColor: exerciseUnit === unit ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{ color: exerciseUnit === unit ? colors.text : colors.textSecondary, fontWeight: exerciseUnit === unit ? '600' : '400' }}>
+                {UNIT_LABELS[unit]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity onPress={handleCreateExercise} disabled={!exerciseName.trim() || creating} style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: (!exerciseName.trim() || creating) ? 0.6 : 1 }}>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>{creating ? 'Creando…' : 'Crear ejercicio'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { setShowCreateModal(false); setExerciseName(''); setExerciseUnit('KG'); setExerciseCategoryId(null); setShowInlineCatCreate(false); setCatName('') }} style={{ padding: 12, alignItems: 'center' }}>
+          <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+        </TouchableOpacity>
+      </BottomSheetModal>
 
       {/* Edit Group Modal */}
       <Modal visible={showEditModal} transparent animationType="slide">
@@ -777,28 +772,22 @@ export default function GroupDashboardScreen() {
       </Modal>
 
       {/* Create category modal */}
-      <Modal visible={showCatCreateModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-            <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear categoría</Text>
-              <TextInput
-                value={catName}
-                onChangeText={setCatName}
-                placeholder="Ej: Pecho, Espalda, Piernas"
-                placeholderTextColor={colors.textSecondary}
-                style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
-              />
-              <TouchableOpacity onPress={handleCreateCategory} disabled={!catName.trim()} style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: !catName.trim() ? 0.6 : 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Crear categoría</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setShowCatCreateModal(false); setCatName('') }} style={{ padding: 12, alignItems: 'center' }}>
-                <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <BottomSheetModal visible={showCatCreateModal} onClose={() => { setShowCatCreateModal(false); setCatName('') }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear categoría</Text>
+        <TextInput
+          value={catName}
+          onChangeText={setCatName}
+          placeholder="Ej: Pecho, Espalda, Piernas"
+          placeholderTextColor={colors.textSecondary}
+          style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
+        />
+        <TouchableOpacity onPress={handleCreateCategory} disabled={!catName.trim()} style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: !catName.trim() ? 0.6 : 1 }}>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>Crear categoría</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { setShowCatCreateModal(false); setCatName('') }} style={{ padding: 12, alignItems: 'center' }}>
+          <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+        </TouchableOpacity>
+      </BottomSheetModal>
 
       <AvatarPickerModal
         visible={avatarPickerVisible}

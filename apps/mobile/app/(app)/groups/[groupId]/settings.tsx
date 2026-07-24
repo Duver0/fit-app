@@ -8,6 +8,7 @@ import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
 import AvatarPickerModal from '../../../../src/components/ui/AvatarPickerModal'
+import BottomSheetModal from '../../../../src/components/ui/BottomSheetModal'
 
 const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 
@@ -231,63 +232,59 @@ export default function GroupSettingsScreen() {
         onCancel={() => setAvatarPickerVisible(false)}
       />
 
-      <Modal visible={showExerciseModal} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear ejercicio</Text>
+      <BottomSheetModal visible={showExerciseModal} onClose={() => setShowExerciseModal(false)}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Crear ejercicio</Text>
 
-            <TextInput
-              value={exerciseName}
-              onChangeText={setExerciseName}
-              placeholder="Nombre del ejercicio"
-              placeholderTextColor={colors.textSecondary}
-              style={{
-                backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16,
-                borderWidth: 1, borderColor: colors.border, fontSize: 16,
-              }}
-            />
+        <TextInput
+          value={exerciseName}
+          onChangeText={setExerciseName}
+          placeholder="Nombre del ejercicio"
+          placeholderTextColor={colors.textSecondary}
+          style={{
+            backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16,
+            borderWidth: 1, borderColor: colors.border, fontSize: 16,
+          }}
+        />
 
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Unidad</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-              {UNITS.map((unit) => (
-                <TouchableOpacity
-                  key={unit}
-                  onPress={() => setExerciseUnit(unit)}
-                  style={{
-                    backgroundColor: exerciseUnit === unit ? colors.primary : colors.background,
-                    borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12,
-                    borderWidth: 1, borderColor: exerciseUnit === unit ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{
-                    color: exerciseUnit === unit ? colors.text : colors.textSecondary,
-                    fontWeight: exerciseUnit === unit ? '600' : '400',
-                  }}>
-                    {unit === 'KG' ? 'kg' : unit === 'REPS' ? 'reps' : unit === 'MIN' ? 'min' : unit === 'SEC' ? 'seg' : 'm'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Unidad</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+          {UNITS.map((unit) => (
             <TouchableOpacity
-              onPress={handleCreateExercise}
-              disabled={!exerciseName || creating}
+              key={unit}
+              onPress={() => setExerciseUnit(unit)}
               style={{
-                backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
-                opacity: (!exerciseName || creating) ? 0.6 : 1,
+                backgroundColor: exerciseUnit === unit ? colors.primary : colors.background,
+                borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12,
+                borderWidth: 1, borderColor: exerciseUnit === unit ? colors.primary : colors.border,
               }}
             >
-              <Text style={{ color: colors.text, fontWeight: '600' }}>
-                {creating ? 'Creando…' : 'Crear ejercicio'}
+              <Text style={{
+                color: exerciseUnit === unit ? colors.text : colors.textSecondary,
+                fontWeight: exerciseUnit === unit ? '600' : '400',
+              }}>
+                {unit === 'KG' ? 'kg' : unit === 'REPS' ? 'reps' : unit === 'MIN' ? 'min' : unit === 'SEC' ? 'seg' : 'm'}
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setShowExerciseModal(false)} style={{ padding: 12, alignItems: 'center' }}>
-              <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
-      </Modal>
+
+        <TouchableOpacity
+          onPress={handleCreateExercise}
+          disabled={!exerciseName || creating}
+          style={{
+            backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8,
+            opacity: (!exerciseName || creating) ? 0.6 : 1,
+          }}
+        >
+          <Text style={{ color: colors.text, fontWeight: '600' }}>
+            {creating ? 'Creando…' : 'Crear ejercicio'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setShowExerciseModal(false)} style={{ padding: 12, alignItems: 'center' }}>
+          <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
+        </TouchableOpacity>
+      </BottomSheetModal>
     </View>
   )
 }
