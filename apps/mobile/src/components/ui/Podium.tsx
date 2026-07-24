@@ -8,6 +8,8 @@ interface PodiumItem {
   name: string
   value: number
   avatarUrl?: string | null
+  /** Etiqueta de unidad opcional (kg, reps, etc.) — se muestra junto al valor */
+  unitLabel?: string
 }
 
 interface PodiumProps {
@@ -85,10 +87,9 @@ export function Podium({ items, style }: PodiumProps) {
             >
               {item.name}
             </Text>
-            <Text
-              style={[styles.value, { color: colors.textSecondary }]}
-            >
+            <Text style={[styles.value, { color: colors.textSecondary }]}>
               {item.value}
+              {item.unitLabel ? ` ${item.unitLabel}` : ''}
             </Text>
           </View>
         )

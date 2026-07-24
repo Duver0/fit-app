@@ -2,10 +2,20 @@ import { TouchableOpacity, View, Text, ViewStyle } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Podium } from '../ui/Podium'
 
+const UNIT_LABELS: Record<string, string> = {
+  KG: 'kg',
+  REPS: 'reps',
+  REPS_AND_WEIGHT: 'pts',
+  MIN: 'min',
+  SEC: 'seg',
+  M: 'm',
+}
+
 interface Top3TopItem {
   rank: number
   name: string
   value: number
+  avatarUrl?: string | null
 }
 
 interface Top3CardExercise {
@@ -24,7 +34,10 @@ export function Top3Card({ exercise, top, onPress, style }: Top3CardProps) {
   const { colors } = useTheme()
 
   const hasTop = top.length > 0
-  const displayTop = top.slice(0, 3)
+  const displayTop = top.slice(0, 3).map((t) => ({
+    ...t,
+    unitLabel: UNIT_LABELS[exercise.unit] || exercise.unit,
+  }))
 
   return (
     <TouchableOpacity

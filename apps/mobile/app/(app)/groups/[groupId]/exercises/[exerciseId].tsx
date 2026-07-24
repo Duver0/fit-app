@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Image, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -16,24 +16,36 @@ import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
 import ImageWithFallback from '../../../../../src/components/ui/ImageWithFallback'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
+import { Podium } from '../../../../../src/components/ui/Podium'
+import { RankingRow } from '../../../../../src/components/ranking/RankingRow'
 
 const KG_TO_LB = 2.20462
 
 function kgToLb(kg: number): number { return Math.round(kg * KG_TO_LB * 100) / 100 }
 function lbToKg(lb: number): number { return Math.round(lb / KG_TO_LB * 100) / 100 }
 
-const UNIT_LABELS: Record<string, string> = { KG: 'kg', REPS: 'reps', REPS_AND_WEIGHT: 'reps + peso', MIN: 'min', SEC: 'seg', M: 'm' }
+const UNIT_LABELS: Record<string, string> = {
+  KG: 'kg',
+  REPS: 'reps',
+  REPS_AND_WEIGHT: 'reps + peso',
+  MIN: 'min',
+  SEC: 'seg',
+  M: 'm',
+}
 
-const MEDAL_COLORS: Record<number, string> = {
-  1: '#FFD700',
-  2: '#C0C0C0',
-  3: '#CD7F32',
+const PODIUM_UNIT_LABELS: Record<string, string> = {
+  KG: 'kg',
+  REPS: 'reps',
+  REPS_AND_WEIGHT: 'pts',
+  MIN: 'min',
+  SEC: 'seg',
+  M: 'm',
 }
 
 export default function ExerciseDetailScreen() {
   const { colors } = useTheme()
   const { groupId, exerciseId } = useLocalSearchParams<{ groupId: string; exerciseId: string }>()
-  const { ranking, myPerformance, isLoading, isUpserting, error, refetch, upsertPerformance, createDispute } = useRanking(exerciseId!)
+  const { ranking, myPerformance, isLoading, isUpserting, refetch, upsertPerformance, createDispute } = useRanking(exerciseId!)
   const { data: groupData } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
   const { user: currentUser } = useAuth()
 
@@ -64,8 +76,6 @@ export default function ExerciseDetailScreen() {
 
   const exercise = groupData?.group?.exercises?.find((e: any) => e.id === exerciseId)
 
-  const [deleteExercise, { loading: deleting }] = useMutation(DELETE_EXERCISE_MUTATION)
-
   const [updateExercise, { loading: updating }] = useMutation(UPDATE_EXERCISE_MUTATION, {
     refetchQueries: [
       { query: GROUP_QUERY, variables: { id: groupId } },
@@ -92,6 +102,30 @@ export default function ExerciseDetailScreen() {
     exercise?.createdBy?.id === currentUser.id
   )
 
+  // --- Find current user's rank ---
+  const myRankItem = ranking.find((r: any) => r.user?.id === currentUser?.id)
+  const myRank = myRankItem?.rank ?? null
+
+  // --- Top 3 data for Podium ---
+  const top3 = ranking.filter((r: any) => r.rank <= 3)
+  const podiumItems = top3.map((r: any) => ({
+    rank: r.rank,
+    name: r.user?.name || 'Usuario',
+    value: r.value,
+    avatarUrl: r.user?.avatarUrl,
+    unitLabel: exercise ? PODIUM_UNIT_LABELS[exercise.unit] || exercise.unit : undefined,
+  }))
+
+  // --- Helpers to format the compact "Tu marca" value ---
+  function formatCompactValue(perf: any): string {
+    if (!exercise) return `${perf.value}`
+    if (exercise.unit === 'REPS_AND_WEIGHT' && perf.reps != null && perf.weight != null) {
+      return `${perf.reps} × ${perf.weight} kg`
+    }
+    return `${perf.value} ${UNIT_LABELS[exercise.unit] || exercise.unit}`
+  }
+
+  // --- Handlers ---
   const handleDeleteExercise = () => {
     setShowMenu(false)
     setShowDeleteConfirm(true)
@@ -102,7 +136,6 @@ export default function ExerciseDetailScreen() {
     setDeletingExercise(true)
     console.log('[DeleteExercise] iniciando eliminación | exerciseId:', exerciseId)
     try {
-      // Usar el client directamente para tener más control sobre el error
       const result = await client.mutate({
         mutation: DELETE_EXERCISE_MUTATION,
         variables: { id: exerciseId },
@@ -122,7 +155,6 @@ export default function ExerciseDetailScreen() {
       }
 
       console.log('[DeleteExercise] eliminado correctamente')
-      // Refrescar queries del dashboard (best-effort, no bloquea)
       client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
       showSuccessToast('Ejercicio eliminado')
       router.back()
@@ -138,7 +170,6 @@ export default function ExerciseDetailScreen() {
         error: e,
       })
       showErrorToast(errorMsg)
-      // Reabrir confirmación para que el usuario pueda reintentar
       setShowDeleteConfirm(true)
     } finally {
       setDeletingExercise(false)
@@ -207,13 +238,8 @@ export default function ExerciseDetailScreen() {
     }
   }
 
-  // Split ranking into top 3 and rest
-  const top3 = ranking.filter((r: any) => r.rank <= 3)
-  const rest = ranking.filter((r: any) => r.rank > 3)
-
   const handleUpsert = async () => {
     const isRepsAndWeight = exercise?.unit === 'REPS_AND_WEIGHT'
-    const isWeight = exercise?.unit === 'KG'
 
     if (isRepsAndWeight) {
       if (!newReps || !newWeight) return
@@ -281,104 +307,20 @@ export default function ExerciseDetailScreen() {
 
   const unitLabel = exercise ? (UNIT_LABELS[exercise.unit] || exercise.unit) : ''
 
-  const renderRankingItem = (item: any, index: number) => {
-    const isMe = currentUser && item.user?.id === currentUser.id
-    const isPodium = item.rank <= 3
-
-    return (
-      <View key={item.id} style={{
-        backgroundColor: isMe ? colors.primary + '12' : colors.surface,
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: isMe ? colors.primary + '30' : colors.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}>
-        {/* Rank */}
-        <View style={{ width: 40, alignItems: 'center' }}>
-          {isPodium ? (
-            <Ionicons name="trophy" size={20} color={MEDAL_COLORS[item.rank]} />
-          ) : (
-            <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 14 }}>
-              #{item.rank}
-            </Text>
-          )}
-        </View>
-
-        {/* Avatar */}
-        <View style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: item.rank <= 3 ? MEDAL_COLORS[item.rank] + '40' : colors.accent,
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginRight: 10,
-        }}>
-          <ImageWithFallback
-            source={{ uri: getImageUrl(item.user?.avatarUrl) }}
-            style={{ width: 36, height: 36, borderRadius: 18 }}
-            resizeMode="cover"
-            fallback={
-              <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
-                {item.user?.name?.charAt(0) || '?'}
-              </Text>
-            }
-          />
-        </View>
-
-        {/* Name */}
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }} numberOfLines={1}>
-            {item.user?.name || 'Usuario'}
-          </Text>
-          {isMe && (
-            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '500' }}>Tú</Text>
-          )}
-        </View>
-
-        {/* Value */}
-        {item.reps != null && item.weight != null ? (
-          <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
-            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>
-              {item.reps} × {item.weight} kg
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-              Vol: {item.value}
-            </Text>
-          </View>
-        ) : exercise?.unit === 'KG' ? (
-          <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
-            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>
-              {item.value} kg
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-              {kgToLb(item.value)} lb
-            </Text>
-          </View>
-        ) : (
-          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginRight: 8 }}>
-            {item.value} {unitLabel}
-          </Text>
-        )}
-
-        {/* Dispute buttons */}
-        <TouchableOpacity
-          onPress={() => setDisputeVotingPerformanceId(item.id)}
-          style={{ backgroundColor: colors.primary + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5, marginRight: 4 }}
-        >
-          <Text style={{ color: colors.primary, fontSize: 11 }}>Disputas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setShowDispute(item.id)}
-          style={{ backgroundColor: colors.error + '20', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 }}
-        >
-          <Text style={{ color: colors.error, fontSize: 11 }}>Disputar</Text>
-        </TouchableOpacity>
-      </View>
-    )
+  // --- Convertimos a upsert pre-fill ---
+  const openUpsertWithCurrent = () => {
+    if (!myPerformance) { setShowUpsert(true); return }
+    if (exercise?.unit === 'REPS_AND_WEIGHT') {
+      setNewReps((myPerformance.reps || '').toString())
+      const w = myPerformance.weight || 0
+      setNewWeight(w.toString())
+      setNewWeightLb(kgToLb(w).toString())
+    } else {
+      const val = myPerformance.value || 0
+      setNewValue(val.toString())
+      setNewValueLb(kgToLb(val).toString())
+    }
+    setShowUpsert(true)
   }
 
   return (
@@ -392,7 +334,7 @@ export default function ExerciseDetailScreen() {
         )}
       />
 
-      {/* Dropdown menu como Modal para que flote sobre todo sin superponerse */}
+      {/* Dropdown menu */}
       <Modal visible={showMenu} transparent animationType="none">
         <Pressable style={{ flex: 1 }} onPress={() => setShowMenu(false)}>
           <View style={{ flex: 1 }}>
@@ -468,7 +410,7 @@ export default function ExerciseDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            {/* Header with image: imageUrl o inicial */}
+            {/* --- HEADER: imagen, nombre, unidad, instrucciones --- */}
             <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
               <ImageWithFallback
                 source={{ uri: getImageUrl(exercise?.imageUrl) }}
@@ -499,7 +441,7 @@ export default function ExerciseDetailScreen() {
                 Unidad: {unitLabel}
               </Text>
 
-              {/* Wger instructions */}
+              {/* Instrucciones wger */}
               {exercise?.wgerInstructions && (
                 <View style={{
                   marginTop: 12,
@@ -518,64 +460,36 @@ export default function ExerciseDetailScreen() {
                   </Text>
                 </View>
               )}
-
             </View>
 
-            {/* My performance card */}
-            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            {/* --- TU MARCA (compacto) --- */}
+            <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
               {myPerformance ? (
                 <TouchableOpacity
-                  onPress={() => {
-                      if (exercise?.unit === 'REPS_AND_WEIGHT') {
-                        setNewReps((myPerformance.reps || '').toString())
-                        const w = myPerformance.weight || 0
-                        setNewWeight(w.toString())
-                        setNewWeightLb(kgToLb(w).toString())
-                      } else {
-                        const val = myPerformance.value || 0
-                        setNewValue(val.toString())
-                        setNewValueLb(kgToLb(val).toString())
-                      }
-                    setShowUpsert(true)
-                  }}
+                  onPress={openUpsertWithCurrent}
                   style={{
-                    backgroundColor: colors.primary + '15',
-                    borderRadius: 16,
-                    padding: 16,
+                    backgroundColor: colors.primary + '12',
+                    borderRadius: 12,
+                    padding: 12,
                     borderWidth: 1,
                     borderColor: colors.primary + '30',
                     flexDirection: 'row',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
+                  activeOpacity={0.7}
                 >
-                  <View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Tu marca</Text>
-                    {exercise?.unit === 'REPS_AND_WEIGHT' && myPerformance.reps != null && myPerformance.weight != null ? (
-                      <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
-                        {myPerformance.reps} reps × {myPerformance.weight} kg
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+                    <View>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Tu marca</Text>
+                      <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
+                        {myRank ? `#${myRank} · ` : ''}
+                        {formatCompactValue(myPerformance)}
                       </Text>
-                    ) : exercise?.unit === 'KG' ? (
-                      <View>
-                        <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
-                          {myPerformance.value} kg
-                        </Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                          {kgToLb(myPerformance.value)} lb
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold' }}>
-                        {myPerformance.value} {unitLabel}
-                      </Text>
-                    )}
-                    {exercise?.unit === 'REPS_AND_WEIGHT' && (
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
-                        Volumen: {myPerformance.value}
-                      </Text>
-                    )}
+                    </View>
                   </View>
-                  <Text style={{ color: colors.primary, fontWeight: '600' }}>Actualizar</Text>
+                  <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Actualizar</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -583,9 +497,10 @@ export default function ExerciseDetailScreen() {
                   style={{
                     backgroundColor: colors.primary,
                     borderRadius: 24,
-                    padding: 16,
+                    padding: 12,
                     alignItems: 'center',
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>
                     + Registrar marca
@@ -594,7 +509,7 @@ export default function ExerciseDetailScreen() {
               )}
             </View>
 
-            {/* Top 3 destacado */}
+            {/* --- TOP 3 DESTACADO (usando Podium) --- */}
             {top3.length > 0 && (
               <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -603,80 +518,20 @@ export default function ExerciseDetailScreen() {
                     Top 3 destacado
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 200 }}>
-                  {[2, 1, 3].map((pos) => {
-                    const record = top3.find((r: any) => r.rank === pos)
-                    if (!record) return <View key={pos} style={{ width: 100 }} />
-                    const barHeight = pos === 1 ? 80 : pos === 2 ? 60 : 40
-                    return (
-                      <View key={record.id} style={{ alignItems: 'center', width: 100 }}>
-                        <Ionicons name="trophy" size={28} color={MEDAL_COLORS[pos]} style={{ marginBottom: 6 }} />
-                        {record.reps != null && record.weight != null ? (
-                          <View style={{ alignItems: 'center' }}>
-                            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
-                              {record.reps} × {record.weight}
-                            </Text>
-                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                              Vol: {record.value}
-                            </Text>
-                          </View>
-                        ) : exercise?.unit === 'KG' ? (
-                          <View style={{ alignItems: 'center' }}>
-                            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
-                              {record.value} kg
-                            </Text>
-                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                              {kgToLb(record.value)} lb
-                            </Text>
-                          </View>
-                        ) : (
-                          <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>
-                            {record.value} {unitLabel}
-                          </Text>
-                        )}
-                        <View style={{
-                          width: 50,
-                          height: barHeight,
-                          backgroundColor: MEDAL_COLORS[pos],
-                          borderRadius: 10,
-                          marginBottom: 6,
-                          opacity: 0.8,
-                        }} />
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                          <View style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
-                            backgroundColor: MEDAL_COLORS[pos] + '60',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginRight: 4,
-                          }}>
-                            <ImageWithFallback
-                              source={{ uri: getImageUrl(record.user?.avatarUrl) }}
-                              style={{ width: 24, height: 24, borderRadius: 12 }}
-                              resizeMode="cover"
-                              fallback={
-                                <Text style={{ color: colors.text, fontSize: 10, fontWeight: '600' }}>
-                                  {record.user?.name?.charAt(0) || '?'}
-                                </Text>
-                              }
-                            />
-                          </View>
-                          <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
-                            {record.user?.name || 'Usuario'}
-                          </Text>
-                        </View>
-                      </View>
-                    )
-                  })}
+                <View style={{
+                  backgroundColor: colors.surface,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}>
+                  <Podium items={podiumItems} />
                 </View>
               </View>
             )}
 
-            {/* Ranking completo header */}
+            {/* --- RANKING COMPLETO header --- */}
             {ranking.length > 0 && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 8, marginTop: 4 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
                   Ranking completo ({ranking.length})
                 </Text>
@@ -694,10 +549,25 @@ export default function ExerciseDetailScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }: any) => renderRankingItem(item, item.rank)}
+        renderItem={({ item }: any) => (
+          <View style={{ paddingHorizontal: 16 }}>
+            <RankingRow
+              rank={item.rank}
+              name={item.user?.name || 'Usuario'}
+              value={item.value}
+              avatarUrl={item.user?.avatarUrl}
+              isMine={currentUser?.id === item.user?.id}
+              unit={exercise?.unit}
+              reps={item.reps}
+              weight={item.weight}
+              onViewDisputes={() => setDisputeVotingPerformanceId(item.id)}
+              onDispute={() => setShowDispute(item.id)}
+            />
+          </View>
+        )}
       />
 
-      {/* Upsert Modal */}
+      {/* --- Upsert Modal --- */}
       <BottomSheetModal visible={showUpsert} onClose={() => {
         setShowUpsert(false)
         setNewValue('')
@@ -806,7 +676,7 @@ export default function ExerciseDetailScreen() {
         </TouchableOpacity>
       </BottomSheetModal>
 
-      {/* Create Dispute Modal */}
+      {/* --- Create Dispute Modal --- */}
       <Modal visible={!!showDispute} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
@@ -831,7 +701,7 @@ export default function ExerciseDetailScreen() {
         </View>
       </Modal>
 
-      {/* Dispute Voting Modal */}
+      {/* --- Dispute Voting Modal --- */}
       <Modal visible={!!disputeVotingPerformanceId} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' }}>
@@ -869,7 +739,6 @@ export default function ExerciseDetailScreen() {
                       borderWidth: 1,
                       borderColor: colors.border,
                     }}>
-                      {/* Initiated by + status badge */}
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
                           Iniciada por {dispute.initiatedBy?.name || 'Usuario'}
@@ -886,12 +755,10 @@ export default function ExerciseDetailScreen() {
                         </View>
                       </View>
 
-                      {/* Reason */}
                       <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 12, fontStyle: 'italic' }}>
                         "{dispute.reason}"
                       </Text>
 
-                      {/* Vote tally */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
                           {rebuttalVotes} refutan  ·  {keepVotes} mantienen
@@ -901,7 +768,6 @@ export default function ExerciseDetailScreen() {
                         </Text>
                       </View>
 
-                      {/* Resolved state */}
                       {dispute.status === 'APPROVED' && (
                         <View style={{ backgroundColor: colors.success + '15', borderRadius: 8, padding: 10, marginBottom: 8 }}>
                           <Text style={{ color: colors.success, fontWeight: '500', fontSize: 13 }}>
@@ -917,7 +783,6 @@ export default function ExerciseDetailScreen() {
                         </View>
                       )}
 
-                      {/* Active voting UI */}
                       {dispute.status === 'OPEN' && (
                         <>
                           {userVote ? (
@@ -986,13 +851,6 @@ export default function ExerciseDetailScreen() {
               />
             )}
 
-            {/* Voting in progress indicator */}
-            {!disputesLoading && disputes.length > 0 && (
-              <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginBottom: 8 }}>
-                Votación abierta hasta que expire el plazo o se alcance la mayoría
-              </Text>
-            )}
-
             <TouchableOpacity onPress={() => setDisputeVotingPerformanceId(null)} style={{ padding: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary }}>Cerrar</Text>
             </TouchableOpacity>
@@ -1000,7 +858,7 @@ export default function ExerciseDetailScreen() {
         </View>
       </Modal>
 
-      {/* Edit Exercise Modal */}
+      {/* --- Edit Exercise Modal --- */}
       <Modal visible={showEditModal} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
@@ -1036,7 +894,7 @@ export default function ExerciseDetailScreen() {
         </View>
       </Modal>
 
-      {/* Change category modal */}
+      {/* --- Change category modal --- */}
       <Modal visible={showCategoryModal} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
@@ -1085,51 +943,51 @@ export default function ExerciseDetailScreen() {
               )}
 
               {!catCreateMode && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                <TouchableOpacity
-                  onPress={async () => {
-                    if (!exercise?.categoryId) { setShowCategoryModal(false); return }
-                    setChangingCategory(true)
-                    try {
-                      await changeCategoryMutation({ variables: { id: exerciseId, categoryId: null } })
-                      showSuccessToast('Categoría removida')
-                      setShowCategoryModal(false)
-                    } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
-                    finally { setChangingCategory(false) }
-                  }}
-                  style={{
-                    backgroundColor: !exercise?.categoryId ? colors.primary : colors.background,
-                    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
-                    borderWidth: 1, borderColor: !exercise?.categoryId ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ color: !exercise?.categoryId ? colors.text : colors.textSecondary, fontWeight: !exercise?.categoryId ? '600' : '400', fontSize: 13 }}>Sin categoría</Text>
-                </TouchableOpacity>
-                {(groupData?.group?.categories || []).map((cat: any) => (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                   <TouchableOpacity
-                    key={cat.id}
                     onPress={async () => {
-                      if (exercise?.categoryId === cat.id) { setShowCategoryModal(false); return }
+                      if (!exercise?.categoryId) { setShowCategoryModal(false); return }
                       setChangingCategory(true)
                       try {
-                        await changeCategoryMutation({ variables: { id: exerciseId, categoryId: cat.id } })
-                        showSuccessToast(`Categoría cambiada a "${cat.name}"`)
+                        await changeCategoryMutation({ variables: { id: exerciseId, categoryId: null } })
+                        showSuccessToast('Categoría removida')
                         setShowCategoryModal(false)
                       } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
                       finally { setChangingCategory(false) }
                     }}
-                    disabled={changingCategory}
                     style={{
-                      backgroundColor: exercise?.categoryId === cat.id ? colors.primary : colors.background,
+                      backgroundColor: !exercise?.categoryId ? colors.primary : colors.background,
                       borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
-                      borderWidth: 1, borderColor: exercise?.categoryId === cat.id ? colors.primary : colors.border,
-                      opacity: changingCategory ? 0.6 : 1,
+                      borderWidth: 1, borderColor: !exercise?.categoryId ? colors.primary : colors.border,
                     }}
                   >
-                    <Text style={{ color: exercise?.categoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exercise?.categoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
+                    <Text style={{ color: !exercise?.categoryId ? colors.text : colors.textSecondary, fontWeight: !exercise?.categoryId ? '600' : '400', fontSize: 13 }}>Sin categoría</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+                  {(groupData?.group?.categories || []).map((cat: any) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={async () => {
+                        if (exercise?.categoryId === cat.id) { setShowCategoryModal(false); return }
+                        setChangingCategory(true)
+                        try {
+                          await changeCategoryMutation({ variables: { id: exerciseId, categoryId: cat.id } })
+                          showSuccessToast(`Categoría cambiada a "${cat.name}"`)
+                          setShowCategoryModal(false)
+                        } catch (e: any) { showErrorToast(e?.graphQLErrors?.[0]?.message || e.message) }
+                        finally { setChangingCategory(false) }
+                      }}
+                      disabled={changingCategory}
+                      style={{
+                        backgroundColor: exercise?.categoryId === cat.id ? colors.primary : colors.background,
+                        borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+                        borderWidth: 1, borderColor: exercise?.categoryId === cat.id ? colors.primary : colors.border,
+                        opacity: changingCategory ? 0.6 : 1,
+                      }}
+                    >
+                      <Text style={{ color: exercise?.categoryId === cat.id ? colors.text : colors.textSecondary, fontWeight: exercise?.categoryId === cat.id ? '600' : '400', fontSize: 13 }}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
 
               <TouchableOpacity onPress={() => setShowCategoryModal(false)} style={{ padding: 12, alignItems: 'center' }}>

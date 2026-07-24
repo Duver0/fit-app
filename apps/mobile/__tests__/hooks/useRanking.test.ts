@@ -164,7 +164,7 @@ describe('useRanking', () => {
 
       // First call is for RANKING_QUERY
       expect(vi.mocked(useQuery).mock.calls[0][1]).toMatchObject({
-        variables: { exerciseId: EXERCISE_ID, page: 1, limit: 20 },
+        variables: { exerciseId: EXERCISE_ID, page: 1, limit: 100 },
       })
 
       // Second call is for MY_PERFORMANCE_QUERY

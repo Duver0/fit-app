@@ -3,14 +3,35 @@ import { useTheme } from '../../theme/ThemeProvider'
 import { getImageUrl } from '../../lib/api'
 import ImageWithFallback from '../ui/ImageWithFallback'
 
+const KG_TO_LB = 2.20462
+function kgToLb(kg: number): string {
+  return `${Math.round(kg * KG_TO_LB * 100) / 100} lb`
+}
+
+const UNIT_LABELS: Record<string, string> = {
+  KG: 'kg',
+  REPS: 'reps',
+  MIN: 'min',
+  SEC: 'seg',
+  M: 'm',
+}
+
 interface RankingRowProps {
   rank: number
   name: string
   value: number
   avatarUrl?: string | null
   isMine?: boolean
+  /** Unidad del ejercicio (KG, REPS, REPS_AND_WEIGHT, MIN, SEC, M) */
+  unit?: string
+  /** Para unidades compuestas (REPS_AND_WEIGHT) */
+  reps?: number | null
+  weight?: number | null
+  /** Callback para abrir el modal de disputas existentes */
+  onViewDisputes?: () => void
+  /** Callback para crear una nueva disputa */
   onDispute?: () => void
-  hasDispute?: boolean
+  hasDisputes?: boolean
   style?: ViewStyle
 }
 
@@ -20,8 +41,12 @@ export function RankingRow({
   value,
   avatarUrl,
   isMine = false,
+  unit,
+  reps,
+  weight,
+  onViewDisputes,
   onDispute,
-  hasDispute = false,
+  hasDisputes = false,
   style,
 }: RankingRowProps) {
   const { colors } = useTheme()
@@ -42,18 +67,18 @@ export function RankingRow({
         style,
       ]}
     >
-      {/* Rank number */}
-      <Text
-        style={{
-          width: 32,
-          textAlign: 'center',
-          fontWeight: 'bold',
-          fontSize: 16,
-          color: rank <= 3 ? colors.primary : colors.textSecondary,
-        }}
-      >
-        #{rank}
-      </Text>
+      {/* Rank */}
+      <View style={{ width: 36, alignItems: 'center' }}>
+        <Text
+          style={{
+            color: rank <= 3 ? colors.primary : colors.textSecondary,
+            fontWeight: '600',
+            fontSize: 14,
+          }}
+        >
+          #{rank}
+        </Text>
+      </View>
 
       {/* Avatar */}
       <ImageWithFallback
@@ -93,60 +118,86 @@ export function RankingRow({
           numberOfLines={1}
         >
           {name}
-          {isMine ? ' (tú)' : ''}
         </Text>
+        {isMine && (
+          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '500' }}>
+            Tú
+          </Text>
+        )}
       </View>
 
-      {/* Value */}
-      <Text
-        style={{
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: 'bold',
-          marginRight: 8,
-        }}
-      >
-        {value}
-      </Text>
-
-      {/* Dispute button */}
-      {!isMine && onDispute && (
-        <TouchableOpacity
-          onPress={onDispute}
-          accessibilityRole="button"
-          accessibilityLabel={`Disputar marca de ${name}`}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{
-            backgroundColor: colors.error + '20',
-            borderRadius: 16,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            minHeight: 32,
-            justifyContent: 'center',
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ color: colors.error, fontSize: 12 }}>
-            {hasDispute ? 'Disputado' : 'Disputar'}
+      {/* Value — detalle completo aquí (es la fuente de verdad) */}
+      <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+        {reps != null && weight != null ? (
+          <>
+            <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
+              {reps} × {weight} kg
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+              Vol: {value}
+            </Text>
+          </>
+        ) : unit === 'KG' ? (
+          <>
+            <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
+              {value} kg
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+              {kgToLb(value)}
+            </Text>
+          </>
+        ) : (
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
+            {value} {UNIT_LABELS[unit || ''] || ''}
           </Text>
-        </TouchableOpacity>
-      )}
+        )}
+      </View>
 
-      {/* Has dispute badge indicator */}
-      {!isMine && hasDispute && !onDispute && (
-        <View
-          style={{
-            backgroundColor: colors.warning + '40',
-            borderRadius: 12,
-            paddingHorizontal: 8,
-            paddingVertical: 2,
-          }}
-        >
-          <Text style={{ color: colors.text, fontSize: 11 }}>
-            En disputa
-          </Text>
-        </View>
-      )}
+      {/* Botones de disputa */}
+      <View style={{ flexDirection: 'row', gap: 4 }}>
+        {onViewDisputes && (
+          <TouchableOpacity
+            onPress={onViewDisputes}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver disputas de ${name}`}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              backgroundColor: colors.primary + '20',
+              borderRadius: 14,
+              paddingHorizontal: 8,
+              paddingVertical: 5,
+              minHeight: 28,
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '500' }}>
+              Disputas
+            </Text>
+          </TouchableOpacity>
+        )}
+        {!isMine && onDispute && (
+          <TouchableOpacity
+            onPress={onDispute}
+            accessibilityRole="button"
+            accessibilityLabel={`Disputar marca de ${name}`}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              backgroundColor: colors.error + '20',
+              borderRadius: 14,
+              paddingHorizontal: 8,
+              paddingVertical: 5,
+              minHeight: 28,
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.error, fontSize: 11, fontWeight: '500' }}>
+              {hasDisputes ? 'Disputado' : 'Disputar'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   )
 }

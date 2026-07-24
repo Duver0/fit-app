@@ -16,7 +16,7 @@ export function useRanking(exerciseId: string) {
   })
 
   const [upsertMutation, { loading: upsertLoading }] = useMutation(UPSERT_PERFORMANCE_MUTATION, {
-    refetchQueries: [{ query: RANKING_QUERY, variables: { exerciseId, page: 1, limit: 20 } }],
+    refetchQueries: [{ query: RANKING_QUERY, variables: { exerciseId, page: 1, limit: 100 } }],
   })
 
   const [disputeMutation] = useMutation(CREATE_DISPUTE_MUTATION)
