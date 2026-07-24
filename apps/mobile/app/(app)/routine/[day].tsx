@@ -20,6 +20,7 @@ import {
   REORDER_EXERCISES_MUTATION,
   UPSERT_PERFORMANCE_MUTATION,
   MY_EXERCISES_FOR_ROUTINE_QUERY,
+  UPDATE_ROUTINE_DAY_NAME_MUTATION,
 } from '../../../src/lib/graphql'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import { Skeleton } from '../../../src/components/ui/Skeleton'
@@ -61,7 +62,8 @@ export default function RoutineDayScreen() {
   const { colors } = useTheme()
   const { day } = useLocalSearchParams<{ day: string }>()
   const dayOfWeek = parseInt(day ?? '0', 10)
-  const dayName = DAY_NAMES[dayOfWeek] || 'Día'
+  const routineDay = data?.routineDay
+  const dayName = routineDay?.name || DAY_NAMES[dayOfWeek] || 'Día'
 
   // --- Queries ---
   const {
@@ -108,6 +110,15 @@ export default function RoutineDayScreen() {
     },
   )
 
+  const [updateDayName] = useMutation(UPDATE_ROUTINE_DAY_NAME_MUTATION, {
+    refetchQueries: [
+      { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
+      'MyRoutineDays',
+    ],
+    onCompleted: () => showSuccessToast('Nombre actualizado'),
+    onError: (e) => showErrorToast(e.message),
+  })
+
   const [upsertPerformance] = useMutation(UPSERT_PERFORMANCE_MUTATION, {
     refetchQueries: [
       { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
@@ -120,6 +131,9 @@ export default function RoutineDayScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [dayNameInput, setDayNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null)
   const [showEditMark, setShowEditMark] = useState<{ exerciseId: string; exerciseName: string; unit: string; currentPerf: any } | null>(null)
 
@@ -193,6 +207,25 @@ export default function RoutineDayScreen() {
     const newOrder = [...exerciseIds]
     ;[newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]]
     reorderExercises({ variables: { dayOfWeek, exerciseIds: newOrder } })
+  }
+
+  const handleStartEditName = () => {
+    setDayNameInput(routineDay?.name || '')
+    setEditingName(true)
+  }
+
+  const handleSaveName = async () => {
+    setSavingName(true)
+    try {
+      await updateDayName({
+        variables: { dayOfWeek, name: dayNameInput.trim() || null },
+      })
+      setEditingName(false)
+    } catch {
+      // handled by onError
+    } finally {
+      setSavingName(false)
+    }
   }
 
   const handleOpenEditMark = (item: any) => {
@@ -292,30 +325,49 @@ export default function RoutineDayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader
-        title={dayName}
-        rightAction={
+      {/* Header with name edit button + add button */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8,
+        backgroundColor: colors.background,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           <TouchableOpacity
-            onPress={() => setShowAddModal(true)}
+            onPress={handleStartEditName}
             accessibilityRole="button"
-            accessibilityLabel="Agregar ejercicio"
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
+            accessibilityLabel="Editar nombre del día"
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 6 }}
           >
-            <Ionicons name="add" size={18} color="#1A1A1A" />
-            <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 13 }}>
-              Agregar
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 20, fontWeight: '700', color: colors.text, maxWidth: '85%' }}
+            >
+              {dayName}
             </Text>
+            <Ionicons name="pencil-outline" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
-        }
-      />
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setShowAddModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Agregar ejercicio"
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 20,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Ionicons name="add" size={18} color="#1A1A1A" />
+          <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 13 }}>
+            Agregar
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={exercises}
@@ -473,6 +525,76 @@ export default function RoutineDayScreen() {
           </View>
         )}
       />
+
+      {/* --- Edit Day Name Modal --- */}
+      <Modal visible={editingName} transparent animationType="fade" onRequestClose={() => setEditingName(false)}>
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 32 }}>
+          <View style={{
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            padding: 24,
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 }}>
+              Personalizar nombre
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+              Dale un nombre a este día (ej: "Pecho - Tríceps")
+            </Text>
+
+            <TextInput
+              value={dayNameInput}
+              onChangeText={setDayNameInput}
+              placeholder={DAY_NAMES[dayOfWeek] || 'Día'}
+              placeholderTextColor={colors.textSecondary}
+              autoFocus
+              style={{
+                backgroundColor: colors.background,
+                color: colors.text,
+                borderRadius: 12,
+                padding: 14,
+                fontSize: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: 16,
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setEditingName(false)}
+                style={{
+                  flex: 1,
+                  borderRadius: 24,
+                  padding: 14,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.text, fontWeight: '500' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveName}
+                disabled={savingName}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.primary,
+                  borderRadius: 24,
+                  padding: 14,
+                  alignItems: 'center',
+                  opacity: savingName ? 0.6 : 1,
+                }}
+              >
+                {savingName ? (
+                  <ActivityIndicator color="#1A1A1A" size="small" />
+                ) : (
+                  <Text style={{ color: '#1A1A1A', fontWeight: '600' }}>Guardar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* --- Add Exercise Modal --- */}
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>

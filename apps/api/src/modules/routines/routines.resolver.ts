@@ -67,6 +67,16 @@ export class RoutinesResolver {
   }
 
   @Mutation(() => RoutineDay)
+  async updateRoutineDayName(
+    @CurrentUser() user: User,
+    @Args('dayOfWeek', { type: () => Int }) dayOfWeek: number,
+    @Args('name', { nullable: true }) name?: string,
+  ) {
+    await this.routinesService.updateDayName(user.id, dayOfWeek, name || null)
+    return this.routinesService.getRoutineDay(user.id, dayOfWeek)
+  }
+
+  @Mutation(() => RoutineDay)
   async reorderExercises(
     @CurrentUser() user: User,
     @Args('dayOfWeek', { type: () => Int }) dayOfWeek: number,

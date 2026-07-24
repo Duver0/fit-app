@@ -101,6 +101,7 @@ export default function RoutineIndexScreen() {
             const dayData = dayMap[dayOfWeek]
             const exercises = dayData?.exercises || []
             const hasExercises = exercises.length > 0
+            const customName = dayData?.name
 
             return (
               <TouchableOpacity
@@ -119,9 +120,14 @@ export default function RoutineIndexScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
-                  {DAY_NAMES[dayOfWeek]}
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 }}>
+                  {customName || DAY_NAMES[dayOfWeek]}
                 </Text>
+                {customName && (
+                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginBottom: 6 }}>
+                    {DAY_NAMES[dayOfWeek]}
+                  </Text>
+                )}
 
                 {hasExercises ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

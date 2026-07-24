@@ -581,6 +581,7 @@ export const MY_ROUTINE_DAYS_QUERY = gql`
     myRoutineDays {
       id
       dayOfWeek
+      name
       exercises {
         id
         sortOrder
@@ -607,6 +608,7 @@ export const ROUTINE_DAY_QUERY = gql`
     routineDay(dayOfWeek: $dayOfWeek) {
       id
       dayOfWeek
+      name
       exercises {
         id
         sortOrder
@@ -637,6 +639,7 @@ export const ADD_EXERCISE_TO_DAY_MUTATION = gql`
     addExerciseToDay(dayOfWeek: $dayOfWeek, exerciseId: $exerciseId) {
       id
       dayOfWeek
+      name
       exercises {
         id
         sortOrder
@@ -694,6 +697,20 @@ export const REORDER_EXERCISES_MUTATION = gql`
           reps
           weight
         }
+      }
+    }
+  }
+`
+
+export const UPDATE_ROUTINE_DAY_NAME_MUTATION = gql`
+  mutation UpdateRoutineDayName($dayOfWeek: Int!, $name: String) {
+    updateRoutineDayName(dayOfWeek: $dayOfWeek, name: $name) {
+      id
+      dayOfWeek
+      name
+      exercises {
+        id
+        sortOrder
       }
     }
   }

@@ -11,6 +11,9 @@ export class RoutineDay {
   @Field(() => Int)
   dayOfWeek: number
 
+  @Field({ nullable: true, description: 'Custom name for this day (e.g. "Pecho - Tríceps")' })
+  name?: string
+
   @Field(() => [RoutineExercise])
   exercises: RoutineExercise[]
 }

@@ -207,6 +207,20 @@ export class RoutinesService {
     return this.getRoutineDay(userId, dayOfWeek)
   }
 
+  async updateDayName(userId: string, dayOfWeek: number, name: string | null) {
+    const day = await this.prisma.routineDay.findUnique({
+      where: { userId_dayOfWeek: { userId, dayOfWeek } },
+    })
+    if (!day) {
+      throw new NotFoundException('Routine day not found')
+    }
+
+    return this.prisma.routineDay.update({
+      where: { id: day.id },
+      data: { name: name || null },
+    })
+  }
+
   async getExercisesForRoutine(userId: string) {
     // Get all performances of the user with their exercises and groups
     const performances = await this.prisma.performanceRecord.findMany({
