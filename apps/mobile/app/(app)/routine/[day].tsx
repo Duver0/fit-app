@@ -19,7 +19,7 @@ import {
   REMOVE_EXERCISE_FROM_DAY_MUTATION,
   REORDER_EXERCISES_MUTATION,
   UPSERT_PERFORMANCE_MUTATION,
-  SEARCH_EXERCISES_QUERY,
+  MY_EXERCISES_FOR_ROUTINE_QUERY,
 } from '../../../src/lib/graphql'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import { Skeleton } from '../../../src/components/ui/Skeleton'
@@ -119,7 +119,6 @@ export default function RoutineDayScreen() {
   // --- Local state ---
   const [refreshing, setRefreshing] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null)
   const [showEditMark, setShowEditMark] = useState<{ exerciseId: string; exerciseName: string; unit: string; currentPerf: any } | null>(null)
 
@@ -129,17 +128,20 @@ export default function RoutineDayScreen() {
   const [editWeight, setEditWeight] = useState('')
   const [savingMark, setSavingMark] = useState(false)
 
-  // Search exercises
+  // Available exercises (from user's groups where they have marks)
   const {
-    data: searchData,
-    loading: searching,
-  } = useQuery(SEARCH_EXERCISES_QUERY, {
-    variables: { name: searchQuery, limit: 20 },
-    skip: searchQuery.length < 2,
-  })
+    data: availableData,
+    loading: loadingAvailable,
+  } = useQuery(MY_EXERCISES_FOR_ROUTINE_QUERY)
 
   const exercises = data?.routineDay?.exercises || []
-  const searchResults = searchData?.searchExercises?.items || []
+  const allAvailableExercises = availableData?.myExercisesForRoutine || []
+
+  // Filter out exercises already in this day
+  const existingIds = new Set(exercises.map((e: any) => e.exercise.id))
+  const availableExercises = allAvailableExercises.filter(
+    (ex: any) => !existingIds.has(ex.id),
+  )
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -155,7 +157,6 @@ export default function RoutineDayScreen() {
     try {
       await addExerciseToDay({ variables: { dayOfWeek, exerciseId } })
       setShowAddModal(false)
-      setSearchQuery('')
     } catch {
       // error handled by onError callback
     }
@@ -483,52 +484,33 @@ export default function RoutineDayScreen() {
                 Agregar ejercicio
               </Text>
               <TouchableOpacity
-                onPress={() => { setShowAddModal(false); setSearchQuery('') }}
+                onPress={() => setShowAddModal(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Buscar ejercicio por nombre..."
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-              style={{
-                backgroundColor: colors.background,
-                color: colors.text,
-                borderRadius: 12,
-                padding: 14,
-                fontSize: 15,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 16,
-              }}
-            />
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+              Ejercicios de tus grupos donde tienes marcas registradas:
+            </Text>
 
-            {searchQuery.length < 2 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                <Ionicons name="search-outline" size={40} color={colors.textSecondary} />
-                <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
-                  Escribí al menos 2 caracteres para buscar ejercicios
-                </Text>
-              </View>
-            ) : searching ? (
+            {loadingAvailable ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                 <ActivityIndicator color={colors.primary} size="large" />
               </View>
-            ) : searchResults.length === 0 ? (
+            ) : availableExercises.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                <Ionicons name="alert-circle-outline" size={40} color={colors.textSecondary} />
+                <Ionicons name="barbell-outline" size={40} color={colors.textSecondary} />
                 <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
-                  No se encontraron ejercicios con ese nombre
+                  {allAvailableExercises.length === 0
+                    ? 'No tienes marcas registradas en ningún grupo. Registra una marca primero.'
+                    : 'Ya agregaste todos tus ejercicios disponibles a este día.'}
                 </Text>
               </View>
             ) : (
               <FlatList
-                data={searchResults}
+                data={availableExercises}
                 keyExtractor={(item: any) => item.id}
                 style={{ maxHeight: 400 }}
                 renderItem={({ item }: { item: any }) => (
@@ -549,9 +531,9 @@ export default function RoutineDayScreen() {
                       <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>
                         {item.name}
                       </Text>
-                      {item.category && (
+                      {item.group && (
                         <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                          {item.category}
+                          {item.group.name}
                         </Text>
                       )}
                     </View>

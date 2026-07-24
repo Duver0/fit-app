@@ -4,7 +4,7 @@ import { RoutinesService } from './routines.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { User } from '../../common/models/user.model'
-import { RoutineDay, RoutineExercise } from '../../common/models/routine.model'
+import { RoutineDay, RoutineExercise, ExerciseWithPerformance } from '../../common/models/routine.model'
 import { Group } from '../../common/models/group.model'
 import { PrismaService } from '../../prisma/prisma.service'
 
@@ -41,6 +41,11 @@ export class RoutinesResolver {
     @Args('dayOfWeek', { type: () => Int }) dayOfWeek: number,
   ) {
     return this.routinesService.getRoutineDay(user.id, dayOfWeek)
+  }
+
+  @Query(() => [ExerciseWithPerformance])
+  async myExercisesForRoutine(@CurrentUser() user: User) {
+    return this.routinesService.getExercisesForRoutine(user.id)
   }
 
   @Mutation(() => RoutineDay)

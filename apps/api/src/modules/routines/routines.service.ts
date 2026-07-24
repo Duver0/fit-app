@@ -206,4 +206,35 @@ export class RoutinesService {
 
     return this.getRoutineDay(userId, dayOfWeek)
   }
+
+  async getExercisesForRoutine(userId: string) {
+    // Get all performances of the user with their exercises and groups
+    const performances = await this.prisma.performanceRecord.findMany({
+      where: { userId },
+      include: {
+        exercise: {
+          include: {
+            group: true,
+          },
+        },
+      },
+    })
+
+    // Group by exercise (a user has only one performance per exercise per group)
+    // Map to return exercise + performance info
+    return performances.map((perf) => ({
+      id: perf.exercise.id,
+      name: perf.exercise.name,
+      unit: perf.exercise.unit,
+      imageUrl: perf.exercise.imageUrl,
+      groupId: perf.exercise.groupId,
+      group: perf.exercise.group,
+      myPerformance: {
+        id: perf.id,
+        value: perf.value,
+        reps: perf.reps,
+        weight: perf.weight,
+      },
+    }))
+  }
 }

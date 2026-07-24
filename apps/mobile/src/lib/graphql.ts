@@ -698,3 +698,25 @@ export const REORDER_EXERCISES_MUTATION = gql`
     }
   }
 `
+
+export const MY_EXERCISES_FOR_ROUTINE_QUERY = gql`
+  query MyExercisesForRoutine {
+    myExercisesForRoutine {
+      id
+      name
+      unit
+      imageUrl
+      groupId
+      group {
+        id
+        name
+      }
+      myPerformance {
+        id
+        value
+        reps
+        weight
+      }
+    }
+  }
+`
