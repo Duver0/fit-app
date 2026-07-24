@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  ScrollView,
 } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
@@ -21,6 +22,9 @@ import {
   UPSERT_PERFORMANCE_MUTATION,
   MY_EXERCISES_FOR_ROUTINE_QUERY,
   UPDATE_ROUTINE_DAY_NAME_MUTATION,
+  MY_GROUPS_QUERY,
+  CREATE_EXERCISE_MUTATION,
+  EXERCISE_CATEGORIES_QUERY,
 } from '../../../src/lib/graphql'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import { Skeleton } from '../../../src/components/ui/Skeleton'
@@ -49,6 +53,8 @@ const UNIT_LABELS: Record<string, string> = {
   M: 'm',
 }
 
+const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
+
 function formatPerformance(perf: any, unit: string): string {
   if (!perf) return '—'
   if (unit === 'REPS_AND_WEIGHT' && perf.reps != null && perf.weight != null) {
@@ -62,8 +68,6 @@ export default function RoutineDayScreen() {
   const { colors } = useTheme()
   const { day } = useLocalSearchParams<{ day: string }>()
   const dayOfWeek = parseInt(day ?? '0', 10)
-  const routineDay = data?.routineDay
-  const dayName = routineDay?.name || DAY_NAMES[dayOfWeek] || 'Día'
 
   // --- Queries ---
   const {
@@ -74,6 +78,9 @@ export default function RoutineDayScreen() {
   } = useQuery(ROUTINE_DAY_QUERY, {
     variables: { dayOfWeek },
   })
+
+  const routineDay = data?.routineDay
+  const dayName = routineDay?.name || DAY_NAMES[dayOfWeek] || 'Día'
 
   // --- Mutations ---
   const [addExerciseToDay, { loading: addingExercise }] = useMutation(
@@ -143,11 +150,35 @@ export default function RoutineDayScreen() {
   const [editWeight, setEditWeight] = useState('')
   const [savingMark, setSavingMark] = useState(false)
 
+  // Add exercise modal tabs: 'groups' | 'create'
+  const [addTab, setAddTab] = useState<'groups' | 'create'>('groups')
+
+  // Create exercise form state
+  const [newExName, setNewExName] = useState('')
+  const [newExUnit, setNewExUnit] = useState('KG')
+  const [newExGroupId, setNewExGroupId] = useState('')
+  const [newExCategoryId, setNewExCategoryId] = useState('')
+  const [creatingExercise, setCreatingExercise] = useState(false)
+
   // Available exercises (from user's groups where they have marks)
   const {
     data: availableData,
     loading: loadingAvailable,
   } = useQuery(MY_EXERCISES_FOR_ROUTINE_QUERY)
+
+  // User's groups for creating exercises
+  const { data: groupsData } = useQuery(MY_GROUPS_QUERY)
+  const myGroups = groupsData?.myGroups || []
+
+  // Auto-select group if only one
+  const effectiveGroupId = newExGroupId || (myGroups.length === 1 ? myGroups[0].id : '')
+
+  // Categories for selected group
+  const { data: categoriesData } = useQuery(EXERCISE_CATEGORIES_QUERY, {
+    variables: { groupId: effectiveGroupId },
+    skip: !effectiveGroupId,
+  })
+  const categories = categoriesData?.exerciseCategories || []
 
   const exercises = data?.routineDay?.exercises || []
   const allAvailableExercises = availableData?.myExercisesForRoutine || []
@@ -293,6 +324,73 @@ export default function RoutineDayScreen() {
       showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
     } finally {
       setSavingMark(false)
+    }
+  }
+
+  const [createExerciseMutation] = useMutation(CREATE_EXERCISE_MUTATION, {
+    refetchQueries: [
+      { query: MY_EXERCISES_FOR_ROUTINE_QUERY },
+      { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
+    ],
+    onError: (e) => showErrorToast(e.message),
+  })
+
+  const handleCreateExercise = async () => {
+    const name = newExName.trim()
+    if (!name || name.length < 2) {
+      showErrorToast('El nombre debe tener al menos 2 caracteres')
+      return
+    }
+    if (!effectiveGroupId) {
+      showErrorToast('Seleccioná un grupo')
+      return
+    }
+    setCreatingExercise(true)
+    try {
+      const { data: created } = await createExerciseMutation({
+        variables: {
+          input: {
+            groupId: effectiveGroupId,
+            name,
+            unit: newExUnit,
+            categoryId: newExCategoryId || undefined,
+          },
+        },
+      })
+      const newExerciseId = created?.createExercise?.id
+      if (!newExerciseId) throw new Error('No se pudo crear el ejercicio')
+
+      // Add to day
+      await addExerciseToDay({ variables: { dayOfWeek, exerciseId: newExerciseId } })
+
+      // Reset form
+      setNewExName('')
+      setNewExUnit('KG')
+      setNewExGroupId('')
+      setNewExCategoryId('')
+
+      // Close modal and open edit mark
+      setShowAddModal(false)
+      setSearchQuery('')
+
+      showSuccessToast('Ejercicio creado y agregado a la rutina')
+
+      // Open edit mark after a brief delay to let refetch complete
+      setTimeout(() => {
+        setShowEditMark({
+          exerciseId: newExerciseId,
+          exerciseName: name,
+          unit: newExUnit,
+          currentPerf: null,
+        })
+        setEditValue('')
+        setEditReps('')
+        setEditWeight('')
+      }, 500)
+    } catch (e: any) {
+      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
+    } finally {
+      setCreatingExercise(false)
     }
   }
 
@@ -604,87 +702,292 @@ export default function RoutineDayScreen() {
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
-            maxHeight: '80%',
+            maxHeight: '85%',
           }}>
+            {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>
                 Agregar ejercicio
               </Text>
               <TouchableOpacity
-                onPress={() => { setShowAddModal(false); setSearchQuery('') }}
+                onPress={() => { setShowAddModal(false); setSearchQuery(''); setAddTab('groups') }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-              Ejercicios de tus grupos donde tienes marcas registradas:
-            </Text>
-
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Buscar ejercicio..."
-              placeholderTextColor={colors.textSecondary}
-              style={{
-                backgroundColor: colors.background,
-                color: colors.text,
-                borderRadius: 12,
-                padding: 12,
-                fontSize: 14,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 12,
-              }}
-            />
-
-            {loadingAvailable ? (
-              <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                <ActivityIndicator color={colors.primary} size="large" />
-              </View>
-            ) : availableExercises.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                <Ionicons name="barbell-outline" size={40} color={colors.textSecondary} />
-                <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
-                  {allAvailableExercises.length === 0
-                    ? 'No tienes marcas registradas en ningún grupo. Registra una marca primero.'
-                    : 'Ya agregaste todos tus ejercicios disponibles a este día.'}
+            {/* Tabs */}
+            <View style={{ flexDirection: 'row', backgroundColor: colors.background, borderRadius: 12, padding: 3, marginBottom: 16 }}>
+              <TouchableOpacity
+                onPress={() => setAddTab('groups')}
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  backgroundColor: addTab === 'groups' ? colors.surface : 'transparent',
+                }}
+              >
+                <Text style={{
+                  color: addTab === 'groups' ? colors.text : colors.textSecondary,
+                  fontWeight: addTab === 'groups' ? '600' : '400',
+                  fontSize: 13,
+                }}>
+                  Desde grupos
                 </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={availableExercises}
-                keyExtractor={(item: any) => item.id}
-                style={{ maxHeight: 400 }}
-                renderItem={({ item }: { item: any }) => (
-                  <TouchableOpacity
-                    onPress={() => handleAddExercise(item.id)}
-                    disabled={addingExercise}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      padding: 14,
-                      backgroundColor: colors.background,
-                      borderRadius: 12,
-                      marginBottom: 8,
-                      opacity: addingExercise ? 0.6 : 1,
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>
-                        {item.name}
-                      </Text>
-                      {item.group && (
-                        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                          {item.group.name}
-                        </Text>
-                      )}
-                    </View>
-                    <Ionicons name="add-circle" size={24} color={colors.primary} />
-                  </TouchableOpacity>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setAddTab('create')}
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  backgroundColor: addTab === 'create' ? colors.surface : 'transparent',
+                }}
+              >
+                <Text style={{
+                  color: addTab === 'create' ? colors.text : colors.textSecondary,
+                  fontWeight: addTab === 'create' ? '600' : '400',
+                  fontSize: 13,
+                }}>
+                  Crear nuevo
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {addTab === 'groups' ? (
+              <>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                  Ejercicios de tus grupos donde tienes marcas registradas:
+                </Text>
+
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Buscar ejercicio..."
+                  placeholderTextColor={colors.textSecondary}
+                  style={{
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderRadius: 12,
+                    padding: 12,
+                    fontSize: 14,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    marginBottom: 12,
+                  }}
+                />
+
+                {loadingAvailable ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                    <ActivityIndicator color={colors.primary} size="large" />
+                  </View>
+                ) : availableExercises.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                    <Ionicons name="barbell-outline" size={40} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+                      {allAvailableExercises.length === 0
+                        ? 'No tienes marcas registradas en ningún grupo. Registra una marca primero.'
+                        : 'Ya agregaste todos tus ejercicios disponibles a este día.'}
+                    </Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={availableExercises}
+                    keyExtractor={(item: any) => item.id}
+                    style={{ maxHeight: 350 }}
+                    renderItem={({ item }: { item: any }) => (
+                      <TouchableOpacity
+                        onPress={() => handleAddExercise(item.id)}
+                        disabled={addingExercise}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          padding: 14,
+                          backgroundColor: colors.background,
+                          borderRadius: 12,
+                          marginBottom: 8,
+                          opacity: addingExercise ? 0.6 : 1,
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>
+                            {item.name}
+                          </Text>
+                          {item.group && (
+                            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                              {item.group.name}
+                            </Text>
+                          )}
+                        </View>
+                        <Ionicons name="add-circle" size={24} color={colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  />
                 )}
-              />
+              </>
+            ) : (
+              <ScrollView style={{ maxHeight: 500 }} keyboardShouldPersistTaps="handled">
+                {/* Exercise name */}
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Nombre del ejercicio *</Text>
+                <TextInput
+                  value={newExName}
+                  onChangeText={setNewExName}
+                  placeholder="Ej: Press banca"
+                  placeholderTextColor={colors.textSecondary}
+                  style={{
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 15,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    marginBottom: 16,
+                  }}
+                />
+
+                {/* Unit picker */}
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Unidad de medida *</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                  {UNIT_OPTIONS.map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      onPress={() => setNewExUnit(u)}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        backgroundColor: newExUnit === u ? colors.primary : colors.background,
+                      }}
+                    >
+                      <Text style={{
+                        color: newExUnit === u ? '#1A1A1A' : colors.text,
+                        fontWeight: newExUnit === u ? '600' : '400',
+                        fontSize: 13,
+                      }}>
+                        {UNIT_LABELS[u] || u}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Group picker */}
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                  Grupo * {myGroups.length === 1 ? '(único grupo)' : ''}
+                </Text>
+                {myGroups.length === 0 ? (
+                  <Text style={{ color: colors.error, fontSize: 13, marginBottom: 16 }}>
+                    No pertenecés a ningún grupo. Creá o unite a uno primero.
+                  </Text>
+                ) : myGroups.length === 1 ? (
+                  <View style={{
+                    backgroundColor: colors.background,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}>
+                    <Text style={{ color: colors.text, fontSize: 15 }}>{myGroups[0].name}</Text>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                    {myGroups.map((g: any) => (
+                      <TouchableOpacity
+                        key={g.id}
+                        onPress={() => setNewExGroupId(g.id)}
+                        style={{
+                          paddingHorizontal: 14,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: effectiveGroupId === g.id ? colors.primary : colors.background,
+                        }}
+                      >
+                        <Text style={{
+                          color: effectiveGroupId === g.id ? '#1A1A1A' : colors.text,
+                          fontWeight: effectiveGroupId === g.id ? '600' : '400',
+                          fontSize: 13,
+                        }}>
+                          {g.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Category picker (optional) */}
+                {categories.length > 0 && (
+                  <>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                      Categoría (opcional)
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                      <TouchableOpacity
+                        onPress={() => setNewExCategoryId('')}
+                        style={{
+                          paddingHorizontal: 14,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: !newExCategoryId ? colors.primary : colors.background,
+                        }}
+                      >
+                        <Text style={{
+                          color: !newExCategoryId ? '#1A1A1A' : colors.text,
+                          fontWeight: !newExCategoryId ? '600' : '400',
+                          fontSize: 13,
+                        }}>
+                          Sin categoría
+                        </Text>
+                      </TouchableOpacity>
+                      {categories.map((c: any) => (
+                        <TouchableOpacity
+                          key={c.id}
+                          onPress={() => setNewExCategoryId(c.id)}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 8,
+                            borderRadius: 20,
+                            backgroundColor: newExCategoryId === c.id ? colors.primary : colors.background,
+                          }}
+                        >
+                          <Text style={{
+                            color: newExCategoryId === c.id ? '#1A1A1A' : colors.text,
+                            fontWeight: newExCategoryId === c.id ? '600' : '400',
+                            fontSize: 13,
+                          }}>
+                            {c.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                {/* Create button */}
+                <TouchableOpacity
+                  onPress={handleCreateExercise}
+                  disabled={creatingExercise || !newExName.trim() || !effectiveGroupId}
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 24,
+                    padding: 16,
+                    alignItems: 'center',
+                    marginTop: 4,
+                    opacity: creatingExercise || !newExName.trim() || !effectiveGroupId ? 0.5 : 1,
+                  }}
+                >
+                  {creatingExercise ? (
+                    <ActivityIndicator color="#1A1A1A" size="small" />
+                  ) : (
+                    <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 16 }}>
+                      Crear y agregar a la rutina
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
             )}
           </View>
         </View>
