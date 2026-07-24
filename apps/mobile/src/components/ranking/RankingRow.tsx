@@ -131,10 +131,10 @@ export function RankingRow({
         {reps != null && weight != null ? (
           <>
             <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>
-              {reps} × {weight} kg
+              {weight} kg.
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-              Vol: {value}
+              {reps} reps.
             </Text>
           </>
         ) : unit === 'KG' ? (
@@ -153,8 +153,8 @@ export function RankingRow({
         )}
       </View>
 
-      {/* Botones de disputa */}
-      <View style={{ flexDirection: 'row', gap: 4 }}>
+      {/* Botones de disputa — apilados verticalmente y alineados a la derecha */}
+      <View style={{ flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
         {onViewDisputes && (
           <TouchableOpacity
             onPress={onViewDisputes}
@@ -168,6 +168,8 @@ export function RankingRow({
               paddingVertical: 5,
               minHeight: 28,
               justifyContent: 'center',
+              minWidth: 72,
+              alignItems: 'center',
             }}
             activeOpacity={0.7}
           >
@@ -189,6 +191,8 @@ export function RankingRow({
               paddingVertical: 5,
               minHeight: 28,
               justifyContent: 'center',
+              minWidth: 72,
+              alignItems: 'center',
             }}
             activeOpacity={0.7}
           >
