@@ -87,9 +87,6 @@ export default function GroupsScreen() {
               overflow: 'hidden',
             }}
           >
-            {/* Color accent bar */}
-            <View style={{ height: 4, backgroundColor: colors.primary }} />
-
             <View style={{ flexDirection: 'row', minHeight: 100 }}>
               {/* Left: tall image */}
               {getImageUrl(item.avatarUrl) ? (
