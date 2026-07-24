@@ -616,10 +616,10 @@ export const ROUTINE_DAY_QUERY = gql`
           unit
           imageUrl
           groupId
-          group {
-            id
-            name
-          }
+        }
+        group {
+          id
+          name
         }
         myPerformance {
           id
@@ -646,10 +646,10 @@ export const ADD_EXERCISE_TO_DAY_MUTATION = gql`
           unit
           imageUrl
           groupId
-          group {
-            id
-            name
-          }
+        }
+        group {
+          id
+          name
         }
         myPerformance {
           id

@@ -348,9 +348,9 @@ export default function RoutineDayScreen() {
                 <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 }}>
                   {item.exercise.name}
                 </Text>
-                {item.exercise.group && (
+                {item.group && (
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {item.exercise.group.name}
+                    {item.group.name}
                   </Text>
                 )}
               </View>

@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql'
 import { Exercise } from './exercise.model'
 import { PerformanceRecord } from './performance.model'
+import { Group } from './group.model'
 
 @ObjectType()
 export class RoutineDay {
@@ -21,6 +22,9 @@ export class RoutineExercise {
 
   @Field(() => Exercise)
   exercise: Exercise
+
+  @Field(() => Group, { nullable: true, description: 'The group this exercise belongs to' })
+  group?: Group
 
   @Field(() => Int)
   sortOrder: number

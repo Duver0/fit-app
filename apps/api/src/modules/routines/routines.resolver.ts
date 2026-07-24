@@ -1,15 +1,26 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { RoutinesService } from './routines.service'
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { User } from '../../common/models/user.model'
-import { RoutineDay } from '../../common/models/routine.model'
+import { RoutineDay, RoutineExercise } from '../../common/models/routine.model'
+import { Group } from '../../common/models/group.model'
+import { PrismaService } from '../../prisma/prisma.service'
 
-@Resolver()
+@Resolver(() => RoutineExercise)
 @UseGuards(GqlAuthGuard)
 export class RoutinesResolver {
-  constructor(private routinesService: RoutinesService) {}
+  constructor(
+    private routinesService: RoutinesService,
+    private prisma: PrismaService,
+  ) {}
+
+  @ResolveField(() => Group, { nullable: true })
+  group(@Parent() routineExercise: any): Group | null {
+    // The exercise already includes group data from Prisma (included in routines.service)
+    return routineExercise.exercise?.group || null
+  }
 
   @Mutation(() => User)
   async toggleRoutine(
