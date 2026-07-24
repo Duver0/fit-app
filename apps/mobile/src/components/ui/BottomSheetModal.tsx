@@ -9,7 +9,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native'
-import { useTheme } from '../../lib/theme'
+import { useTheme } from '../../theme/ThemeProvider'
 
 interface BottomSheetModalProps {
   visible: boolean
