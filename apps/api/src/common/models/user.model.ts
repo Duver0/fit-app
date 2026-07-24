@@ -31,6 +31,9 @@ export class User {
   @Field({ defaultValue: false, description: 'Whether the routine tab is enabled for this user' })
   routineEnabled: boolean
 
+  @Field({ defaultValue: false, description: 'Whether to auto-navigate to the group detail when user has only one group' })
+  singleGroupAutoEnter: boolean
+
   @Field()
   createdAt: Date
 

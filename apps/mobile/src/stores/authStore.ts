@@ -10,6 +10,7 @@ export interface User {
   avatarUrl?: string | null
   role: 'USER' | 'SUPER_ADMIN'
   routineEnabled?: boolean
+  singleGroupAutoEnter?: boolean
   createdAt?: string
   updatedAt?: string
 }

@@ -30,6 +30,14 @@ export class RoutinesResolver {
     return this.routinesService.toggleRoutine(user.id, enabled)
   }
 
+  @Mutation(() => User)
+  async toggleSingleGroupAutoEnter(
+    @CurrentUser() user: User,
+    @Args('enabled') enabled: boolean,
+  ) {
+    return this.routinesService.toggleSingleGroupAutoEnter(user.id, enabled)
+  }
+
   @Query(() => [RoutineDay])
   async myRoutineDays(@CurrentUser() user: User) {
     return this.routinesService.getRoutineDays(user.id)

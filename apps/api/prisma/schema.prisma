@@ -59,7 +59,8 @@ model User {
   name      String
   avatarUrl String?  @map("avatar_url") @db.Text
   role            UserRole  @default(USER)
-  routineEnabled  Boolean   @default(false) @map("routine_enabled")
+  routineEnabled        Boolean   @default(false) @map("routine_enabled")
+  singleGroupAutoEnter  Boolean   @default(false) @map("single_group_auto_enter")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

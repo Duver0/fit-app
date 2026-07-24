@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshContr
 import { router } from 'expo-router'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useGroups } from '../../../src/hooks/useGroups'
+import { useAuthStore } from '../../../src/stores/authStore'
 import { getImageUrl } from '../../../src/lib/api'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import InvitationBell from '../../../src/components/InvitationBell'
@@ -36,13 +37,14 @@ function getInitials(name: string): string {
 export default function GroupsScreen() {
   const { colors } = useTheme()
   const { groups, isLoading, error, refetch } = useGroups()
+  const user = useAuthStore(state => state.user)
 
-  // Auto-navegar al único grupo
+  // Auto-navegar al único grupo (si la preferencia está activada)
   useEffect(() => {
-    if (!isLoading && groups.length === 1) {
+    if (!isLoading && groups.length === 1 && user?.singleGroupAutoEnter) {
       router.replace(`/(app)/groups/${groups[0].id}`)
     }
-  }, [isLoading, groups])
+  }, [isLoading, groups, user?.singleGroupAutoEnter])
 
   if (isLoading) {
     return (

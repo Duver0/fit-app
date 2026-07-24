@@ -17,6 +17,13 @@ export class RoutinesService {
     })
   }
 
+  async toggleSingleGroupAutoEnter(userId: string, enabled: boolean) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { singleGroupAutoEnter: enabled },
+    })
+  }
+
   async getRoutineDays(userId: string) {
     const days = await this.prisma.routineDay.findMany({
       where: { userId },
