@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { ViewStyle } from 'react-native'
+import { ViewStyle, ImageStyle as RNImageStyle } from 'react-native'
 import { Image, ImageContentFit, ImageSource } from 'expo-image'
-import { ImageStyle } from 'expo-image'
 
 interface Props {
   /** URL de la imagen */
   source?: { uri?: string } | string | null
   /** Estilo del contenedor de la imagen */
-  style?: ImageStyle | ViewStyle
+  style?: RNImageStyle | ViewStyle
   /** Cómo se ajusta la imagen al contenedor */
   resizeMode?: ImageContentFit
   /** Children se renderiza como fallback cuando la imagen falla */
