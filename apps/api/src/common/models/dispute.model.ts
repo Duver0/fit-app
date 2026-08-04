@@ -1,9 +1,10 @@
 import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql'
-import { DisputeStatus } from '@prisma/client'
+import { DisputeStatus, VoteOption } from '@prisma/client'
 import { User } from './user.model'
 import { PerformanceRecord } from './performance.model'
 
 registerEnumType(DisputeStatus, { name: 'DisputeStatus' })
+registerEnumType(VoteOption, { name: 'VoteOption' })
 
 @ObjectType()
 export class DisputeVote {
@@ -13,8 +14,8 @@ export class DisputeVote {
   @Field(() => User)
   user: User
 
-  @Field()
-  vote: boolean
+  @Field(() => VoteOption)
+  vote: VoteOption
 
   @Field()
   createdAt: Date

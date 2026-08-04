@@ -1,10 +1,8 @@
 import { InputType, Field } from '@nestjs/graphql'
 import { IsUUID, IsString, MinLength, MaxLength, IsEnum } from 'class-validator'
+import { VoteOption } from '@prisma/client'
 
-export enum VoteOption {
-  REAL = 'REAL',
-  FAKE = 'FAKE',
-}
+export { VoteOption }
 
 @InputType()
 export class CreateDisputeInput {
