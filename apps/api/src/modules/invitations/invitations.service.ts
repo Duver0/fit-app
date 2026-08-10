@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { PubSubService } from '../pubsub/pubsub.service'
 import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class InvitationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pubSub: PubSubService,
+  ) {}
 
   /**
    * Busca usuarios por nombre (case-insensitive).
@@ -57,10 +61,19 @@ export class InvitationsService {
     })
     if (pending) throw new BadRequestException('Ya se envió una invitación a este usuario')
 
-    return this.prisma.invitation.create({
+    const invitation = await this.prisma.invitation.create({
       data: { groupId, inviteeEmail, inviterId },
       include: { group: true, inviter: true },
     })
+
+    // Emit real-time event to the invitee
+    this.pubSub.publish('invitationReceived', {
+      invitationId: invitation.id,
+      inviteeUserId: userExists.id,
+      groupId,
+    })
+
+    return invitation
   }
 
   async accept(invitationId: string, userId: string) {
@@ -77,6 +90,15 @@ export class InvitationsService {
         data: { groupId: invitation.groupId, userId, role: 'MEMBER' },
       }),
     ])
+
+    // Emit real-time event for group membership change
+    this.pubSub.publish('groupMemberEvent', {
+      groupId: invitation.groupId,
+      userId,
+      actorId: userId,
+      type: 'JOINED',
+    })
+
     return true
   }
 

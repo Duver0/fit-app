@@ -10,6 +10,7 @@ import { ToastContainer } from '../src/components/ui/Toast'
 import { patchHistoryForBasePath } from '../src/lib/historyPatch'
 import { registerServiceWorker } from '../src/lib/registerSW'
 import PWAInstallButton from '../src/components/PWAInstallButton'
+import { RealtimeProvider } from '../src/components/RealtimeProvider'
 
 // Fix client-side navigation on GitHub Pages subpath deployments.
 // Must run before any navigation occurs.
@@ -41,6 +42,7 @@ export default function RootLayout() {
     <ApolloProvider client={client}>
       <SafeAreaProvider>
       <ThemeProvider>
+        <RealtimeProvider />
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />

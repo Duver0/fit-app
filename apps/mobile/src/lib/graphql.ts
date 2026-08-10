@@ -749,3 +749,70 @@ export const MY_EXERCISES_FOR_ROUTINE_QUERY = gql`
     }
   }
 `
+
+// ---------------------------------------------------------------------------
+// Subscriptions (Real-time via WebSocket)
+// ---------------------------------------------------------------------------
+
+export const PERFORMANCE_UPDATED_SUBSCRIPTION = gql`
+  subscription OnPerformanceUpdated($groupId: String!) {
+    performanceUpdated(groupId: $groupId) {
+      performanceId
+      exerciseId
+      groupId
+      userId
+    }
+  }
+`
+
+export const RANKING_CHANGED_SUBSCRIPTION = gql`
+  subscription OnRankingChanged($exerciseId: String!, $groupId: String!) {
+    rankingChanged(exerciseId: $exerciseId, groupId: $groupId) {
+      exerciseId
+      groupId
+    }
+  }
+`
+
+export const INVITATION_RECEIVED_SUBSCRIPTION = gql`
+  subscription OnInvitationReceived {
+    invitationReceived {
+      invitationId
+      inviteeUserId
+      groupId
+    }
+  }
+`
+
+export const GROUP_MEMBER_EVENT_SUBSCRIPTION = gql`
+  subscription OnGroupMemberEvent($groupId: String!) {
+    groupMemberEvent(groupId: $groupId) {
+      groupId
+      userId
+      actorId
+      type
+    }
+  }
+`
+
+export const EXERCISE_EVENT_SUBSCRIPTION = gql`
+  subscription OnExerciseEvent($groupId: String!) {
+    exerciseEvent(groupId: $groupId) {
+      exerciseId
+      groupId
+      actorId
+      type
+    }
+  }
+`
+
+export const DISPUTE_EVENT_SUBSCRIPTION = gql`
+  subscription OnDisputeEvent($groupId: String!) {
+    disputeEvent(groupId: $groupId) {
+      disputeId
+      groupId
+      actorId
+      type
+    }
+  }
+`

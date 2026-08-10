@@ -17,6 +17,8 @@ services:
         value: "12571"
       - key: REDIS_PASSWORD
         value: UIdocmTtLMAgTpbwzCfslJuXdIDRpDuO
+      - key: PUBSUB_ADAPTER
+        value: redis
       - key: JWT_SECRET
         value: Ne9vfL3AJk0mlZQOJ+Bv9Qs/TAHpNzipP7ao0B2TMVM=
       - key: CORS_ORIGIN

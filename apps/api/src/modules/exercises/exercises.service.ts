@@ -1,11 +1,15 @@
 import { Injectable, ForbiddenException, NotFoundException, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { PubSubService } from '../pubsub/pubsub.service'
 import { ExerciseUnit } from '@prisma/client'
 
 @Injectable()
 export class ExercisesService {
   private readonly logger = new Logger(ExercisesService.name)
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pubSub: PubSubService,
+  ) {}
 
   async findByGroup(groupId: string) {
     return this.prisma.exercise.findMany({
@@ -36,7 +40,7 @@ export class ExercisesService {
       }
     }
 
-    return this.prisma.exercise.create({
+    const exercise = await this.prisma.exercise.create({
       data: {
         groupId: data.groupId,
         name: data.name,
@@ -47,6 +51,16 @@ export class ExercisesService {
       },
       include: { creator: true, category: true },
     })
+
+    // Emit real-time event
+    this.pubSub.publish('exerciseEvent', {
+      exerciseId: exercise.id,
+      groupId: data.groupId,
+      actorId: userId,
+      type: 'CREATED',
+    })
+
+    return exercise
   }
 
   async updateImage(id: string, userId: string, imageUrl: string) {
@@ -85,11 +99,21 @@ export class ExercisesService {
       }
     }
 
-    return this.prisma.exercise.update({
+    const updated = await this.prisma.exercise.update({
       where: { id },
       data,
       include: { creator: true, category: true },
     })
+
+    // Emit real-time event
+    this.pubSub.publish('exerciseEvent', {
+      exerciseId: id,
+      groupId: exercise.groupId,
+      actorId: userId,
+      type: 'UPDATED',
+    })
+
+    return updated
   }
 
   async changeCategory(id: string, userId: string, categoryId: string | null) {
@@ -217,6 +241,15 @@ export class ExercisesService {
       this.logger.error(`✕ Delete failed | id="${id}" | error="${error.message}"`, error.stack)
       throw error
     }
+
+    // Emit real-time event
+    this.pubSub.publish('exerciseEvent', {
+      exerciseId: id,
+      groupId: exercise.groupId,
+      actorId: userId,
+      type: 'DELETED',
+    })
+
     return true
   }
 

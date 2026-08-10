@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { PubSubService } from '../pubsub/pubsub.service'
 import { VoteOption } from './dto/dispute.input'
 
 @Injectable()
 export class DisputesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pubSub: PubSubService,
+  ) {}
 
   async create(userId: string, input: { performanceId: string; reason: string }) {
     const record = await this.prisma.performanceRecord.findUnique({
@@ -27,7 +31,7 @@ export class DisputesService {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
-    return this.prisma.dispute.create({
+    const dispute = await this.prisma.dispute.create({
       data: {
         performanceId: input.performanceId,
         groupId: record.groupId,
@@ -38,6 +42,16 @@ export class DisputesService {
       },
       include: { performance: true, initiator: true, votes: true },
     })
+
+    // Emit real-time event
+    this.pubSub.publish('disputeEvent', {
+      disputeId: dispute.id,
+      groupId: record.groupId,
+      actorId: userId,
+      type: 'CREATED',
+    })
+
+    return dispute
   }
 
   async vote(userId: string, disputeId: string, vote: VoteOption) {
@@ -77,10 +91,31 @@ export class DisputesService {
     }
 
     await this.checkResolution(disputeId)
-    return this.prisma.dispute.findUnique({
+
+    const updatedDispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: { votes: true, performance: true, initiator: true },
     })
+
+    // Emit real-time event
+    this.pubSub.publish('disputeEvent', {
+      disputeId,
+      groupId: dispute.performance.groupId,
+      actorId: userId,
+      type: 'VOTE_CAST',
+    })
+
+    // Check if dispute was resolved by this vote
+    if (updatedDispute && updatedDispute.status !== 'OPEN') {
+      this.pubSub.publish('disputeEvent', {
+        disputeId,
+        groupId: dispute.performance.groupId,
+        actorId: userId,
+        type: 'RESOLVED',
+      })
+    }
+
+    return updatedDispute
   }
 
   async cancel(userId: string, disputeId: string) {
@@ -96,6 +131,14 @@ export class DisputesService {
       where: { id: disputeId },
       data: { status: 'CANCELLED', resolvedAt: new Date(), cancelledAt: new Date(), cancelledById: userId },
       include: { votes: true, performance: true, initiator: true },
+    })
+
+    // Emit real-time event
+    this.pubSub.publish('disputeEvent', {
+      disputeId,
+      groupId: dispute.groupId,
+      actorId: userId,
+      type: 'CANCELLED',
     })
 
     return updated

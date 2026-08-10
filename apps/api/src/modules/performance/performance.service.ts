@@ -1,10 +1,14 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { PubSubService } from '../pubsub/pubsub.service'
 import { ExerciseUnit } from '@prisma/client'
 
 @Injectable()
 export class PerformanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pubSub: PubSubService,
+  ) {}
 
   async upsert(userId: string, input: { exerciseId: string; value?: number; reps?: number; weight?: number }) {
     const exercise = await this.prisma.exercise.findUnique({
@@ -49,21 +53,38 @@ export class PerformanceService {
       scalarFields.weight = input.weight
     }
 
+    let record: any
+
     if (existing) {
-      return this.prisma.performanceRecord.update({
+      record = await this.prisma.performanceRecord.update({
         where: { id: existing.id },
         data: scalarFields,
       })
+    } else {
+      record = await this.prisma.performanceRecord.create({
+        data: {
+          exerciseId: input.exerciseId,
+          userId,
+          groupId: exercise.groupId,
+          ...scalarFields,
+        },
+      })
     }
 
-    return this.prisma.performanceRecord.create({
-      data: {
-        exerciseId: input.exerciseId,
-        userId,
-        groupId: exercise.groupId,
-        ...scalarFields,
-      },
+    // Emit real-time events after successful upsert
+    this.pubSub.publish('performanceUpdated', {
+      performanceId: record.id,
+      exerciseId: exercise.id,
+      groupId: exercise.groupId,
+      userId,
     })
+
+    this.pubSub.publish('rankingChanged', {
+      exerciseId: exercise.id,
+      groupId: exercise.groupId,
+    })
+
+    return record
   }
 
   async findByUserAndExercise(userId: string, exerciseId: string) {

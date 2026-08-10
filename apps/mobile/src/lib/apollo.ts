@@ -1,13 +1,25 @@
-import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client'
+import { ApolloClient, InMemoryCache, createHttpLink, from, split } from '@apollo/client'
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
+import { createClient } from 'graphql-ws'
+import { getMainDefinition } from '@apollo/client/utilities'
 import { onError } from '@apollo/client/link/error'
 import { setContext } from '@apollo/client/link/context'
 import { useAuthStore } from '../stores/authStore'
 import { useUIStore } from '../stores/uiStore'
 
-const httpLink = createHttpLink({
-  uri: process.env.EXPO_PUBLIC_API_URL || 'https://fit-app-api-3zds.onrender.com/graphql',
-})
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://fit-app-api-3zds.onrender.com/graphql'
 
+// Derive WebSocket URL from HTTP URL
+const WS_URL = API_URL.replace(/^http/, 'ws')
+
+// ---------------------------------------------------------------------------
+// HTTP link (queries & mutations)
+// ---------------------------------------------------------------------------
+const httpLink = createHttpLink({ uri: API_URL })
+
+// ---------------------------------------------------------------------------
+// Auth link — attaches JWT to every HTTP request
+// ---------------------------------------------------------------------------
 const authLink = setContext((_, { headers }) => {
   const token = useAuthStore.getState().token
   return {
@@ -33,8 +45,48 @@ const errorLink = onError(({ networkError }) => {
   }
 })
 
+// ---------------------------------------------------------------------------
+// WebSocket link (subscriptions)
+// ---------------------------------------------------------------------------
+const wsLink = new GraphQLWsLink(
+  createClient({
+    url: WS_URL,
+    connectionParams: () => ({
+      authorization: useAuthStore.getState().token
+        ? `Bearer ${useAuthStore.getState().token}`
+        : '',
+    }),
+    shouldRetry: () => true,
+    retryAttempts: Infinity,
+    retryWait: (retries) =>
+      new Promise((resolve) =>
+        setTimeout(resolve, Math.min(1000 * 2 ** retries, 30000)),
+      ),
+    on: {
+      error: (err) => console.warn('[WS] Error:', err),
+      closed: () => console.log('[WS] Connection closed'),
+      connected: () => console.log('[WS] Connected'),
+    },
+  }),
+)
+
+// ---------------------------------------------------------------------------
+// Split link: subscriptions → WS, everything else → HTTP
+// ---------------------------------------------------------------------------
+const splitLink = split(
+  ({ query }) => {
+    const definition = getMainDefinition(query)
+    return (
+      definition.kind === 'OperationDefinition' &&
+      definition.operation === 'subscription'
+    )
+  },
+  wsLink,
+  from([errorLink, authLink, httpLink]),
+)
+
 export const client = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
+  link: splitLink,
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: { fetchPolicy: 'cache-and-network' },

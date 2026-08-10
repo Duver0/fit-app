@@ -9,3 +9,14 @@ export { Dispute, DisputeVote } from './dispute.model'
 export { UserSearchResult } from './user-search-result.model'
 export { ProviderDiagResult } from './image-provider-diag.model'
 export { RoutineDay, RoutineExercise, ExerciseWithPerformance, PerformanceSummary } from './routine.model'
+export {
+  PerformanceUpdatedPayload,
+  RankingChangedPayload,
+  InvitationReceivedPayload,
+  GroupMemberEventPayload,
+  ExerciseEventPayload,
+  DisputeEventPayload,
+  GroupMemberEventType,
+  ExerciseEventType,
+  DisputeEventType,
+} from './subscription-payloads.model'
