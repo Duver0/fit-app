@@ -8,18 +8,24 @@ import { useExerciseSubscription } from './useExerciseSubscription'
 import { useDisputeSubscription } from './useDisputeSubscription'
 
 /**
+ * Subscribes to all real-time events for a single group.
+ * Render one instance per group the user belongs to.
+ */
+function GroupSubscriptions({ groupId }: { groupId: string }) {
+  usePerformanceSubscription(groupId)
+  useGroupMemberSubscription(groupId)
+  useExerciseSubscription(groupId)
+  useDisputeSubscription(groupId)
+  return null
+}
+
+/**
  * Master hook that orchestrates all real-time subscriptions.
  * Mount this at the root layout level to enable real-time updates.
  *
- * Subscriptions:
- * - Invitation received (user-level, always active when authenticated)
- * - Performance updated (per group)
- * - Group member events (per group)
- * - Exercise events (per group)
- * - Dispute events (per group)
- *
- * All group-level subscriptions are automatically managed based on
- * the user's group memberships.
+ * IMPORTANT: We use a component-per-group pattern instead of calling
+ * hooks in a loop, because React hooks must be called in the same
+ * order every render (Rules of Hooks).
  */
 export function useRealtime() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -34,18 +40,10 @@ export function useRealtime() {
   // --- User-level subscriptions (always active) ---
   useInvitationSubscription()
 
-  // --- Group-level subscriptions (per group) ---
-  // Note: In a production app, we might want to limit the number of
-  // concurrent subscriptions. For now, we subscribe to all groups.
-  groupIds.forEach((groupId: string) => {
-    usePerformanceSubscription(groupId)
-    useGroupMemberSubscription(groupId)
-    useExerciseSubscription(groupId)
-    useDisputeSubscription(groupId)
-  })
-
   return {
     isConnected: isAuthenticated,
     groupCount: groupIds.length,
+    groupIds,
+    GroupSubscriptions,
   }
 }

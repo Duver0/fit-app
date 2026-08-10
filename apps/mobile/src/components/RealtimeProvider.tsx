@@ -5,9 +5,16 @@ import { useRealtime } from '../hooks/useRealtime'
  * Mount this at the root level (inside ApolloProvider) to enable
  * real-time updates across the entire application.
  *
- * This component renders nothing — it only manages subscription lifecycles.
+ * Uses a component-per-group pattern to respect React's Rules of Hooks.
  */
 export function RealtimeProvider() {
-  useRealtime()
-  return null
+  const { groupIds, GroupSubscriptions } = useRealtime()
+
+  return (
+    <>
+      {groupIds.map((groupId: string) => (
+        <GroupSubscriptions key={groupId} groupId={groupId} />
+      ))}
+    </>
+  )
 }
