@@ -59,6 +59,29 @@ function kgToLb(kg: number): number {
   return Math.round(kg * KG_TO_LB * 100) / 100
 }
 
+// Sync helpers for the dual kg/lb inputs. They keep the typed field as-is and
+// update the paired field; on an invalid/empty value the paired field is cleared.
+function syncKgToLb(
+  t: string,
+  setKg: (v: string) => void,
+  setLb: (v: string) => void,
+) {
+  const v = parseFloat(t)
+  setKg(t)
+  if (!isNaN(v) && v > 0) setLb(kgToLb(v).toString())
+  else setLb('')
+}
+
+function syncLbToKg(
+  t: string,
+  setKg: (v: string) => void,
+  setLb: (v: string) => void,
+) {
+  const v = parseFloat(t)
+  setLb(t)
+  if (!isNaN(v) && v > 0) setKg((v / KG_TO_LB).toString().substring(0, 6))
+}
+
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 
 function formatPerformance(perf: any, unit: string): string {
@@ -1064,26 +1087,6 @@ export default function RoutineDayScreen() {
                   }}
                 />
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
-                  Peso (kg)
-                </Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Peso (lb)
-                  </Text>
-                  <View style={{
-                    backgroundColor: colors.background,
-                    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6,
-                    borderWidth: 1, borderColor: colors.border,
-                  }}>
-                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 12 }}>
-                      kg
-                    </Text>
-                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 12 }}>
-                      lb
-                    </Text>
-                  </View>
-                </View>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
                   Peso
                 </Text>
                 <View style={{ flexDirection: 'row', marginBottom: 16 }}>
@@ -1093,16 +1096,7 @@ export default function RoutineDayScreen() {
                     </Text>
                     <TextInput
                       value={editWeight}
-                      onChangeText={(t) => {
-                        const v = parseFloat(t)
-                        if (!isNaN(v) && v > 0) {
-                          setEditWeight(t)
-                          setEditValueLb(kgToLb(v).toString())
-                        } else {
-                          setEditWeight(t)
-                          setEditValueLb('')
-                        }
-                      }}
+                      onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
                       placeholder="Ej: 50"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
@@ -1124,16 +1118,7 @@ export default function RoutineDayScreen() {
                     </Text>
                     <TextInput
                       value={editWeightLb || ''}
-                      onChangeText={(t) => {
-                        const v = parseFloat(t)
-                        if (!isNaN(v) && v > 0) {
-                          setEditWeightLb(t)
-                          const kg = v / KG_TO_LB
-                          setEditWeight(kg.toString().substring(0, 6))
-                        } else {
-                          setEditWeightLb(t)
-                        }
-                      }}
+                      onChangeText={(t) => syncLbToKg(t, setEditWeight, setEditWeightLb)}
                       placeholder="Ej: 110"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
@@ -1175,16 +1160,7 @@ export default function RoutineDayScreen() {
                     </Text>
                     <TextInput
                       value={editValue}
-                      onChangeText={(t) => {
-                        const v = parseFloat(t)
-                        if (!isNaN(v) && v > 0) {
-                          setEditValue(t)
-                          setEditValueLb(kgToLb(v).toString())
-                        } else {
-                          setEditValue(t)
-                          setEditValueLb('')
-                        }
-                      }}
+                      onChangeText={(t) => syncKgToLb(t, setEditValue, setEditValueLb)}
                       placeholder="Tu marca"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
@@ -1206,16 +1182,7 @@ export default function RoutineDayScreen() {
                     </Text>
                     <TextInput
                       value={editValueLb}
-                      onChangeText={(t) => {
-                        const v = parseFloat(t)
-                        if (!isNaN(v) && v > 0) {
-                          setEditValueLb(t)
-                          const kg = v / KG_TO_LB
-                          setEditValue(kg.toString().substring(0, 6))
-                        } else {
-                          setEditValueLb(t)
-                        }
-                      }}
+                      onChangeText={(t) => syncLbToKg(t, setEditValue, setEditValueLb)}
                       placeholder="Tu marca"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
