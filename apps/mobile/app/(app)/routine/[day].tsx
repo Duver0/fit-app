@@ -55,6 +55,10 @@ const UNIT_LABELS: Record<string, string> = {
 
 const KG_TO_LB = 2.20462
 
+function kgToLb(kg: number): number {
+  return Math.round(kg * KG_TO_LB * 100) / 100
+}
+
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 
 function formatPerformance(perf: any, unit: string): string {
@@ -1143,26 +1147,6 @@ export default function RoutineDayScreen() {
                     />
                   </View>
                 </View>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
-                  Peso
-                </Text>
-                <TextInput
-                  value={editWeight}
-                  onChangeText={setEditWeight}
-                  placeholder="Ej: 50"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="decimal-pad"
-                  style={{
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderRadius: 12,
-                    padding: 16,
-                    fontSize: 18,
-                    marginBottom: 20,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
               </>
             ) : (
               <>
@@ -1245,7 +1229,8 @@ export default function RoutineDayScreen() {
                     />
                   </View>
                 </View>
-                
+              </>
+            )}
 
             <TouchableOpacity
               onPress={handleSaveMark}
