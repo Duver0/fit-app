@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity } from 'react-native'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { ApolloProvider } from '@apollo/client'
+import { ApolloProvider, useQuery } from '@apollo/client'
 import { ThemeProvider } from '../src/theme/ThemeProvider'
 import { client } from '../src/lib/apollo'
+import { ME_QUERY } from '../src/lib/graphql'
+import { useAuthStore } from '../src/stores/authStore'
 import { ToastContainer } from '../src/components/ui/Toast'
 import { patchHistoryForBasePath } from '../src/lib/historyPatch'
 import { registerServiceWorker } from '../src/lib/registerSW'
@@ -20,6 +22,17 @@ if (typeof window !== 'undefined') {
 
 export default function RootLayout() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
+
+  // Keep the persisted user in sync with the server. On cold start (session
+  // restored from storage) or after re-login, this refreshes routineEnabled /
+  // singleGroupAutoEnter from the backend so per-user preferences are always
+  // applied automatically for the active account.
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const updateUser = useAuthStore((state) => state.updateUser)
+  const { data: meData } = useQuery(ME_QUERY, { skip: !isAuthenticated })
+  useEffect(() => {
+    if (meData?.me) updateUser(meData.me)
+  }, [meData, updateUser])
 
   const handleSWUpdate = useCallback(() => {
     setUpdateAvailable(true)
