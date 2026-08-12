@@ -14,6 +14,20 @@ import { registerServiceWorker } from '../src/lib/registerSW'
 import PWAInstallButton from '../src/components/PWAInstallButton'
 import { RealtimeProvider } from '../src/components/RealtimeProvider'
 
+// Refreshes the persisted user from the server whenever a session is active.
+// Rendered INSIDE <ApolloProvider> so it can use useQuery. This keeps
+// routineEnabled / singleGroupAutoEnter in sync with the backend, so per-user
+// preferences are applied automatically on cold start and after re-login.
+function UserSync() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const updateUser = useAuthStore((state) => state.updateUser)
+  const { data: meData } = useQuery(ME_QUERY, { skip: !isAuthenticated })
+  useEffect(() => {
+    if (meData?.me) updateUser(meData.me)
+  }, [meData, updateUser])
+  return null
+}
+
 // Fix client-side navigation on GitHub Pages subpath deployments.
 // Must run before any navigation occurs.
 if (typeof window !== 'undefined') {
@@ -22,17 +36,6 @@ if (typeof window !== 'undefined') {
 
 export default function RootLayout() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
-
-  // Keep the persisted user in sync with the server. On cold start (session
-  // restored from storage) or after re-login, this refreshes routineEnabled /
-  // singleGroupAutoEnter from the backend so per-user preferences are always
-  // applied automatically for the active account.
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const updateUser = useAuthStore((state) => state.updateUser)
-  const { data: meData } = useQuery(ME_QUERY, { skip: !isAuthenticated })
-  useEffect(() => {
-    if (meData?.me) updateUser(meData.me)
-  }, [meData, updateUser])
 
   const handleSWUpdate = useCallback(() => {
     setUpdateAvailable(true)
@@ -54,7 +57,8 @@ export default function RootLayout() {
   return (
     <ApolloProvider client={client}>
       <SafeAreaProvider>
-      <ThemeProvider>
+        <ThemeProvider>
+        <UserSync />
         <RealtimeProvider />
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
