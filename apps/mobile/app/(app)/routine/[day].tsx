@@ -155,6 +155,7 @@ export default function RoutineDayScreen() {
   const [editValueLb, setEditValueLb] = useState('')
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
+  const [editWeightLb, setEditWeightLb] = useState('')
   const [savingMark, setSavingMark] = useState(false)
 
   // Add exercise modal tabs: 'groups' | 'create'
@@ -278,6 +279,7 @@ export default function RoutineDayScreen() {
     setEditValue(perf?.value?.toString() || '')
     setEditValueLb('')
     setEditWeight('')
+    setEditWeightLb('')
     setEditReps('')
   }
 
@@ -331,6 +333,7 @@ export default function RoutineDayScreen() {
       setEditValueLb('')
       setEditReps('')
       setEditWeight('')
+      setEditWeightLb('')
     } catch (e: any) {
       showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
     } finally {
