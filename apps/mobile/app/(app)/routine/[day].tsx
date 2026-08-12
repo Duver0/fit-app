@@ -53,12 +53,14 @@ const UNIT_LABELS: Record<string, string> = {
   M: 'm',
 }
 
+const KG_TO_LB = 2.20462
+
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 
 function formatPerformance(perf: any, unit: string): string {
   if (!perf) return '—'
   if (unit === 'REPS_AND_WEIGHT' && perf.reps != null && perf.weight != null) {
-    return `${perf.reps} × ${perf.weight} kg`
+    return `${perf.reps} × ${perf.weight} ${UNIT_LABELS[unit] || unit}`
   }
   const label = UNIT_LABELS[unit] || unit
   return `${perf.value} ${label}`
@@ -146,6 +148,7 @@ export default function RoutineDayScreen() {
 
   // Edit mark form state
   const [editValue, setEditValue] = useState('')
+  const [editValueLb, setEditValueLb] = useState('')
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
   const [savingMark, setSavingMark] = useState(false)
@@ -268,15 +271,10 @@ export default function RoutineDayScreen() {
       currentPerf: perf,
     })
 
-    if (item.exercise.unit === 'REPS_AND_WEIGHT') {
-      setEditReps(perf?.reps?.toString() || '')
-      setEditWeight(perf?.weight?.toString() || '')
-      setEditValue('')
-    } else {
-      setEditValue(perf?.value?.toString() || '')
-      setEditReps('')
-      setEditWeight('')
-    }
+    setEditValue(perf?.value?.toString() || '')
+    setEditValueLb('')
+    setEditWeight('')
+    setEditReps('')
   }
 
   const handleSaveMark = async () => {
@@ -286,7 +284,7 @@ export default function RoutineDayScreen() {
       const { exerciseId, unit } = showEditMark
       if (unit === 'REPS_AND_WEIGHT') {
         const reps = parseInt(editReps, 10)
-        const weight = parseFloat(editWeight)
+        let weight = parseFloat(editWeight)
         if (isNaN(reps) || isNaN(weight) || reps < 1 || weight <= 0) {
           showErrorToast('Valores inválidos')
           return
@@ -302,10 +300,18 @@ export default function RoutineDayScreen() {
           },
         })
       } else {
-        const value = parseFloat(editValue)
+        // Para unidades simples: editValue es el valor en kg, editValueLb es el valor en lb
+        let value = parseFloat(editValue)
+        // Si el usuario escribió en lb, convertir a kg
         if (isNaN(value) || value <= 0) {
-          showErrorToast('Valor inválido')
-          return
+          // Intentar convertir desde lb si value no es válido
+          const lbValue = parseFloat(editValueLb)
+          if (!isNaN(lbValue) && lbValue > 0) {
+            value = lbValue / KG_TO_LB
+          } else {
+            showErrorToast('Valor inválido')
+            return
+          }
         }
         await upsertPerformance({
           variables: {
@@ -318,6 +324,7 @@ export default function RoutineDayScreen() {
       }
       setShowEditMark(null)
       setEditValue('')
+      setEditValueLb('')
       setEditReps('')
       setEditWeight('')
     } catch (e: any) {
@@ -1052,6 +1059,93 @@ export default function RoutineDayScreen() {
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
                   Peso (kg)
                 </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    Peso (lb)
+                  </Text>
+                  <View style={{
+                    backgroundColor: colors.background,
+                    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6,
+                    borderWidth: 1, borderColor: colors.border,
+                  }}>
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 12 }}>
+                      kg
+                    </Text>
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 12 }}>
+                      lb
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                  Peso
+                </Text>
+                <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                      kg
+                    </Text>
+                    <TextInput
+                      value={editWeight}
+                      onChangeText={(t) => {
+                        const v = parseFloat(t)
+                        if (!isNaN(v) && v > 0) {
+                          setEditWeight(t)
+                          setEditValueLb(kgToLb(v).toString())
+                        } else {
+                          setEditWeight(t)
+                          setEditValueLb('')
+                        }
+                      }}
+                      placeholder="Ej: 50"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                      style={{
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderRadius: 12,
+                        padding: 16,
+                        fontSize: 18,
+                        marginBottom: 20,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                      lb
+                    </Text>
+                    <TextInput
+                      value={editWeightLb || ''}
+                      onChangeText={(t) => {
+                        const v = parseFloat(t)
+                        if (!isNaN(v) && v > 0) {
+                          setEditWeightLb(t)
+                          const kg = v / KG_TO_LB
+                          setEditWeight(kg.toString().substring(0, 6))
+                        } else {
+                          setEditWeightLb(t)
+                        }
+                      }}
+                      placeholder="Ej: 110"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                      style={{
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderRadius: 12,
+                        padding: 16,
+                        fontSize: 18,
+                        marginBottom: 20,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    />
+                  </View>
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                  Peso
+                </Text>
                 <TextInput
                   value={editWeight}
                   onChangeText={setEditWeight}
@@ -1072,28 +1166,86 @@ export default function RoutineDayScreen() {
               </>
             ) : (
               <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
-                  Valor ({UNIT_LABELS[showEditMark.unit] || showEditMark.unit})
-                </Text>
-                <TextInput
-                  value={editValue}
-                  onChangeText={setEditValue}
-                  placeholder="Tu marca"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="decimal-pad"
-                  style={{
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderRadius: 12,
-                    padding: 16,
-                    fontSize: 18,
-                    marginBottom: 20,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
-              </>
-            )}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    Valor ({UNIT_LABELS[showEditMark.unit] || showEditMark.unit})
+                  </Text>
+                  <View style={{
+                    backgroundColor: colors.primary + '15',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}>
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
+                      kg
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                      kg
+                    </Text>
+                    <TextInput
+                      value={editValue}
+                      onChangeText={(t) => {
+                        const v = parseFloat(t)
+                        if (!isNaN(v) && v > 0) {
+                          setEditValue(t)
+                          setEditValueLb(kgToLb(v).toString())
+                        } else {
+                          setEditValue(t)
+                          setEditValueLb('')
+                        }
+                      }}
+                      placeholder="Tu marca"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                      style={{
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderRadius: 12,
+                        padding: 16,
+                        fontSize: 18,
+                        marginBottom: 20,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                      lb
+                    </Text>
+                    <TextInput
+                      value={editValueLb}
+                      onChangeText={(t) => {
+                        const v = parseFloat(t)
+                        if (!isNaN(v) && v > 0) {
+                          setEditValueLb(t)
+                          const kg = v / KG_TO_LB
+                          setEditValue(kg.toString().substring(0, 6))
+                        } else {
+                          setEditValueLb(t)
+                        }
+                      }}
+                      placeholder="Tu marca"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                      style={{
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderRadius: 12,
+                        padding: 16,
+                        fontSize: 18,
+                        marginBottom: 20,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    />
+                  </View>
+                </View>
+                
 
             <TouchableOpacity
               onPress={handleSaveMark}
