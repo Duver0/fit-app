@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 7.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fit-app-lake-gamma.vercel.app/graphql"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fit-app-lake-gamma.vercel.app/graphql"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fit-app-lake-gamma.vercel.app/graphql"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

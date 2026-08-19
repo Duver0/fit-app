@@ -210,3 +210,40 @@ eligen únicamente desde fuentes externas — DiceBear para avatares y Pixabay/P
 para stock — y se guardan como URL. El cliente nunca sube un archivo del usuario, así que no
 hay nada que persistir en un bucket. Por ende **no se necesita object storage (R2/S3)** y
 las variables `STORAGE_DRIVER` / `S3_*` / `UPLOAD_DIR` ya no existen.
+
+---
+
+## C-7. Build nativo (EAS) — pasos para el usuario
+
+El backend ya corre en Vercel. El binario nativo (Android/iOS) se genera con **EAS Build**,
+que requiere la cuenta de Expo/EAS del usuario y las credenciales de firma de Apple/Google
+(por eso no lo ejecuta el agente). La URL de la API ya apunta a producción por defecto
+(`apps/mobile/src/lib/apollo.ts` → `https://fit-app-lake-gamma.vercel.app/graphql`) y además
+se hornea vía `EXPO_PUBLIC_API_URL` en `apps/mobile/eas.json`.
+
+**Prerrequisitos**
+1. Cuenta en [expo.dev](https://expo.dev) (el tier gratuito alcanza para builds).
+2. Para iOS en dispositivo/App Store: cuenta de Apple Developer ($99/año). Para Android en
+   Play Store: cuenta de Google Play (EAS genera el keystore automáticamente en builds
+   `internal`/`preview`).
+3. Si la app usa Auth0 para login nativo, agregar el scheme `fit-app://*` a los *Allowed
+   Callback URLs* y *Allowed Logout URLs* del tenant de Auth0.
+
+**Comandos**
+```bash
+cd apps/mobile
+npx eas login                 # abre el navegador para autenticarse
+npx eas build -p android      # primer build: crea/enlaza el proyecto EAS y escribe
+                              # extra.eas.projectId en app.config.js
+npx eas build -p ios          # igual para iOS (pide Apple ID en el primer build)
+# Build de producción para ambas plataformas:
+npx eas build -p all --profile production
+```
+
+- El `eas.json` define los perfiles `development`, `preview` y `production`, todos con
+  `EXPO_PUBLIC_API_URL` apuntando a Vercel.
+- `eas-cli` quedó fijado en devDependencies (`^7.4.0`) para builds reproducibles.
+- El primer `eas build` pedirá vincular el proyecto a tu cuenta (escribe `projectId` en
+  `app.config.js`); eso es esperado.
+- Para subir a las tiendas: `npx eas submit -p android` / `-p ios` (requiere las cuentas
+  correspondientes).
