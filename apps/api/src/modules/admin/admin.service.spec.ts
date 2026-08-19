@@ -5,7 +5,6 @@ import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
 import { NotFoundException, ConflictException } from '@nestjs/common'
-import { UploadService } from '../../common/services/upload.service'
 import { UserRole } from '@prisma/client'
 
 describe('AdminService', () => {
@@ -88,13 +87,6 @@ describe('AdminService', () => {
             findAll: jest.fn(),
           },
         },
-        {
-          provide: UploadService,
-          useValue: {
-            deleteFileByUrl: jest.fn(),
-            deleteFilesByUrls: jest.fn(),
-          },
-        },
       ],
     }).compile()
 
@@ -114,7 +106,6 @@ describe('AdminService', () => {
       expect(result).toBe(true)
       expect(prisma.group.findUnique).toHaveBeenCalledWith({
         where: { id: 'group-1' },
-        include: { exercises: { select: { imageUrl: true } } },
       })
       expect(prisma.group.delete).toHaveBeenCalledWith({ where: { id: 'group-1' } })
     })
@@ -147,7 +138,6 @@ describe('AdminService', () => {
   describe('deleteUser', () => {
     it('should delete user by id with transaction', async () => {
       jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser)
-      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue([])
       jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: any) => {
         const tx = {
           groupMember: { deleteMany: jest.fn() },

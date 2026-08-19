@@ -60,7 +60,8 @@ export interface UseImagePickerOptions {
 /**
  * Hook que gestiona el flujo completo de selección → edición → compresión
  * de imágenes. Retorna un modal (`ImageEditorModal`) que debe renderizarse
- * en el árbol del componente padre.
+ * en el árbol del componente padre, y `pickImage()` que resuelve con la
+ * imagen ya procesada (`ProcessedImage`) o `null` si el usuario cancela.
  *
  * @example
  * ```tsx
@@ -71,13 +72,13 @@ export interface UseImagePickerOptions {
  *
  * const handleChangeImage = async () => {
  *   const img = await pickImage()
- *   if (img) await uploadGroupAvatar(img.uri)
+ *   if (img) {
+ *     // img.uri contiene la imagen local ya editada y comprimida
+ *   }
  * }
  *
  * return (
- *   &lt;&gt;
- *     &lt;ImageEditorModal /&gt;
- *   &lt;/&gt;
+ *   <ImageEditorModal />
  * )
  * ```
  */

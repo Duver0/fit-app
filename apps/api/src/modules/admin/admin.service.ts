@@ -3,7 +3,6 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { GroupsService } from '../groups/groups.service'
 import { ExercisesService } from '../exercises/exercises.service'
 import { UsersService } from '../users/users.service'
-import { UploadService } from '../../common/services/upload.service'
 import { Prisma } from '@prisma/client'
 
 @Injectable()
@@ -15,21 +14,15 @@ export class AdminService {
     private groupsService: GroupsService,
     private exercisesService: ExercisesService,
     private usersService: UsersService,
-    private uploadService: UploadService,
   ) {}
 
   async deleteGroup(id: string, adminId: string) {
     const group = await this.prisma.group.findUnique({
       where: { id },
-      include: { exercises: { select: { imageUrl: true } } },
     })
     if (!group) throw new NotFoundException('Grupo no encontrado')
 
     try {
-      // Limpiar imágenes de los ejercicios del grupo
-      const imageUrls = group.exercises.map(e => e.imageUrl)
-      this.uploadService.deleteFilesByUrls(imageUrls)
-
       await this.prisma.group.delete({ where: { id } })
       this.logger.log(`Group ${id} deleted by admin ${adminId}`)
       return true
@@ -57,17 +50,6 @@ export class AdminService {
     }
 
     try {
-      // Recolectar imágenes de ejercicios a eliminar (los del usuario y los de sus grupos)
-      const exercisesToDelete = await this.prisma.exercise.findMany({
-        where: {
-          OR: [
-            { createdBy: id },
-            { group: { ownerId: id } },
-          ],
-        },
-        select: { imageUrl: true },
-      })
-
       await this.prisma.$transaction(async (tx) => {
         // Delete memberships
         await tx.groupMember.deleteMany({ where: { userId: id } })
@@ -86,10 +68,6 @@ export class AdminService {
         // Finally delete the user
         await tx.user.delete({ where: { id } })
       })
-
-      // Limpiar imágenes del disco
-      const imageUrls = exercisesToDelete.map(e => e.imageUrl)
-      this.uploadService.deleteFilesByUrls(imageUrls)
 
       this.logger.log(`User ${id} (${user.email}) deleted by admin ${adminId}`)
       return true

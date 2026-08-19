@@ -74,7 +74,7 @@ Configurar en **Project Settings → Environment Variables** (o `vercel env add`
 
 | Riesgo | Plan |
 |---|---|
-| **Uploads a FS local** (`main.ts` sirve `uploads/`): en serverless el FS es efímero/RO. | Mover subida de imágenes a object storage (R2/S3) y servir por URL firmada; o deshabilitar ese endpoint en la función. Tarea aparte. |
+| ~~**Uploads a FS local** (`main.ts` sirve `uploads/`): en serverless el FS es efímero/RO.~~ | **RESUELTO:** el subsistema de uploads (endpoints `POST /upload/avatar\|group\|exercise`, `UploadService`, adaptadores de storage y `useStaticAssets` en `main.ts`) fue **eliminado**. Las imágenes (avatares de grupo/usuario, imágenes de ejercicio) se consumen únicamente desde APIs externas (DiceBear, Pixabay, Pexels, Unsplash) vía URL; no hay subida de archivos del usuario. No se requiere object storage. |
 | **Cron de disputas** (`@nestjs/schedule` `@Cron(EVERY_HOUR)`): no corre en serverless. | Añadir a `vercel.json` un `crons: [{ "path": "/api/cron/disputes", "schedule": "0 * * * *" }]` que invoque un endpoint protegido (token de admin) que ejecute `dispute-resolution`; o mover la resolución a un GitHub Action horario. Requiere un endpoint HTTP nuevo en el backend. |
 | **Cold start** Nest+Prisma (~1-3s). | App cacheada en el handler (Spec A-3). `memory: 1024` reduce frecuencia de cold starts. |
 | **Prisma engine en el bundle**. | `binaryTargets: ["native","rhel-openssl-3.0.x"]` (Spec D) + `prisma generate` en build asegura el engine de Amazon Linux 2023. |
@@ -147,8 +147,7 @@ Configurar en **Project Settings → Environment Variables** (o `vercel env add`
 |---|---|---|
 | `NODE_ENV` | `production` | |
 | `CORS_ORIGIN` | `https://duver0.github.io` | Origen del web (GitHub Pages). Separar varios por comas. |
-| `APP_URL` | `https://fit-app-api.vercel.app` | URL pública de la API (la da Vercel al crear el proyecto). |
-| `UPLOAD_DIR` | `/tmp` | En serverless el FS es de solo lectura; `/tmp` es el único escribible (efímero). Ver riesgo C-6.4. |
+| `APP_URL` | `https://fit-app-lake-gamma.vercel.app` | URL pública de la API (alias estable del proyecto en Vercel). |
 
 > En Hobby no se necesita tarjeta. **No** definir `PUBSUB_ADAPTER` / `REDIS_*` (ya no se usan tras Spec A).
 
@@ -162,24 +161,8 @@ vercel env add PEXELS_API_KEY
 vercel env add PIXABAY_API_KEY
 vercel env add NODE_ENV production
 vercel env add CORS_ORIGIN https://duver0.github.io
-vercel env add APP_URL https://fit-app-api.vercel.app
-vercel env add UPLOAD_DIR /tmp
-# --- Object storage para uploads (RESUELVE el FS de solo lectura) ---
-vercel env add STORAGE_DRIVER s3
-vercel env add S3_BUCKET fit-app-uploads
-vercel env add S3_ACCOUNT_ID <tu-account-id-r2>      # solo para R2; omitir si usás Supabase/MinIO
-vercel env add S3_ENDPOINT https://<account>.r2.cloudflarestorage.com
-vercel env add S3_REGION auto
-vercel env add S3_ACCESS_KEY_ID <r2-access-key>
-vercel env add S3_SECRET_ACCESS_KEY <r2-secret-key>
-vercel env add S3_PUBLIC_URL https://<tu-dominio-r2-o-public>.com/fit-app-uploads
+vercel env add APP_URL https://fit-app-lake-gamma.vercel.app
 ```
-
-> **`STORAGE_DRIVER=local`** (default, sin la var) sigue funcionando en dev/contenedores y
-> escribe a `UPLOAD_DIR` servido por `main.ts`. En Vercel **debe ser `s3`** (FS de solo lectura).
-> El adaptador es compatible con cualquier bucket S3: Cloudflare R2, AWS S3, MinIO o
-> **Supabase Storage** (endpoint `https://<ref>.supabase.co/storage/v1/s3`, con las
-> credenciales API de Storage). Todos sin tarjeta en su tier gratuito.
 
 ### C-6.3. Runbook de migraciones (se hace UNA vez, no en build)
 No hay `start.sh` en serverless; las migraciones no corren en el arranque de la función. Aplicarlas
@@ -199,7 +182,7 @@ no ser alcanzable desde el entorno de build y romper el deploy).
 ### C-6.4. Riesgos a tener claros (documentados para el usuario)
 | Riesgo | Impacto y plan |
 |---|---|
-| ~~**FS de solo lectura** (`app.useStaticAssets('/uploads')` y subida a disco)~~ | **RESUELTO (Spec C-6.6):** el `UploadService` ahora usa un `StorageAdapter`. Con `STORAGE_DRIVER=s3` (Vercel) sube a un bucket S3/R2 y devuelve su URL pública; el cliente carga la imagen directo desde el bucket (sin pasar por la API). En dev/`local` sigue escribiendo a disco. El `useStaticAssets` de `main.ts` solo aplica a despliegues no-serverless. |
+| ~~**FS de solo lectura** (`app.useStaticAssets('/uploads')` y subida a disco)~~ | **RESUELTO:** el subsistema de uploads fue eliminado por completo (ver C-6.6). No hay `useStaticAssets` ni subida a disco; las imágenes vienen de APIs externas por URL. |
 | ~~**`@nestjs/schedule` (cron de resolución de disputas `@Cron(EVERY_HOUR)`)**~~ | **RESUELTO:** la lógica de resolución se extrajo a `apps/api/src/modules/disputes/dispute-resolution.logic.ts` (compartida, sin Nest). El procesador de Nest la sigue usando en entornos con proceso residente; en Vercel un endpoint serverless `api/cron/disputes.ts` (protegido por `CRON_SECRET`) la invoca, y un GitHub Action horario (`.github/workflows/cron-disputes.yml`, cada hora) lo dispara con el token. `vercel.json` quitó el rewrite catch-all para no interceptar `/api/cron/disputes`. |
 | **Cold starts + timeout 10s (Hobby)** | Nest + Prisma arrancan ~1-3s en frío. `memory: 1024` reduce frecuencia de cold starts. Queries/mutaciones muy largas pueden superar los 10s y fallar. |
 | **Prisma engine en el bundle** | `binaryTargets: ["native","rhel-openssl-3.0.x"]` en `schema.prisma` (Spec D-1) + `prisma generate` en build asegura el engine de Amazon Linux 2023. `includeFiles` en `vercel.json` lo incluye explícitamente. |
@@ -212,39 +195,18 @@ git rm fly.toml
 ```
 Igualmente `render.yaml` / `render.yaml.example` (deploy en Render) quedan sin uso si se migra 100% a Vercel.
 
-### C-6.6. Uploads a object storage (RESUELVE el FS de solo lectura)
+### C-6.6. Uploads — eliminados (no se requiere object storage)
 
-El `UploadService` (`apps/api/src/common/services/upload.service.ts`) ya no escribe en disco
-cuando `STORAGE_DRIVER=s3`. Usa una interfaz `StorageAdapter` con dos implementaciones:
-`LocalStorageAdapter` (disco, dev) y `S3StorageAdapter` (bucket S3-compatible, Vercel).
+El subsistema de subida de archivos **fue eliminado** del backend:
+- Endpoints REST `POST /upload/avatar`, `/upload/group`, `/upload/exercise` (y su
+  `UploadController`).
+- `UploadService`, la interfaz `StorageAdapter` y los adaptadores `LocalStorageAdapter` /
+  `S3StorageAdapter`.
+- `app.useStaticAssets('/uploads')` y la creación de `UPLOAD_DIR` en `main.ts`.
+- Funciones `uploadFile` / `uploadExerciseImage` en el cliente móvil.
 
-**Pasos (Cloudflare R2 — cuenta gratuita, sin tarjeta):**
-1. En el dashboard de Cloudflare creá un bucket, p.ej. `fit-app-uploads`.
-2. En *R2 → API tokens* generá un token `Object Read & Write` para ese bucket.
-3. Habilitá **Public access** (permite GET público) o usá un dominio personalizado.
-   Anotá la URL pública base: `https://<public>/fit-app-uploads` o
-   `https://<account>.r2.cloudflarestorage.com/fit-app-uploads`.
-4. Configurá **CORS del bucket** para que el web y la app nativa puedan leer las imágenes:
-   ```json
-   [
-     {
-       "AllowedOrigins": ["https://duver0.github.io", "app://localhost", "exp://*"],
-       "AllowedMethods": ["GET"],
-       "AllowedHeaders": ["*"]
-     }
-   ]
-   ```
-5. Seteá las env vars `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_ENDPOINT`,
-   `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL` (ver bloque de comandos arriba).
-
-**Alternativa sin Cloudflare — Supabase Storage (también gratis, sin tarjeta):**
-- Bucket `fit-app-uploads` con **public** policy.
-- `S3_ENDPOINT=https://<ref>.supabase.co/storage/v1/s3`
-- `S3_REGION=auto`, `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` = las credenciales de
-  Storage API de Supabase. `S3_PUBLIC_URL=https://<ref>.supabase.co/storage/v1/object/public/fit-app-uploads`.
-- Mismo adaptador, sin cambios de código.
-
-**Comportamiento resultante:** los endpoints `POST /upload/avatar|group|exercise` siguen
-igual; ahora devuelven una URL del bucket (`https://.../avatars/<uuid>.jpg`) en lugar de
-`/uploads/...`. El móvil/web simplemente renderizan esa URL. Al reemplazar una imagen, la
-anterior se borra del bucket (el `deleteFileByUrl` llama al adaptador).
+**Motivo:** en la app las imágenes (avatares de usuario/grupo e imágenes de ejercicio) se
+eligen únicamente desde fuentes externas — DiceBear para avatares y Pixabay/Pexels/Unsplash
+para stock — y se guardan como URL. El cliente nunca sube un archivo del usuario, así que no
+hay nada que persistir en un bucket. Por ende **no se necesita object storage (R2/S3)** y
+las variables `STORAGE_DRIVER` / `S3_*` / `UPLOAD_DIR` ya no existen.
