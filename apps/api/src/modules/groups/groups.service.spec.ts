@@ -80,6 +80,7 @@ describe('GroupsService', () => {
         data: {
           ...createData,
           ownerId: 'user-1',
+          avatarUrl: expect.any(String),
           members: { create: { userId: 'user-1', role: 'OWNER' } },
         },
         include: { _count: { select: { members: true } } },

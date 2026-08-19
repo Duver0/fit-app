@@ -19,7 +19,7 @@ describe('DisputesService', () => {
     exercise: { id: 'exercise-1', name: 'Bench Press', groupId: 'group-1', unit: 'KG' },
   }
 
-  const mockMembership = { id: 'gm-1', userId: 'user-2', groupId: 'group-1', role: GroupMemberRole.MEMBER, joinedAt: new Date() }
+  const mockMembership = { id: 'gm-1', userId: 'user-2', groupId: 'group-1', role: GroupMemberRole.MEMBER, joinedAt: new Date(), isActive: true }
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -93,7 +93,7 @@ describe('DisputesService', () => {
       jest.spyOn(prisma.groupMember, 'count').mockResolvedValue(3)
       jest.spyOn(prisma.dispute, 'update').mockResolvedValue(openDispute as any)
 
-      const result = await service.vote('user-2', 'dispute-1', true)
+      const result = await service.vote('user-2', 'dispute-1', 'REAL')
       expect(prisma.disputeVote.create).toHaveBeenCalled()
     })
 
@@ -112,7 +112,7 @@ describe('DisputesService', () => {
       jest.spyOn(prisma.groupMember, 'count').mockResolvedValue(3)
       ;(prisma.$transaction as any).mockResolvedValue([])
 
-      const result = await service.vote('user-4', 'dispute-1', true)
+      const result = await service.vote('user-4', 'dispute-1', 'REAL')
       expect(prisma.$transaction).toHaveBeenCalled()
     })
   })

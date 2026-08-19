@@ -20,11 +20,12 @@ describe('PerformanceService', () => {
     wgerMuscles: null,
     wgerEquipment: null,
     wgerInstructions: null,
+    categoryId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
 
-  const mockMembership = { id: 'gm-1', userId: 'user-2', groupId: 'group-1', role: GroupMemberRole.MEMBER, joinedAt: new Date() }
+  const mockMembership = { id: 'gm-1', userId: 'user-2', groupId: 'group-1', role: GroupMemberRole.MEMBER, joinedAt: new Date(), isActive: true }
   const mockRecord = {
     id: 'record-1',
     exerciseId: 'exercise-1',
@@ -35,6 +36,10 @@ describe('PerformanceService', () => {
     weight: null,
     recordedAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
+    deletedByDisputeId: null,
+    disputeResult: null,
+    disputedAt: null,
   }
 
   beforeEach(async () => {

@@ -20,6 +20,7 @@ describe('ExercisesService', () => {
     wgerMuscles: null,
     wgerEquipment: null,
     wgerInstructions: null,
+    categoryId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -101,7 +102,7 @@ describe('ExercisesService', () => {
           createdBy: 'user-1',
           unit: ExerciseUnit.KG,
         },
-        include: { creator: true },
+        include: { creator: true, category: true },
       })
     })
 
@@ -136,7 +137,7 @@ describe('ExercisesService', () => {
           createdBy: 'user-1',
           unit: ExerciseUnit.REPS,
         },
-        include: { creator: true },
+        include: { creator: true, category: true },
       })
     })
 
@@ -163,7 +164,7 @@ describe('ExercisesService', () => {
       expect(result[1].name).toBe('Squat')
       expect(prisma.exercise.findMany).toHaveBeenCalledWith({
         where: { groupId: 'group-1' },
-        include: { creator: true },
+        include: { creator: true, category: true },
       })
     })
 
@@ -174,7 +175,7 @@ describe('ExercisesService', () => {
       expect(result).toEqual([])
       expect(prisma.exercise.findMany).toHaveBeenCalledWith({
         where: { groupId: 'empty-group' },
-        include: { creator: true },
+        include: { creator: true, category: true },
       })
     })
   })

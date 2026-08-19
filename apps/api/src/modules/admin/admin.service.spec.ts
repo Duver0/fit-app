@@ -41,6 +41,8 @@ describe('AdminService', () => {
     role: UserRole.SUPER_ADMIN,
     createdAt: new Date(),
     updatedAt: new Date(),
+    routineEnabled: false,
+    singleGroupAutoEnter: false,
   }
 
   beforeEach(async () => {

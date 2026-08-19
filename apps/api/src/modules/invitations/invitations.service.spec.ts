@@ -40,6 +40,8 @@ describe('InvitationsService', () => {
     role: UserRole.USER,
     createdAt: new Date(),
     updatedAt: new Date(),
+    routineEnabled: false,
+    singleGroupAutoEnter: false,
   }
 
   beforeEach(async () => {

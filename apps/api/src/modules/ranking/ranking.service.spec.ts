@@ -19,6 +19,7 @@ describe('RankingService', () => {
     wgerMuscles: null,
     wgerEquipment: null,
     wgerInstructions: null,
+    categoryId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }

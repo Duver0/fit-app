@@ -94,6 +94,7 @@ describe('RolesGuard', () => {
         groupId: 'group-1',
         role: 'OWNER',
         joinedAt: new Date(),
+        isActive: true,
       })
 
       const context = createMockContext({ id: 'user-1', role: 'USER' }, { groupId: 'group-1' })
@@ -109,6 +110,7 @@ describe('RolesGuard', () => {
         groupId: 'group-1',
         role: 'MEMBER',
         joinedAt: new Date(),
+        isActive: true,
       })
 
       const context = createMockContext({ id: 'user-2', role: 'USER' }, { groupId: 'group-1' })
@@ -126,6 +128,7 @@ describe('RolesGuard', () => {
         groupId: 'group-1',
         role: 'MEMBER',
         joinedAt: new Date(),
+        isActive: true,
       })
 
       const context = createMockContext({ id: 'user-2', role: 'USER' }, { groupId: 'group-1' })
@@ -167,6 +170,7 @@ describe('RolesGuard', () => {
         groupId: 'group-1',
         role: 'OWNER',
         joinedAt: new Date(),
+        isActive: true,
       })
 
       const context = createMockContext(
@@ -188,6 +192,7 @@ describe('RolesGuard', () => {
         groupId: 'group-id-from-arg',
         role: 'OWNER',
         joinedAt: new Date(),
+        isActive: true,
       })
 
       const context = createMockContext(

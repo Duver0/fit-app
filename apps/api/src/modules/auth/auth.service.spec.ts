@@ -27,6 +27,8 @@ describe('AuthService', () => {
     role: UserRole.USER,
     createdAt: new Date(),
     updatedAt: new Date(),
+    routineEnabled: false,
+    singleGroupAutoEnter: false,
   }
 
   beforeEach(async () => {
@@ -88,6 +90,7 @@ describe('AuthService', () => {
           name: 'Test User',
           phone: undefined,
           passwordHash: 'hashed-password',
+          avatarUrl: expect.any(String),
         },
       })
       expect(result.accessToken).toBe('mock-jwt-token')
