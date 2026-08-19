@@ -42,6 +42,8 @@ export function useRanking(exerciseId: string) {
     totalCount: rankingData?.ranking?.totalCount || 0,
     totalPages: rankingData?.ranking?.totalPages || 0,
     myPerformance: myPerfData?.myPerformance || null,
+    rawRanking: rankingData?.ranking ?? null,
+    rawMyPerformance: myPerfData?.myPerformance ?? null,
     isLoading: loading,
     isMyPerformanceLoading: myPerfLoading,
     isUpserting: upsertLoading,

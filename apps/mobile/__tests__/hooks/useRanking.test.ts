@@ -197,6 +197,17 @@ describe('useRanking', () => {
     })
   })
 
+    it('should expose rawRanking and rawMyPerformance', () => {
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({ data: mockRankingData, loading: false, error: null, refetch: vi.fn() } as any)
+        .mockReturnValueOnce({ data: { myPerformance: mockMyPerformance }, loading: false, error: null, refetch: vi.fn() } as any)
+
+      const { result } = renderHook(() => useRanking(EXERCISE_ID))
+
+      expect(result.current.rawRanking).toEqual(mockRankingData.ranking)
+      expect(result.current.rawMyPerformance).toEqual(mockMyPerformance)
+    })
+
     it('should reflect isMyPerformanceLoading state', () => {
       vi.mocked(useQuery)
         .mockReturnValueOnce({ data: null, loading: false, error: null, refetch: vi.fn() } as any)

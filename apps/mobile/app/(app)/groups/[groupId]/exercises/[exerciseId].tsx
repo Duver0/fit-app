@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -8,6 +8,7 @@ import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
 import { useQuery, useMutation } from '@apollo/client'
 import { client } from '../../../../../src/lib/apollo'
+import { seedRankingFromCache, seedPerformanceFromCache, cacheRanking, cachePerformance } from '../../../../../src/lib/exerciseCache'
 import { GROUP_QUERY, EXERCISES_QUERY, DELETE_EXERCISE_MUTATION, UPDATE_EXERCISE_MUTATION, ENRICH_EXERCISE_MUTATION, CHANGE_EXERCISE_CATEGORY_MUTATION, CREATE_EXERCISE_CATEGORY_MUTATION } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { ExerciseDbSearchModal } from '../../../../../src/components/ui/ExerciseDbSearchModal'
@@ -87,10 +88,30 @@ function ExerciseDetailSkeleton() {
 export default function ExerciseDetailScreen() {
   const { colors } = useTheme()
   const { groupId, exerciseId } = useLocalSearchParams<{ groupId: string; exerciseId: string }>()
-  const { ranking, myPerformance, isLoading, isMyPerformanceLoading, isUpserting, refetch, upsertPerformance, createDispute } = useRanking(exerciseId!)
+  const exId = exerciseId!
+
+  // Al volver a un ejercicio recién visto, sembramos la caché de Apollo con
+  // los datos previos para pintar al instante y evitar el skeleton.
+  const seededFor = useRef<string | null>(null)
+  if (seededFor.current !== exId) {
+    seedRankingFromCache(exId)
+    seedPerformanceFromCache(exId)
+    seededFor.current = exId
+  }
+
+  const { ranking, myPerformance, isLoading, isMyPerformanceLoading, isUpserting, refetch, upsertPerformance, createDispute, rawRanking, rawMyPerformance } = useRanking(exId)
   const { data: groupData, loading: groupLoading } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
 
   const showSkeleton = isLoading || groupLoading || isMyPerformanceLoading
+
+  // Persistir en la caché efímera los datos ya cargados de este ejercicio.
+  useEffect(() => {
+    if (rawRanking) cacheRanking(exId, rawRanking)
+  }, [rawRanking, exId])
+
+  useEffect(() => {
+    cachePerformance(exId, rawMyPerformance)
+  }, [rawMyPerformance, exId])
   const { user: currentUser } = useAuth()
 
   const [showUpsert, setShowUpsert] = useState(false)
