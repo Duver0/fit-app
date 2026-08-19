@@ -1,13 +1,11 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PubSubService } from '../pubsub/pubsub.service'
 import { VoteOption } from './dto/dispute.input'
 
 @Injectable()
 export class DisputesService {
   constructor(
     private prisma: PrismaService,
-    private pubSub: PubSubService,
   ) {}
 
   async create(userId: string, input: { performanceId: string; reason: string }) {
@@ -41,14 +39,6 @@ export class DisputesService {
         disputedValue: record.value,
       },
       include: { performance: true, initiator: true, votes: true },
-    })
-
-    // Emit real-time event
-    this.pubSub.publish('disputeEvent', {
-      disputeId: dispute.id,
-      groupId: record.groupId,
-      actorId: userId,
-      type: 'CREATED',
     })
 
     return dispute
@@ -97,24 +87,6 @@ export class DisputesService {
       include: { votes: true, performance: true, initiator: true },
     })
 
-    // Emit real-time event
-    this.pubSub.publish('disputeEvent', {
-      disputeId,
-      groupId: dispute.performance.groupId,
-      actorId: userId,
-      type: 'VOTE_CAST',
-    })
-
-    // Check if dispute was resolved by this vote
-    if (updatedDispute && updatedDispute.status !== 'OPEN') {
-      this.pubSub.publish('disputeEvent', {
-        disputeId,
-        groupId: dispute.performance.groupId,
-        actorId: userId,
-        type: 'RESOLVED',
-      })
-    }
-
     return updatedDispute
   }
 
@@ -131,14 +103,6 @@ export class DisputesService {
       where: { id: disputeId },
       data: { status: 'CANCELLED', resolvedAt: new Date(), cancelledAt: new Date(), cancelledById: userId },
       include: { votes: true, performance: true, initiator: true },
-    })
-
-    // Emit real-time event
-    this.pubSub.publish('disputeEvent', {
-      disputeId,
-      groupId: dispute.groupId,
-      actorId: userId,
-      type: 'CANCELLED',
     })
 
     return updated
@@ -214,6 +178,18 @@ export class DisputesService {
         ],
       },
       include: { votes: true, initiator: true, performance: { include: { exercise: true } } },
+    })
+  }
+
+  async findByGroup(groupId: string) {
+    return this.prisma.dispute.findMany({
+      where: { groupId },
+      include: {
+        votes: { include: { user: true } },
+        initiator: true,
+        performance: { include: { exercise: true } },
+      },
+      orderBy: { createdAt: 'desc' },
     })
   }
 }

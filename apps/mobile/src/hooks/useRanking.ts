@@ -9,6 +9,7 @@ import {
 export function useRanking(exerciseId: string) {
   const { data: rankingData, loading, error, refetch } = useQuery(RANKING_QUERY, {
     variables: { exerciseId, page: 1, limit: 100 },
+    pollInterval: 8000,
   })
 
   const { data: myPerfData } = useQuery(MY_PERFORMANCE_QUERY, {

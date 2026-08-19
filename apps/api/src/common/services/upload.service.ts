@@ -1,17 +1,20 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import * as fs from 'node:fs'
+import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common'
 import * as path from 'node:path'
 import * as crypto from 'node:crypto'
+import { StorageAdapter } from './storage/storage.adapter'
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+
+export const STORAGE_ADAPTER = 'STORAGE_ADAPTER'
 
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name)
 
-  constructor(private config: ConfigService) {}
+  constructor(
+    @Inject(STORAGE_ADAPTER) private storage: StorageAdapter,
+  ) {}
 
   private validate(file: Express.Multer.File) {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
@@ -26,65 +29,37 @@ export class UploadService {
     }
   }
 
-  private saveFile(file: Express.Multer.File, subDir: string): string {
-    const uploadDir = this.config.get('UPLOAD_DIR', './uploads')
-    const dir = path.join(uploadDir, subDir)
-
-    fs.mkdirSync(dir, { recursive: true })
-
+  private async store(file: Express.Multer.File, subDir: string): Promise<string> {
+    this.validate(file)
     const ext = path.extname(file.originalname) || '.jpg'
-    const filename = `${crypto.randomUUID()}${ext}`
-    const filePath = path.join(dir, filename)
-
-    fs.writeFileSync(filePath, file.buffer)
-
-    this.logger.log(`File saved: ${filePath}`)
-
-    // Construir URL absoluta para que funcione en cualquier cliente
-    const appUrl = this.config.get('APP_URL', 'http://localhost:4000')
-    const baseUrl = appUrl.replace(/\/+$/, '')
-    return `${baseUrl}/uploads/${subDir}/${filename}`
+    const key = `${subDir}/${crypto.randomUUID()}${ext}`
+    return this.storage.upload(file.buffer, key, file.mimetype)
   }
 
   async uploadAvatar(file: Express.Multer.File): Promise<string> {
-    this.validate(file)
-    return this.saveFile(file, 'avatars')
+    return this.store(file, 'avatars')
   }
 
   async uploadGroupAvatar(file: Express.Multer.File): Promise<string> {
-    this.validate(file)
-    return this.saveFile(file, 'groups')
+    return this.store(file, 'groups')
   }
 
   async uploadExerciseImage(file: Express.Multer.File): Promise<string> {
-    this.validate(file)
-    return this.saveFile(file, 'exercises')
+    return this.store(file, 'exercises')
   }
 
   /**
-   * Elimina un archivo del disco dada su URL pública.
+   * Elimina un archivo dada su URL pública, sin importar si es local o S3/R2.
    * Es seguro llamarlo aunque la URL sea nula o el archivo no exista.
    */
   deleteFileByUrl(fileUrl: string | null | undefined): void {
     if (!fileUrl) return
-
-    try {
-      const uploadDir = this.config.get('UPLOAD_DIR', './uploads')
-      // La URL es algo como "http://localhost:4000/uploads/exercises/uuid.jpg"
-      // Extraemos la parte después de /uploads/
-      const parts = fileUrl.split('/uploads/')
-      if (parts.length < 2) return
-
-      const relativePath = parts[1]
-      const filePath = path.join(uploadDir, relativePath)
-
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
-        this.logger.log(`Deleted file: ${filePath}`)
-      }
-    } catch (e) {
-      this.logger.warn(`Could not delete file ${fileUrl}: ${e instanceof Error ? e.message : e}`)
-    }
+    // El adaptador hace el parseo de la URL a la key correspondiente.
+    void this.storage.delete(fileUrl).catch((e) => {
+      this.logger.warn(
+        `Could not delete file ${fileUrl}: ${e instanceof Error ? e.message : e}`,
+      )
+    })
   }
 
   /**

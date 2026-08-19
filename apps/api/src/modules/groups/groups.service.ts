@@ -1,12 +1,10 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PubSubService } from '../pubsub/pubsub.service'
 
 @Injectable()
 export class GroupsService {
   constructor(
     private prisma: PrismaService,
-    private pubSub: PubSubService,
   ) {}
 
   async findByUser(userId: string) {
@@ -79,14 +77,6 @@ export class GroupsService {
     if (!group || group.ownerId !== actorId) throw new ForbiddenException()
     await this.prisma.groupMember.deleteMany({ where: { groupId, userId: memberId } })
 
-    // Emit real-time event
-    this.pubSub.publish('groupMemberEvent', {
-      groupId,
-      userId: memberId,
-      actorId,
-      type: 'REMOVED',
-    })
-
     return true
   }
 
@@ -113,14 +103,6 @@ export class GroupsService {
     if (!group) throw new NotFoundException()
     if (group.ownerId === userId) throw new ForbiddenException('Owner cannot leave the group. Transfer ownership or delete the group first.')
     await this.prisma.groupMember.deleteMany({ where: { groupId, userId } })
-
-    // Emit real-time event
-    this.pubSub.publish('groupMemberEvent', {
-      groupId,
-      userId,
-      actorId: userId,
-      type: 'LEFT',
-    })
 
     return true
   }

@@ -17,38 +17,20 @@ import { AdminModule } from './modules/admin/admin.module'
 import { RoutinesModule } from './modules/routines/routines.module'
 import { HealthModule } from './health/health.module'
 import { CommonServicesModule } from './common/services/common-services.module'
-import { PubSubModule } from './modules/pubsub/pubsub.module'
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'
-import { join } from 'path'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      autoSchemaFile: true,
       sortSchema: true,
       introspection: true,
       context: ({ req, res }: { req: any; res: any }) => ({ req, res }),
-      subscriptions: {
-        'graphql-ws': {
-          onConnect: async (context: any) => {
-            const { connectionParams } = context
-            if (!connectionParams?.authorization) {
-              // Allow unauthenticated connections for now; auth is enforced per-subscription
-              return true
-            }
-            // Token validation happens in SubscriptionAuthGuard
-            return true
-          },
-        },
-      },
     }),
     PrismaModule,
     CommonServicesModule,
     HealthModule,
-    PubSubModule,
-    SubscriptionsModule,
     AuthModule,
     UsersModule,
     GroupsModule,

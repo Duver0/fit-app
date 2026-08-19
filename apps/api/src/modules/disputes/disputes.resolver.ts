@@ -45,4 +45,9 @@ export class DisputesResolver {
   async myDisputes(@CurrentUser() user: User) {
     return this.disputesService.findByUser(user.id)
   }
+
+  @Query(() => [Dispute])
+  async groupDisputes(@Args('groupId') groupId: string) {
+    return this.disputesService.findByGroup(groupId)
+  }
 }

@@ -52,7 +52,9 @@ export class HealthController {
       checks.redis = 'not_configured'
     }
 
-    const allOk = Object.values(checks).every(s => s === 'ok')
+    // 'not_configured' (Redis ausente) cuenta como OK: sin Redis usamos
+    // el adaptador en memoria, que es válido para una sola instancia.
+    const allOk = Object.values(checks).every(s => s === 'ok' || s === 'not_configured')
     return {
       status: allOk ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),

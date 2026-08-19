@@ -1,6 +1,5 @@
 import { Injectable, ForbiddenException, NotFoundException, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PubSubService } from '../pubsub/pubsub.service'
 import { ExerciseUnit } from '@prisma/client'
 
 @Injectable()
@@ -8,7 +7,6 @@ export class ExercisesService {
   private readonly logger = new Logger(ExercisesService.name)
   constructor(
     private prisma: PrismaService,
-    private pubSub: PubSubService,
   ) {}
 
   async findByGroup(groupId: string) {
@@ -50,14 +48,6 @@ export class ExercisesService {
         ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
       },
       include: { creator: true, category: true },
-    })
-
-    // Emit real-time event
-    this.pubSub.publish('exerciseEvent', {
-      exerciseId: exercise.id,
-      groupId: data.groupId,
-      actorId: userId,
-      type: 'CREATED',
     })
 
     return exercise
@@ -103,14 +93,6 @@ export class ExercisesService {
       where: { id },
       data,
       include: { creator: true, category: true },
-    })
-
-    // Emit real-time event
-    this.pubSub.publish('exerciseEvent', {
-      exerciseId: id,
-      groupId: exercise.groupId,
-      actorId: userId,
-      type: 'UPDATED',
     })
 
     return updated
@@ -241,14 +223,6 @@ export class ExercisesService {
       this.logger.error(`✕ Delete failed | id="${id}" | error="${error.message}"`, error.stack)
       throw error
     }
-
-    // Emit real-time event
-    this.pubSub.publish('exerciseEvent', {
-      exerciseId: id,
-      groupId: exercise.groupId,
-      actorId: userId,
-      type: 'DELETED',
-    })
 
     return true
   }

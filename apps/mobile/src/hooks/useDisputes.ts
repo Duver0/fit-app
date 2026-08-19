@@ -5,6 +5,7 @@ export function useDisputes(performanceId: string) {
   const { data, loading, error, refetch } = useQuery(DISPUTES_QUERY, {
     variables: { performanceId },
     skip: !performanceId,
+    pollInterval: 10000,
   })
 
   const [voteMutation, { loading: isVoting }] = useMutation(VOTE_DISPUTE_MUTATION, {

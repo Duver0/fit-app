@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "outputDirectory": "public",
+  "installCommand": "npm install --legacy-peer-deps -w apps/api -w packages/shared",
+  "buildCommand": "npx prisma@5.22.0 generate --schema apps/api/prisma/schema.prisma && npx -p typescript@5 tsc -p apps/api/tsconfig.json",
+  "functions": {
+    "api/graphql.ts": {
+      "maxDuration": 10,
+      "memory": 1024,
+      "includeFiles": "apps/api/**,packages/shared/**,apps/api/prisma/**,node_modules/@prisma/**,node_modules/.prisma/**,apps/api/node_modules/@prisma/**,apps/api/node_modules/.prisma/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/graphql", "destination": "/api/graphql" },
+    { "source": "/(.*)", "destination": "/api/graphql" }
+  ]
+}

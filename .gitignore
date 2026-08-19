@@ -17,3 +17,8 @@ coverage/
 
 # infra
 infra/.env
+
+# Render config (backend migrado a Fly.io; no commitear secretos)
+render.yaml
+.vercel
+.env*

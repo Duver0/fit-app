@@ -1,13 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PubSubService } from '../pubsub/pubsub.service'
 import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class InvitationsService {
   constructor(
     private prisma: PrismaService,
-    private pubSub: PubSubService,
   ) {}
 
   /**
@@ -66,13 +64,6 @@ export class InvitationsService {
       include: { group: true, inviter: true },
     })
 
-    // Emit real-time event to the invitee
-    this.pubSub.publish('invitationReceived', {
-      invitationId: invitation.id,
-      inviteeUserId: userExists.id,
-      groupId,
-    })
-
     return invitation
   }
 
@@ -90,14 +81,6 @@ export class InvitationsService {
         data: { groupId: invitation.groupId, userId, role: 'MEMBER' },
       }),
     ])
-
-    // Emit real-time event for group membership change
-    this.pubSub.publish('groupMemberEvent', {
-      groupId: invitation.groupId,
-      userId,
-      actorId: userId,
-      type: 'JOINED',
-    })
 
     return true
   }

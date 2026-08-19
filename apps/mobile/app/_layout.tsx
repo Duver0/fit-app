@@ -12,7 +12,6 @@ import { ToastContainer } from '../src/components/ui/Toast'
 import { patchHistoryForBasePath } from '../src/lib/historyPatch'
 import { registerServiceWorker } from '../src/lib/registerSW'
 import PWAInstallButton from '../src/components/PWAInstallButton'
-import { RealtimeProvider } from '../src/components/RealtimeProvider'
 
 // Refreshes the persisted user from the server whenever a session is active.
 // Rendered INSIDE <ApolloProvider> so it can use useQuery. This keeps
@@ -59,7 +58,6 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
         <UserSync />
-        <RealtimeProvider />
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />

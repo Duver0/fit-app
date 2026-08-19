@@ -36,7 +36,7 @@ jobs:
       - name: Build web
         run: npm run build:web -w apps/mobile
         env:
-          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fit-app-api-3zds.onrender.com/graphql' }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://fit-app-lake-gamma.vercel.app/graphql' }}
           EXPO_PUBLIC_BASE_URL: /fit-app/
           EXPO_BASE_URL: /fit-app/
           PUBLIC_URL: /fit-app/

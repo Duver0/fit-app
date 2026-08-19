@@ -6,7 +6,9 @@ import {
 } from '../lib/graphql'
 
 export function useInvitations() {
-  const { data, loading, error, refetch } = useQuery(MY_INVITATIONS_QUERY)
+  const { data, loading, error, refetch } = useQuery(MY_INVITATIONS_QUERY, {
+    pollInterval: 10000,
+  })
 
   const [acceptMutation, { loading: accepting }] = useMutation(ACCEPT_INVITATION_MUTATION, {
     refetchQueries: [{ query: MY_INVITATIONS_QUERY }],

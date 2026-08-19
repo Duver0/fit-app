@@ -751,68 +751,39 @@ export const MY_EXERCISES_FOR_ROUTINE_QUERY = gql`
 `
 
 // ---------------------------------------------------------------------------
-// Subscriptions (Real-time via WebSocket)
+// Group disputes (polling — replaces the old `disputeEvent` subscription)
 // ---------------------------------------------------------------------------
 
-export const PERFORMANCE_UPDATED_SUBSCRIPTION = gql`
-  subscription OnPerformanceUpdated($groupId: String!) {
-    performanceUpdated(groupId: $groupId) {
-      performanceId
-      exerciseId
-      groupId
-      userId
-    }
-  }
-`
-
-export const RANKING_CHANGED_SUBSCRIPTION = gql`
-  subscription OnRankingChanged($exerciseId: String!, $groupId: String!) {
-    rankingChanged(exerciseId: $exerciseId, groupId: $groupId) {
-      exerciseId
-      groupId
-    }
-  }
-`
-
-export const INVITATION_RECEIVED_SUBSCRIPTION = gql`
-  subscription OnInvitationReceived {
-    invitationReceived {
-      invitationId
-      inviteeUserId
-      groupId
-    }
-  }
-`
-
-export const GROUP_MEMBER_EVENT_SUBSCRIPTION = gql`
-  subscription OnGroupMemberEvent($groupId: String!) {
-    groupMemberEvent(groupId: $groupId) {
-      groupId
-      userId
-      actorId
-      type
-    }
-  }
-`
-
-export const EXERCISE_EVENT_SUBSCRIPTION = gql`
-  subscription OnExerciseEvent($groupId: String!) {
-    exerciseEvent(groupId: $groupId) {
-      exerciseId
-      groupId
-      actorId
-      type
-    }
-  }
-`
-
-export const DISPUTE_EVENT_SUBSCRIPTION = gql`
-  subscription OnDisputeEvent($groupId: String!) {
-    disputeEvent(groupId: $groupId) {
-      disputeId
-      groupId
-      actorId
-      type
+export const GROUP_DISPUTES_QUERY = gql`
+  query GroupDisputes($groupId: String!) {
+    groupDisputes(groupId: $groupId) {
+      id
+      status
+      reason
+      createdAt
+      expiresAt
+      initiatedBy {
+        id
+        name
+      }
+      votes {
+        id
+        vote
+        user {
+          id
+          name
+        }
+      }
+      performance {
+        id
+        value
+        reps
+        weight
+        exercise {
+          id
+          name
+        }
+      }
     }
   }
 `

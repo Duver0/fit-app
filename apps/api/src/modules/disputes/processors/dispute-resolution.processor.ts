@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../../prisma/prisma.service'
-import { PubSubService } from '../../pubsub/pubsub.service'
 
 @Injectable()
 export class DisputeResolutionProcessor {
@@ -9,7 +8,6 @@ export class DisputeResolutionProcessor {
 
   constructor(
     private prisma: PrismaService,
-    private pubSub: PubSubService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -49,13 +47,7 @@ export class DisputeResolutionProcessor {
           }),
         ])
 
-        // Emit real-time event for auto-resolved dispute
-        this.pubSub.publish('disputeEvent', {
-          disputeId: dispute.id,
-          groupId: dispute.performance.groupId,
-          actorId: dispute.initiatedById,
-          type: 'RESOLVED',
-        })
+
       } else {
         this.logger.log(`Dispute ${dispute.id}: REJECTED (${percentage}%)`)
         await this.prisma.dispute.update({
@@ -63,13 +55,7 @@ export class DisputeResolutionProcessor {
           data: { status: 'REJECTED', resolvedAt: new Date() },
         })
 
-        // Emit real-time event for auto-resolved dispute
-        this.pubSub.publish('disputeEvent', {
-          disputeId: dispute.id,
-          groupId: dispute.performance.groupId,
-          actorId: dispute.initiatedById,
-          type: 'RESOLVED',
-        })
+
       }
     }
   }

@@ -5,6 +5,7 @@ export function useGroup(groupId: string) {
   const { data, loading, error, refetch } = useQuery(GROUP_QUERY, {
     variables: { id: groupId },
     skip: !groupId,
+    pollInterval: 15000,
   })
 
   return {

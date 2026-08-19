@@ -2,7 +2,9 @@ import { useQuery, useMutation } from '@apollo/client'
 import { MY_GROUPS_QUERY, CREATE_GROUP_MUTATION } from '../lib/graphql'
 
 export function useGroups() {
-  const { data, loading, error, refetch } = useQuery(MY_GROUPS_QUERY)
+  const { data, loading, error, refetch } = useQuery(MY_GROUPS_QUERY, {
+    pollInterval: 15000,
+  })
   const [createGroupMutation, { loading: creating }] = useMutation(CREATE_GROUP_MUTATION, {
     refetchQueries: [{ query: MY_GROUPS_QUERY }],
   })
