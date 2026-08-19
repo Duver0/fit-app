@@ -8,10 +8,14 @@
       "maxDuration": 10,
       "memory": 1024,
       "includeFiles": "apps/api/**,packages/shared/**,apps/api/prisma/**,node_modules/@prisma/**,node_modules/.prisma/**,apps/api/node_modules/@prisma/**,apps/api/node_modules/.prisma/**"
+    },
+    "api/cron/disputes.ts": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "apps/api/**,packages/shared/**,apps/api/prisma/**,node_modules/@prisma/**,node_modules/.prisma/**,apps/api/node_modules/@prisma/**,apps/api/node_modules/.prisma/**"
     }
   },
   "rewrites": [
-    { "source": "/graphql", "destination": "/api/graphql" },
-    { "source": "/(.*)", "destination": "/api/graphql" }
+    { "source": "/graphql", "destination": "/api/graphql" }
   ]
 }

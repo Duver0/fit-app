@@ -1,0 +1,18 @@
+name: Resolve disputes (hourly cron)
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # cada hora
+  workflow_dispatch:     # permite ejecutarlo manualmente
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invocar endpoint de resolución de disputas
+        run: |
+          curl -fsS -X POST "$API_URL/api/cron/disputes" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+        env:
+          API_URL: https://fit-app-lake-gamma.vercel.app
