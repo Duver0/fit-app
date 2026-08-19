@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
@@ -16,6 +16,7 @@ import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
 import ImageWithFallback from '../../../../../src/components/ui/ImageWithFallback'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
+import { Skeleton } from '../../../../../src/components/ui/Skeleton'
 import { Podium } from '../../../../../src/components/ui/Podium'
 import { RankingRow } from '../../../../../src/components/ranking/RankingRow'
 
@@ -42,11 +43,54 @@ const PODIUM_UNIT_LABELS: Record<string, string> = {
   M: 'm',
 }
 
+function ExerciseDetailSkeleton() {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Imagen del ejercicio */}
+      <View style={{ padding: 24, paddingBottom: 16, alignItems: 'center' }}>
+        <Skeleton width={120} height={120} borderRadius={24} style={{ marginBottom: 16 }} />
+      </View>
+
+      {/* Tu marca */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        <Skeleton width="100%" height={56} borderRadius={12} />
+      </View>
+
+      {/* Top 3 destacado */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Skeleton width={22} height={22} borderRadius={6} />
+          <Skeleton width={150} height={18} borderRadius={4} />
+        </View>
+        <Skeleton width="100%" height={140} borderRadius={16} />
+      </View>
+
+      {/* Ranking completo header */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 8, marginTop: 4 }}>
+        <Skeleton width={160} height={18} borderRadius={4} />
+      </View>
+
+      {/* Filas de ranking */}
+      <View style={{ paddingHorizontal: 16, gap: 12, marginTop: 8 }}>
+        <Skeleton width="100%" height={64} borderRadius={12} />
+        <Skeleton width="100%" height={64} borderRadius={12} />
+        <Skeleton width="100%" height={64} borderRadius={12} />
+      </View>
+    </ScrollView>
+  )
+}
+
 export default function ExerciseDetailScreen() {
   const { colors } = useTheme()
   const { groupId, exerciseId } = useLocalSearchParams<{ groupId: string; exerciseId: string }>()
-  const { ranking, myPerformance, isLoading, isUpserting, refetch, upsertPerformance, createDispute } = useRanking(exerciseId!)
-  const { data: groupData } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
+  const { ranking, myPerformance, isLoading, isMyPerformanceLoading, isUpserting, refetch, upsertPerformance, createDispute } = useRanking(exerciseId!)
+  const { data: groupData, loading: groupLoading } = useQuery(GROUP_QUERY, { variables: { id: groupId } })
+
+  const showSkeleton = isLoading || groupLoading || isMyPerformanceLoading
   const { user: currentUser } = useAuth()
 
   const [showUpsert, setShowUpsert] = useState(false)
@@ -403,6 +447,9 @@ export default function ExerciseDetailScreen() {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
+      {showSkeleton ? (
+        <ExerciseDetailSkeleton />
+      ) : (
       <FlatList
         data={ranking}
         keyExtractor={(item: any) => item.id}
@@ -553,6 +600,7 @@ export default function ExerciseDetailScreen() {
           </View>
         )}
       />
+      )}
 
       {/* --- Upsert Modal --- */}
       <BottomSheetModal visible={showUpsert} onClose={() => {

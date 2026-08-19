@@ -38,6 +38,7 @@ const EXERCISE_ID = 'exercise-1'
 describe('useRanking', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useMutation).mockReturnValue([vi.fn(), { loading: false }])
   })
 
   describe('query states', () => {
@@ -195,6 +196,16 @@ describe('useRanking', () => {
       expect(result.current.totalPages).toBe(0)
     })
   })
+
+    it('should reflect isMyPerformanceLoading state', () => {
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({ data: null, loading: false, error: null, refetch: vi.fn() } as any)
+        .mockReturnValueOnce({ data: null, loading: true, error: null, refetch: vi.fn() } as any)
+
+      const { result } = renderHook(() => useRanking(EXERCISE_ID))
+
+      expect(result.current.isMyPerformanceLoading).toBe(true)
+    })
 
   describe('upsertPerformance', () => {
     it('should call upsert mutation with exerciseId and value', async () => {

@@ -12,7 +12,7 @@ export function useRanking(exerciseId: string) {
     pollInterval: 8000,
   })
 
-  const { data: myPerfData } = useQuery(MY_PERFORMANCE_QUERY, {
+  const { data: myPerfData, loading: myPerfLoading } = useQuery(MY_PERFORMANCE_QUERY, {
     variables: { exerciseId },
   })
 
@@ -43,6 +43,7 @@ export function useRanking(exerciseId: string) {
     totalPages: rankingData?.ranking?.totalPages || 0,
     myPerformance: myPerfData?.myPerformance || null,
     isLoading: loading,
+    isMyPerformanceLoading: myPerfLoading,
     isUpserting: upsertLoading,
     error,
     refetch,
