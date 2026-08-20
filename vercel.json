@@ -2,7 +2,7 @@
   "version": 2,
   "outputDirectory": "public",
   "installCommand": "npm install --legacy-peer-deps -w apps/api -w packages/shared",
-  "buildCommand": "npx prisma@5.22.0 generate --schema apps/api/prisma/schema.prisma && npx -p typescript@5 tsc -p apps/api/tsconfig.json",
+  "buildCommand": "npx prisma@5.22.0 generate --schema apps/api/prisma/schema.prisma && npx prisma@5.22.0 migrate deploy --schema apps/api/prisma/schema.prisma && npx -p typescript@5 tsc -p apps/api/tsconfig.json",
   "functions": {
     "api/graphql.ts": {
       "maxDuration": 10,

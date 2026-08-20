@@ -34,25 +34,35 @@ export class RankingService {
     }
   }
 
+  // Evita el N+1: una sola query trae todos los registros del grupo y se
+  // agrupan en memoria para quedarse con el top 3 de cada ejercicio.
   async getTop3(groupId: string) {
     const exercises = await this.prisma.exercise.findMany({
       where: { groupId },
       include: { creator: true },
     })
-    const result = await Promise.all(
-      exercises.map(async (exercise) => {
-        const top = await this.prisma.performanceRecord.findMany({
-          where: { exerciseId: exercise.id },
-          orderBy: { value: 'desc' },
-          take: 3,
-          include: { user: true },
-        })
-        return {
-          exercise,
-          top: top.map((record, index) => ({ ...record, rank: index + 1 })),
-        }
-      }),
-    )
-    return result
+    if (exercises.length === 0) return []
+
+    const exerciseIds = exercises.map((e) => e.id)
+    const records = await this.prisma.performanceRecord.findMany({
+      where: { exerciseId: { in: exerciseIds } },
+      orderBy: { value: 'desc' },
+      include: { user: true },
+    })
+
+    const byExercise = new Map<string, any[]>()
+    for (const record of records) {
+      const list = byExercise.get(record.exerciseId)
+      if (list) list.push(record)
+      else byExercise.set(record.exerciseId, [record])
+    }
+
+    return exercises.map((exercise) => ({
+      exercise,
+      top: (byExercise.get(exercise.id) ?? []).slice(0, 3).map((record, index) => ({
+        ...record,
+        rank: index + 1,
+      })),
+    }))
   }
 }

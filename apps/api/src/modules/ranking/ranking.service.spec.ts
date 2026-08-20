@@ -162,12 +162,12 @@ describe('RankingService', () => {
         makeRecord('r4', 'user-1', 200),
         makeRecord('r5', 'user-2', 180),
         makeRecord('r6', 'user-3', 160),
-      ]
+      ].map((r) => ({ ...r, exerciseId: 'exercise-2' }))
+      // Simula el orderBy value DESC de la BD: todos los registros en orden
+      // descendente por valor, y luego se agrupan en memoria por ejercicio.
+      const allRecords = [...benchRecords, ...squatRecords].sort((a, b) => b.value - a.value)
 
-      jest
-        .spyOn(prisma.performanceRecord, 'findMany')
-        .mockResolvedValueOnce(benchRecords as any)
-        .mockResolvedValueOnce(squatRecords as any)
+      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue(allRecords as any)
 
       const result = await service.getTop3('group-1')
       expect(result).toHaveLength(2)
@@ -177,12 +177,25 @@ describe('RankingService', () => {
       expect(result[0].top[0].rank).toBe(1)
       expect(result[0].top[0].value).toBe(100)
       expect(result[0].top[1].rank).toBe(2)
+      expect(result[0].top[1].value).toBe(95)
       expect(result[0].top[2].rank).toBe(3)
+      expect(result[0].top[2].value).toBe(90)
 
       expect(result[1].exercise.name).toBe('Squat')
       expect(result[1].top).toHaveLength(3)
       expect(result[1].top[0].rank).toBe(1)
       expect(result[1].top[0].value).toBe(200)
+      expect(result[1].top[1].rank).toBe(2)
+      expect(result[1].top[1].value).toBe(180)
+      expect(result[1].top[2].rank).toBe(3)
+      expect(result[1].top[2].value).toBe(160)
+
+      expect(prisma.performanceRecord.findMany).toHaveBeenCalledTimes(1)
+      expect(prisma.performanceRecord.findMany).toHaveBeenCalledWith({
+        where: { exerciseId: { in: ['exercise-1', 'exercise-2'] } },
+        orderBy: { value: 'desc' },
+        include: { user: true },
+      })
     })
 
     it('should return only top 3 even when there are more records', async () => {
@@ -191,16 +204,17 @@ describe('RankingService', () => {
       const fiveRecords = Array.from({ length: 5 }, (_, i) =>
         makeRecord(`r${i + 1}`, `user-${(i % 3) + 1}`, 100 - i * 5),
       )
-      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue(fiveRecords.slice(0, 3) as any)
+      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue(fiveRecords as any)
 
       const result = await service.getTop3('group-1')
       expect(result[0].top).toHaveLength(3)
+      expect(result[0].top[0].value).toBe(100)
+      expect(result[0].top[1].value).toBe(95)
+      expect(result[0].top[2].value).toBe(90)
 
-      // findMany called with take: 3
       expect(prisma.performanceRecord.findMany).toHaveBeenCalledWith({
-        where: { exerciseId: 'exercise-1' },
+        where: { exerciseId: { in: ['exercise-1'] } },
         orderBy: { value: 'desc' },
-        take: 3,
         include: { user: true },
       })
     })

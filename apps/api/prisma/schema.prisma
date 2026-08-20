@@ -183,6 +183,9 @@ model PerformanceRecord {
   @@index([groupId, exerciseId(sort: Desc)])
   @@index([userId])
   @@index([deletedAt])
+  // Optimiza el ranking por ejercicio (orderBy value DESC) evitando
+  // seq scan en getTop3 / getRanking.
+  @@index([exerciseId, value])
   @@map("performance_records")
 }
 
