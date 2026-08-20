@@ -10,10 +10,11 @@ import {
   Modal,
   ScrollView,
 } from 'react-native'
-import { useLocalSearchParams, router } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../src/theme/ThemeProvider'
+import { useSmartBack } from '../../../src/hooks/useSmartBack'
 import {
   ROUTINE_DAY_QUERY,
   ADD_EXERCISE_TO_DAY_MUTATION,
@@ -96,6 +97,7 @@ function formatPerformance(perf: any, unit: string): string {
 export default function RoutineDayScreen() {
   const { colors } = useTheme()
   const { day } = useLocalSearchParams<{ day: string }>()
+  const handleBack = useSmartBack('/(app)/routine')
   const dayOfWeek = parseInt(day ?? '0', 10)
 
   // --- Queries ---
@@ -467,7 +469,7 @@ export default function RoutineDayScreen() {
         backgroundColor: colors.background,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8, padding: 4 }}>
+          <TouchableOpacity onPress={handleBack} style={{ marginRight: 8, padding: 4 }}>
             <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity

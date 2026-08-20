@@ -393,6 +393,7 @@ export default function GroupDashboardScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader
         title={group?.name || 'Ejercicios'}
+        fallbackHref={'/(app)/groups'}
         rightAction={
           <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />

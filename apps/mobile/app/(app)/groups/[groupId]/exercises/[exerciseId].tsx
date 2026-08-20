@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
 import { useRanking } from '../../../../../src/hooks/useRanking'
 import { useDisputes } from '../../../../../src/hooks/useDisputes'
 import { useAuth } from '../../../../../src/hooks/useAuth'
+import { useSmartBack } from '../../../../../src/hooks/useSmartBack'
 import { useQuery, useMutation } from '@apollo/client'
 import { client } from '../../../../../src/lib/apollo'
 import { seedRankingFromCache, seedPerformanceFromCache, cacheRanking, cachePerformance } from '../../../../../src/lib/exerciseCache'
@@ -89,6 +90,7 @@ export default function ExerciseDetailScreen() {
   const { colors } = useTheme()
   const { groupId, exerciseId } = useLocalSearchParams<{ groupId: string; exerciseId: string }>()
   const exId = exerciseId!
+  const handleBack = useSmartBack(`/(app)/groups/${groupId}`)
 
   // Al volver a un ejercicio recién visto, sembramos la caché de Apollo con
   // los datos previos para pintar al instante y evitar el skeleton.
@@ -222,7 +224,7 @@ export default function ExerciseDetailScreen() {
       console.log('[DeleteExercise] eliminado correctamente')
       client.refetchQueries({ include: ['Group', 'Exercises'] }).catch(() => {})
       showSuccessToast('Ejercicio eliminado')
-      router.back()
+      handleBack()
     } catch (e: any) {
       const graphQLError = e?.graphQLErrors?.[0]
       const networkError = e?.networkError
@@ -392,6 +394,7 @@ export default function ExerciseDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader
         title={exercise?.name || 'Ejercicio'}
+        fallbackHref={`/(app)/groups/${groupId}`}
         rightAction={(
           <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />

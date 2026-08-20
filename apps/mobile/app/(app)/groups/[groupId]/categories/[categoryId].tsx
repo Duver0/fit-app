@@ -111,6 +111,7 @@ export default function CategoryExercisesScreen() {
       <ScreenHeader
         title={category?.name || 'Categoría'}
         showBack
+        fallbackHref={`/(app)/groups/${groupId}`}
       />
 
       <FlatList

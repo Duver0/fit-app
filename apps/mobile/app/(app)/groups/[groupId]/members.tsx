@@ -103,6 +103,7 @@ export default function MembersScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader
         title="Miembros"
+        fallbackHref={`/(app)/groups/${groupId}`}
         rightAction={
           <TouchableOpacity onPress={() => setShowInvite(true)} style={{ backgroundColor: colors.primary, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '600' }}>Invitar</Text>

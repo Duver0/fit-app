@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView 
 import { router } from 'expo-router'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuth } from '../../src/hooks/useAuth'
+import { useSmartBack } from '../../src/hooks/useSmartBack'
 
 export default function RegisterScreen() {
   const { colors } = useTheme()
   const { register, isLoading } = useAuth()
+  const handleBack = useSmartBack('/(auth)/login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -64,7 +66,7 @@ export default function RegisterScreen() {
             <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>Crear cuenta</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16, alignItems: 'center' }}>
+        <TouchableOpacity onPress={handleBack} style={{ marginTop: 16, alignItems: 'center' }}>
           <Text style={{ color: colors.textSecondary, fontSize: 14 }}>¿Ya tienes cuenta? Inicia sesión</Text>
         </TouchableOpacity>
       </View>

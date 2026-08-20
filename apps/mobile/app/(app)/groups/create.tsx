@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
-import { router } from 'expo-router'
+import { useSmartBack } from '../../../src/hooks/useSmartBack'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useGroups } from '../../../src/hooks/useGroups'
 import ScreenHeader from '../../../src/components/ui/ScreenHeader'
@@ -8,6 +8,7 @@ import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 export default function CreateGroupScreen() {
   const { colors } = useTheme()
   const { createGroup, isCreating } = useGroups()
+  const handleBack = useSmartBack('/(app)/groups')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -20,7 +21,7 @@ export default function CreateGroupScreen() {
     try {
       setError('')
       await createGroup(name.trim(), description.trim() || undefined)
-      router.back()
+      handleBack()
     } catch (e: any) {
       setError(e.message || 'Error al crear grupo')
     }

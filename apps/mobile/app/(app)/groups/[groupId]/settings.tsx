@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView, Image } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useSmartBack } from '../../../../src/hooks/useSmartBack'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { ME_QUERY, GROUP_QUERY, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, CREATE_EXERCISE_MUTATION } from '../../../../src/lib/graphql'
@@ -16,6 +17,7 @@ const UNITS = ['KG', 'REPS', 'MIN', 'SEC', 'M'] as const
 export default function GroupSettingsScreen() {
   const { colors } = useTheme()
   const { groupId } = useLocalSearchParams<{ groupId: string }>()
+  const handleBack = useSmartBack(`/(app)/groups/${groupId}`)
 
   const { data: meData, loading: meLoading } = useQuery(ME_QUERY)
   const { data: groupData, loading: groupLoading, refetch } = useQuery(GROUP_QUERY, {
@@ -69,7 +71,7 @@ export default function GroupSettingsScreen() {
         <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
           Solo el dueño del grupo puede acceder a la configuración.
         </Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: colors.primary, borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12 }}>
+        <TouchableOpacity onPress={handleBack} style={{ backgroundColor: colors.primary, borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12 }}>
           <Text style={{ color: colors.text, fontWeight: '600' }}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -132,7 +134,7 @@ export default function GroupSettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title="Configuración" />
+      <ScreenHeader title="Configuración" fallbackHref={`/(app)/groups/${groupId}`} />
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
 
