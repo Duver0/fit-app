@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { useTheme } from '../../../../../src/theme/ThemeProvider'
-import { GROUP_QUERY, CREATE_EXERCISE_MUTATION, EXERCISES_QUERY, CREATE_EXERCISE_CATEGORY_MUTATION } from '../../../../../src/lib/graphql'
+import { client } from '../../../../../src/lib/apollo'
+import { GROUP_QUERY, CREATE_EXERCISE_MUTATION, EXERCISES_QUERY, CREATE_EXERCISE_CATEGORY_MUTATION, RANKING_QUERY, MY_PERFORMANCE_QUERY } from '../../../../../src/lib/graphql'
 import { getImageUrl } from '../../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
@@ -33,6 +34,15 @@ export default function CategoryExercisesScreen() {
   const category = groupData?.group?.categories?.find((c: any) => c.id === categoryId)
   const exercises: any[] = groupData?.group?.exercises || []
   const categoryExercises = exercises.filter((e: any) => e.categoryId === categoryId)
+
+  // Precarga ranking + mi performance de los ejercicios de la categoría para
+  // que al tocar uno se muestre al instante (sin skeleton ni cold start).
+  useEffect(() => {
+    categoryExercises.slice(0, 50).forEach((ex: any) => {
+      client.query({ query: RANKING_QUERY, variables: { exerciseId: ex.id, page: 1, limit: 100 }, fetchPolicy: 'cache-first' }).catch(() => {})
+      client.query({ query: MY_PERFORMANCE_QUERY, variables: { exerciseId: ex.id }, fetchPolicy: 'cache-first' }).catch(() => {})
+    })
+  }, [categoryExercises])
 
   const handleCreateExercise = async () => {
     if (!exerciseName.trim()) return
