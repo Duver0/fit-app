@@ -5,8 +5,8 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client'
 import { useTheme } from '../../../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../../../src/stores/authStore'
-import { client } from '../../../../src/lib/apollo'
-import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY, CREATE_EXERCISE_CATEGORY_MUTATION, DELETE_EXERCISE_CATEGORY_MUTATION, RANKING_QUERY, MY_PERFORMANCE_QUERY } from '../../../../src/lib/graphql'
+import { EXERCISES_QUERY, GROUP_QUERY, CREATE_EXERCISE_MUTATION, INVITE_TO_GROUP_MUTATION, UPDATE_GROUP_MUTATION, DELETE_GROUP_MUTATION, SEARCH_USERS_QUERY, CREATE_EXERCISE_CATEGORY_MUTATION, DELETE_EXERCISE_CATEGORY_MUTATION } from '../../../../src/lib/graphql'
+import { prefetchExerciseData } from '../../../../src/lib/exerciseCache'
 import { getImageUrl } from '../../../../src/lib/api'
 import { showSuccessToast, showErrorToast } from '../../../../src/lib/toast'
 import ScreenHeader from '../../../../src/components/ui/ScreenHeader'
@@ -73,10 +73,7 @@ export default function GroupDashboardScreen() {
   // Precarga ranking + mi performance de los ejercicios del grupo para que al
   // tocar uno se muestre al instante (sin skeleton ni cold start del serverless).
   useEffect(() => {
-    exercises.slice(0, 50).forEach((ex: any) => {
-      client.query({ query: RANKING_QUERY, variables: { exerciseId: ex.id, page: 1, limit: 100 }, fetchPolicy: 'cache-first' }).catch(() => {})
-      client.query({ query: MY_PERFORMANCE_QUERY, variables: { exerciseId: ex.id }, fetchPolicy: 'cache-first' }).catch(() => {})
-    })
+    prefetchExerciseData(exercises, groupId)
   }, [exercisesData])
   const group = groupData?.group
   const isOwner = currentUser?.id && group?.owner?.id === currentUser.id
