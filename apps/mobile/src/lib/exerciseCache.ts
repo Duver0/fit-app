@@ -55,9 +55,10 @@ export function seedPerformanceFromCache(exerciseId: string) {
 
 // Tamaño de lote: limita la concurrencia para no saturar el backend serverless.
 // Un burst de ~50 ejercicios x 2 queries en paralelo hace que Vercel encole/rechace
-// peticiones y deje el cache frio -> skeleton aunque entres "lento". Por lotes de 6
+// peticiones y deje el cache frio -> skeleton aunque entres "lento". Por lotes de 3
 // se completa de forma fiable y ademas siembra el Map en memoria (doble cobertura).
-const PREFETCH_CHUNK = 6
+const PREFETCH_CHUNK = 3
+const MAX_EXERCISES_TO_PREFETCH = 10
 
 async function prefetchOne(exerciseId: string) {
   const [r, p] = await Promise.all([
@@ -88,7 +89,7 @@ export async function prefetchExerciseData(exercises: any[], groupId?: string) {
   const ids = exercises
     .map((e) => e?.id)
     .filter((id): id is string => typeof id === 'string')
-    .slice(0, 50)
+    .slice(0, MAX_EXERCISES_TO_PREFETCH)
   for (let i = 0; i < ids.length; i += PREFETCH_CHUNK) {
     const chunk = ids.slice(i, i + PREFETCH_CHUNK)
     await Promise.all(

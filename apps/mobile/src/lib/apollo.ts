@@ -1,6 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client'
 import { onError } from '@apollo/client/link/error'
 import { setContext } from '@apollo/client/link/context'
+import { RetryLink } from '@apollo/client/link/retry'
 import { useAuthStore } from '../stores/authStore'
 import { useUIStore } from '../stores/uiStore'
 
@@ -8,9 +9,34 @@ import { useUIStore } from '../stores/uiStore'
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://fit-app-lake-gamma.vercel.app/graphql'
 
 // ---------------------------------------------------------------------------
-// HTTP link (queries & mutations)
+// Retry link — exponential backoff para absorber cold starts de Render/Vercel.
+// Cadena: retryLink → httpLink
 // ---------------------------------------------------------------------------
-const httpLink = createHttpLink({ uri: API_URL })
+const retryLink = new RetryLink({
+  delay: {
+    initial: 1000,
+    max: 5000,
+    jitter: true,
+  },
+  attempts: {
+    max: 3,
+    retryIf: (error) => !!error,
+  },
+})
+
+// ---------------------------------------------------------------------------
+// HTTP link (queries & mutations) — 15 s timeout para cold starts
+// ---------------------------------------------------------------------------
+const httpLink = createHttpLink({
+  uri: API_URL,
+  fetch: (uri: RequestInfo, options: RequestInit) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15_000)
+    return fetch(uri, { ...options, signal: controller.signal }).finally(() =>
+      clearTimeout(timeoutId),
+    )
+  },
+})
 
 // ---------------------------------------------------------------------------
 // Auth link — attaches JWT to every HTTP request
@@ -48,8 +74,15 @@ const errorLink = onError(({ networkError }) => {
 })
 
 export const client = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  link: from([errorLink, authLink, retryLink, httpLink]),
+  cache: new InMemoryCache({
+    typePolicies: {
+      User: { keyFields: ['id'] },
+      Group: { keyFields: ['id'] },
+      Exercise: { keyFields: ['id'] },
+      PerformanceRecord: { keyFields: ['id'] },
+    },
+  }),
   defaultOptions: {
     watchQuery: { fetchPolicy: 'cache-and-network' },
   },

@@ -1,3 +1,4 @@
+import React from 'react'
 import { View, Text, TouchableOpacity, ViewStyle } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
 import { getImageUrl } from '../../lib/api'
@@ -35,7 +36,7 @@ interface RankingRowProps {
   style?: ViewStyle
 }
 
-export function RankingRow({
+export const RankingRow = React.memo(function RankingRow({
   rank,
   name,
   value,
@@ -204,4 +205,4 @@ export function RankingRow({
       </View>
     </View>
   )
-}
+})

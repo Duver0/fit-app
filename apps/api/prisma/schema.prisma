@@ -228,6 +228,7 @@ model DisputeVote {
 
   @@unique([disputeId, userId])
   @@index([disputeId])
+  @@index([userId])
   @@map("dispute_votes")
 }
 

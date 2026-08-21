@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { RankingService } from './ranking.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { RedisService } from '../../redis/redis.service'
 import { ExerciseUnit } from '@prisma/client'
 
 describe('RankingService', () => {
@@ -45,7 +46,19 @@ describe('RankingService', () => {
     }
   }
 
+  const mockRedis = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    delPattern: jest.fn().mockResolvedValue(0),
+    ping: jest.fn().mockResolvedValue('PONG'),
+  }
+
   beforeEach(async () => {
+    mockRedis.get.mockResolvedValue(null)
+    mockRedis.set.mockClear()
+    mockRedis.del.mockClear()
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RankingService,
@@ -60,7 +73,12 @@ describe('RankingService', () => {
               findMany: jest.fn(),
               count: jest.fn(),
             },
+            $queryRaw: jest.fn(),
           },
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedis,
         },
       ],
     }).compile()
@@ -136,38 +154,50 @@ describe('RankingService', () => {
 
       await service.getRanking('exercise-1', 2, 10)
       expect(prisma.performanceRecord.findMany).toHaveBeenCalledWith({
-        where: { exerciseId: 'exercise-1' },
+        where: { exerciseId: 'exercise-1', deletedAt: null },
         orderBy: { value: 'desc' },
         skip: 10,
         take: 10,
-        include: { user: true },
+        include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
       })
     })
   })
 
   describe('getTop3', () => {
+    function makeRawRow(overrides: Record<string, any>) {
+      return {
+        exercise_id: 'exercise-1',
+        exercise_name: 'Bench Press',
+        exercise_description: null,
+        exercise_unit: 'KG',
+        exercise_group_id: 'group-1',
+        exercise_creator_id: 'user-1',
+        exercise_created_at: new Date(),
+        record_id: 'r1',
+        record_value: 100,
+        record_reps: null,
+        record_weight: null,
+        record_recorded_at: new Date(),
+        record_updated_at: new Date(),
+        user_id: 'user-1',
+        user_name: 'User One',
+        user_email: 'user1@test.com',
+        user_avatar_url: null,
+        row_num: BigInt(1),
+        ...overrides,
+      }
+    }
+
     it('should return top 3 records per exercise', async () => {
-      const exercises = [
-        { ...mockExercise, id: 'exercise-1', name: 'Bench Press' },
-        { ...mockExercise, id: 'exercise-2', name: 'Squat' },
+      const rawRows = [
+        makeRawRow({ exercise_id: 'exercise-1', exercise_name: 'Bench Press', record_id: 'r1', record_value: 100, user_id: 'user-1', row_num: BigInt(1) }),
+        makeRawRow({ exercise_id: 'exercise-1', exercise_name: 'Bench Press', record_id: 'r2', record_value: 95, user_id: 'user-2', row_num: BigInt(2) }),
+        makeRawRow({ exercise_id: 'exercise-1', exercise_name: 'Bench Press', record_id: 'r3', record_value: 90, user_id: 'user-3', row_num: BigInt(3) }),
+        makeRawRow({ exercise_id: 'exercise-2', exercise_name: 'Squat', record_id: 'r4', record_value: 200, user_id: 'user-1', row_num: BigInt(1) }),
+        makeRawRow({ exercise_id: 'exercise-2', exercise_name: 'Squat', record_id: 'r5', record_value: 180, user_id: 'user-2', row_num: BigInt(2) }),
+        makeRawRow({ exercise_id: 'exercise-2', exercise_name: 'Squat', record_id: 'r6', record_value: 160, user_id: 'user-3', row_num: BigInt(3) }),
       ]
-      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue(exercises as any)
-
-      const benchRecords = [
-        makeRecord('r1', 'user-1', 100),
-        makeRecord('r2', 'user-2', 95),
-        makeRecord('r3', 'user-3', 90),
-      ]
-      const squatRecords = [
-        makeRecord('r4', 'user-1', 200),
-        makeRecord('r5', 'user-2', 180),
-        makeRecord('r6', 'user-3', 160),
-      ].map((r) => ({ ...r, exerciseId: 'exercise-2' }))
-      // Simula el orderBy value DESC de la BD: todos los registros en orden
-      // descendente por valor, y luego se agrupan en memoria por ejercicio.
-      const allRecords = [...benchRecords, ...squatRecords].sort((a, b) => b.value - a.value)
-
-      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue(allRecords as any)
+      jest.spyOn(prisma, '$queryRaw').mockResolvedValue(rawRows as any)
 
       const result = await service.getTop3('group-1')
       expect(result).toHaveLength(2)
@@ -190,45 +220,33 @@ describe('RankingService', () => {
       expect(result[1].top[2].rank).toBe(3)
       expect(result[1].top[2].value).toBe(160)
 
-      expect(prisma.performanceRecord.findMany).toHaveBeenCalledTimes(1)
-      expect(prisma.performanceRecord.findMany).toHaveBeenCalledWith({
-        where: { exerciseId: { in: ['exercise-1', 'exercise-2'] } },
-        orderBy: { value: 'desc' },
-        include: { user: true },
-      })
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1)
     })
 
     it('should return only top 3 even when there are more records', async () => {
-      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue([mockExercise] as any)
-
-      const fiveRecords = Array.from({ length: 5 }, (_, i) =>
-        makeRecord(`r${i + 1}`, `user-${(i % 3) + 1}`, 100 - i * 5),
-      )
-      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue(fiveRecords as any)
+      const rawRows = [
+        makeRawRow({ record_id: 'r1', record_value: 100, row_num: BigInt(1) }),
+        makeRawRow({ record_id: 'r2', record_value: 95, row_num: BigInt(2) }),
+        makeRawRow({ record_id: 'r3', record_value: 90, row_num: BigInt(3) }),
+      ]
+      jest.spyOn(prisma, '$queryRaw').mockResolvedValue(rawRows as any)
 
       const result = await service.getTop3('group-1')
       expect(result[0].top).toHaveLength(3)
       expect(result[0].top[0].value).toBe(100)
       expect(result[0].top[1].value).toBe(95)
       expect(result[0].top[2].value).toBe(90)
-
-      expect(prisma.performanceRecord.findMany).toHaveBeenCalledWith({
-        where: { exerciseId: { in: ['exercise-1'] } },
-        orderBy: { value: 'desc' },
-        include: { user: true },
-      })
     })
 
     it('should return empty top array when exercise has no records', async () => {
-      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue([mockExercise] as any)
-      jest.spyOn(prisma.performanceRecord, 'findMany').mockResolvedValue([])
+      jest.spyOn(prisma, '$queryRaw').mockResolvedValue([])
 
       const result = await service.getTop3('group-1')
-      expect(result[0].top).toEqual([])
+      expect(result).toEqual([])
     })
 
     it('should return empty array when group has no exercises', async () => {
-      jest.spyOn(prisma.exercise, 'findMany').mockResolvedValue([])
+      jest.spyOn(prisma, '$queryRaw').mockResolvedValue([])
 
       const result = await service.getTop3('group-1')
       expect(result).toEqual([])

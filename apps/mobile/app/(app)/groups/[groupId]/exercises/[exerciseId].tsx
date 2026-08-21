@@ -359,6 +359,23 @@ export default function ExerciseDetailScreen() {
     return dispute.votes?.find((v: any) => v.user.id === currentUser.id) || null
   }, [currentUser])
 
+  const renderRankingItem = useCallback(({ item }: any) => (
+    <View style={{ paddingHorizontal: 16 }}>
+      <RankingRow
+        rank={item.rank}
+        name={item.user?.name || 'Usuario'}
+        value={item.value}
+        avatarUrl={item.user?.avatarUrl}
+        isMine={currentUser?.id === item.user?.id}
+        unit={exercise?.unit}
+        reps={item.reps}
+        weight={item.weight}
+        onViewDisputes={() => setDisputeVotingPerformanceId(item.id)}
+        onDispute={() => setShowDispute(item.id)}
+      />
+    </View>
+  ), [currentUser?.id, exercise?.unit])
+
   const renderDisputeStatus = (status: string) => {
     switch (status) {
       case 'OPEN':
@@ -607,22 +624,7 @@ export default function ExerciseDetailScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }: any) => (
-          <View style={{ paddingHorizontal: 16 }}>
-            <RankingRow
-              rank={item.rank}
-              name={item.user?.name || 'Usuario'}
-              value={item.value}
-              avatarUrl={item.user?.avatarUrl}
-              isMine={currentUser?.id === item.user?.id}
-              unit={exercise?.unit}
-              reps={item.reps}
-              weight={item.weight}
-              onViewDisputes={() => setDisputeVotingPerformanceId(item.id)}
-              onDispute={() => setShowDispute(item.id)}
-            />
-          </View>
-        )}
+        renderItem={renderRankingItem}
       />
       )}
 

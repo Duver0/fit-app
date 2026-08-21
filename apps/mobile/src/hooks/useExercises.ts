@@ -5,7 +5,8 @@ export function useExercises(groupId: string) {
   const { data, loading, error, refetch } = useQuery(EXERCISES_QUERY, {
     variables: { groupId },
     skip: !groupId,
-    pollInterval: 15000,
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first',
   })
 
   const [createExerciseMutation, { loading: isCreating }] = useMutation(CREATE_EXERCISE_MUTATION, {

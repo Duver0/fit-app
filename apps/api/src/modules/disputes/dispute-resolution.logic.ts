@@ -12,6 +12,12 @@ export interface ResolutionResult {
  * Extraído de `DisputeResolutionProcessor` para poder invocarse tanto desde
  * el cron de NestJS (entornos con proceso residente) como desde un endpoint
  * HTTP serverless (Vercel), sin depender del `ScheduleModule`.
+ *
+ * Lógica unificada con DisputesService.vote():
+ * - Votos de aprobación: vote === true
+ * - Votos de rechazo: vote === false
+ * - Mayoría simple: realVotes > fakeVotes Y realVotes >= ceil(eligibleCount * 0.51)
+ * - Soft-delete del performance record (no hard-delete)
  */
 export async function resolveExpiredDisputes(
   prisma: PrismaClient,
@@ -37,26 +43,46 @@ export async function resolveExpiredDisputes(
   }
 
   for (const dispute of expired) {
-    const membersCount = await prisma.groupMember.count({
-      where: { groupId: dispute.performance.groupId },
+    const groupId = dispute.performance.groupId
+
+    // Contar votos: aprobación (true) vs rechazo (false)
+    const realVotes = dispute.votes.filter((v: any) => v.vote === true).length
+    const fakeVotes = dispute.votes.filter((v: any) => v.vote === false).length
+
+    // Elegibles: miembros del grupo que tienen al menos un performance record activo
+    const eligibleCount = await prisma.groupMember.count({
+      where: {
+        groupId,
+        isActive: true,
+        user: {
+          performanceRecords: {
+            some: { deletedAt: null },
+          },
+        },
+      },
     })
 
-    const approveVotes = dispute.votes.filter((v: any) => v.vote).length
-    const percentage = membersCount > 0 ? (approveVotes / membersCount) * 100 : 0
+    // Mayoría simple: más votos a favor que en contra Y al menos 51% de elegibles
+    const majorityReached = eligibleCount > 0 &&
+      realVotes > fakeVotes &&
+      realVotes >= Math.ceil(eligibleCount * 0.51)
 
-    if (percentage >= 51) {
+    if (majorityReached) {
+      // Aprobada: soft-delete del registro, disputa RESOLVED
       await prisma.$transaction([
         prisma.dispute.update({
           where: { id: dispute.id },
           data: { status: 'APPROVED', resolvedAt: now },
         }),
-        prisma.performanceRecord.delete({
+        prisma.performanceRecord.update({
           where: { id: dispute.performanceId },
+          data: { deletedAt: now, deletedByDisputeId: dispute.id, disputeResult: 'APPROVED' },
         }),
       ])
       result.approved++
       result.details.push({ id: dispute.id, outcome: 'APPROVED' })
     } else {
+      // Rechazada: sin cambios al registro, disputa REJECTED
       await prisma.dispute.update({
         where: { id: dispute.id },
         data: { status: 'REJECTED', resolvedAt: now },

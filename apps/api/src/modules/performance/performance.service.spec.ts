@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { PerformanceService } from './performance.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { RedisService } from '../../redis/redis.service'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { ExerciseUnit, GroupMemberRole } from '@prisma/client'
 
@@ -42,6 +43,14 @@ describe('PerformanceService', () => {
     disputedAt: null,
   }
 
+  const mockRedis = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    delPattern: jest.fn().mockResolvedValue(0),
+    ping: jest.fn().mockResolvedValue('PONG'),
+  }
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,6 +70,10 @@ describe('PerformanceService', () => {
               update: jest.fn(),
             },
           },
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedis,
         },
       ],
     }).compile()

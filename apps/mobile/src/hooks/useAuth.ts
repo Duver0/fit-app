@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useMutation } from '@apollo/client'
 import { useAuthStore } from '../stores/authStore'
 import {
@@ -6,7 +7,12 @@ import {
 } from '../lib/graphql'
 
 export function useAuth() {
-  const { token, user, isAuthenticated, setAuth, clearAuth } = useAuthStore()
+  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const clearAuth = useAuthStore((s) => s.clearAuth)
+
   const [loginMutation, { loading: loginLoading }] = useMutation(LOGIN_MUTATION)
   const [registerMutation, { loading: registerLoading }] = useMutation(REGISTER_MUTATION)
 
@@ -24,13 +30,15 @@ export function useAuth() {
 
   const logout = () => clearAuth()
 
-  return {
+  const isLoading = loginLoading || registerLoading
+
+  return useMemo(() => ({
     token,
     user,
     isAuthenticated,
-    isLoading: loginLoading || registerLoading,
+    isLoading,
     login,
     register,
     logout,
-  }
+  }), [token, user, isAuthenticated, isLoading, login, register, logout])
 }

@@ -1,12 +1,25 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
+import { useIsFocused } from '@react-navigation/native'
 import { DISPUTES_QUERY, VOTE_DISPUTE_MUTATION } from '../lib/graphql'
 
 export function useDisputes(performanceId: string) {
-  const { data, loading, error, refetch } = useQuery(DISPUTES_QUERY, {
+  const isFocused = useIsFocused()
+
+  const disputesQuery = useQuery(DISPUTES_QUERY, {
     variables: { performanceId },
     skip: !performanceId,
-    pollInterval: 10000,
   })
+
+  useEffect(() => {
+    if (!performanceId) return
+    if (isFocused) {
+      disputesQuery.startPolling?.(20_000)
+    } else {
+      disputesQuery.stopPolling?.()
+    }
+    return () => { disputesQuery.stopPolling?.() }
+  }, [isFocused, performanceId, disputesQuery])
 
   const [voteMutation, { loading: isVoting }] = useMutation(VOTE_DISPUTE_MUTATION, {
     refetchQueries: [{ query: DISPUTES_QUERY, variables: { performanceId } }],
@@ -17,11 +30,11 @@ export function useDisputes(performanceId: string) {
   }
 
   return {
-    disputes: data?.disputes || [],
-    isLoading: loading,
+    disputes: disputesQuery.data?.disputes || [],
+    isLoading: disputesQuery.loading,
     isVoting,
-    error,
-    refetch,
+    error: disputesQuery.error,
+    refetch: disputesQuery.refetch,
     vote,
   }
 }

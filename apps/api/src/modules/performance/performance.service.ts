@@ -1,11 +1,13 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { RedisService } from '../../redis/redis.service'
 import { ExerciseUnit } from '@prisma/client'
 
 @Injectable()
 export class PerformanceService {
   constructor(
     private prisma: PrismaService,
+    private redis: RedisService,
   ) {}
 
   async upsert(userId: string, input: { exerciseId: string; value?: number; reps?: number; weight?: number }) {
@@ -68,6 +70,10 @@ export class PerformanceService {
         },
       })
     }
+
+    // Invalidar caché de rankings para este grupo
+    await this.redis.del(`top3:${exercise.groupId}`)
+    await this.redis.delPattern(`ranking:${input.exerciseId}:*`)
 
     return record
   }

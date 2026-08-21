@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
+import { useIsFocused } from '@react-navigation/native'
 import {
   RANKING_QUERY,
   MY_PERFORMANCE_QUERY,
@@ -7,10 +9,20 @@ import {
 } from '../lib/graphql'
 
 export function useRanking(exerciseId: string) {
-  const { data: rankingData, loading, error, refetch } = useQuery(RANKING_QUERY, {
+  const isFocused = useIsFocused()
+
+  const rankingQuery = useQuery(RANKING_QUERY, {
     variables: { exerciseId, page: 1, limit: 100 },
-    pollInterval: 8000,
   })
+
+  useEffect(() => {
+    if (isFocused) {
+      rankingQuery.startPolling?.(30_000)
+    } else {
+      rankingQuery.stopPolling?.()
+    }
+    return () => { rankingQuery.stopPolling?.() }
+  }, [isFocused, rankingQuery])
 
   const { data: myPerfData, loading: myPerfLoading } = useQuery(MY_PERFORMANCE_QUERY, {
     variables: { exerciseId },
@@ -38,17 +50,17 @@ export function useRanking(exerciseId: string) {
   }
 
   return {
-    ranking: rankingData?.ranking?.items || [],
-    totalCount: rankingData?.ranking?.totalCount || 0,
-    totalPages: rankingData?.ranking?.totalPages || 0,
+    ranking: rankingQuery.data?.ranking?.items || [],
+    totalCount: rankingQuery.data?.ranking?.totalCount || 0,
+    totalPages: rankingQuery.data?.ranking?.totalPages || 0,
     myPerformance: myPerfData?.myPerformance || null,
-    rawRanking: rankingData?.ranking ?? null,
+    rawRanking: rankingQuery.data?.ranking ?? null,
     rawMyPerformance: myPerfData?.myPerformance ?? null,
-    isLoading: loading,
+    isLoading: rankingQuery.loading,
     isMyPerformanceLoading: myPerfLoading,
     isUpserting: upsertLoading,
-    error,
-    refetch,
+    error: rankingQuery.error,
+    refetch: rankingQuery.refetch,
     upsertPerformance,
     createDispute,
   }
