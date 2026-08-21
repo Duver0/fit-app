@@ -55,7 +55,7 @@ export async function resolveExpiredDisputes(
         groupId,
         isActive: true,
         user: {
-          performances: {
+          performanceRecords: {
             some: { deletedAt: null },
           },
         },
