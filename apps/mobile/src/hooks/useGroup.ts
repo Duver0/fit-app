@@ -5,8 +5,7 @@ export function useGroup(groupId: string) {
   const { data, loading, error, refetch } = useQuery(GROUP_QUERY, {
     variables: { id: groupId },
     skip: !groupId,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'cache-first',
+    pollInterval: 15000,
   })
 
   return {

@@ -10,7 +10,6 @@ export class RegisterInput {
   @Field()
   @IsString()
   @MinLength(8)
-  @MaxLength(128)
   password: string
 
   @Field()

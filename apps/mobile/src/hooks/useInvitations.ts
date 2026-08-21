@@ -1,6 +1,4 @@
-import { useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
-import { useIsFocused } from '@react-navigation/native'
 import {
   MY_INVITATIONS_QUERY,
   ACCEPT_INVITATION_MUTATION,
@@ -8,18 +6,9 @@ import {
 } from '../lib/graphql'
 
 export function useInvitations() {
-  const isFocused = useIsFocused()
-
-  const invitationsQuery = useQuery(MY_INVITATIONS_QUERY)
-
-  useEffect(() => {
-    if (isFocused) {
-      invitationsQuery.startPolling?.(30_000)
-    } else {
-      invitationsQuery.stopPolling?.()
-    }
-    return () => { invitationsQuery.stopPolling?.() }
-  }, [isFocused, invitationsQuery])
+  const { data, loading, error, refetch } = useQuery(MY_INVITATIONS_QUERY, {
+    pollInterval: 10000,
+  })
 
   const [acceptMutation, { loading: accepting }] = useMutation(ACCEPT_INVITATION_MUTATION, {
     refetchQueries: [{ query: MY_INVITATIONS_QUERY }],
@@ -38,12 +27,12 @@ export function useInvitations() {
   }
 
   return {
-    invitations: invitationsQuery.data?.myInvitations || [],
-    isLoading: invitationsQuery.loading,
+    invitations: data?.myInvitations || [],
+    isLoading: loading,
     isAccepting: accepting,
     isDeclining: declining,
-    error: invitationsQuery.error,
-    refetch: invitationsQuery.refetch,
+    error,
+    refetch,
     accept,
     decline,
   }

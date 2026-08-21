@@ -14,7 +14,7 @@ export class GroupsService {
         group: {
           include: {
             owner: true,
-            members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
+            members: { include: { user: true } },
             _count: { select: { members: true } },
           },
         },

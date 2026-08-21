@@ -1,31 +1,63 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { GqlExecutionContext } from '@nestjs/graphql'
+import { PrismaService } from '../../../prisma/prisma.service'
 
 export const ROLES_KEY = 'roles'
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ])
-    if (!requiredRoles || requiredRoles.length === 0) return true
+    if (!requiredRoles) return true
 
     const ctx = GqlExecutionContext.create(context)
     const { user } = ctx.getContext().req
+    const args = ctx.getArgs()
 
-    if (!user) throw new ForbiddenException('Not authenticated')
+    if (!user) throw new ForbiddenException()
 
-    // SUPER_ADMIN bypasses all role checks
-    if (user.role === 'SUPER_ADMIN') return true
+    if (requiredRoles.includes('SUPER_ADMIN') && user.role === 'SUPER_ADMIN') {
+      return true
+    }
 
-    // Check if any required role matches the user's role
-    if (requiredRoles.includes(user.role)) return true
+    const groupId = args.groupId || args.input?.groupId || args.id
+    if (!groupId && requiredRoles.includes('SUPER_ADMIN')) {
+      return user.role === 'SUPER_ADMIN'
+    }
 
-    throw new ForbiddenException('Insufficient permissions')
+    if (groupId) {
+      const membership = await this.prisma.groupMember.findFirst({
+        where: { groupId, userId: user.id },
+      })
+
+      if (!membership && requiredRoles.includes('SUPER_ADMIN')) {
+        return user.role === 'SUPER_ADMIN'
+      }
+
+      if (!membership) throw new ForbiddenException('Not a member of this group')
+
+      if (requiredRoles.includes('OWNER') && membership.role !== 'OWNER') {
+        throw new ForbiddenException('Only the group owner can perform this action')
+      }
+
+      if (requiredRoles.includes('MEMBER')) {
+        return true
+      }
+    }
+
+    if (requiredRoles.includes('SUPER_ADMIN')) {
+      return user.role === 'SUPER_ADMIN'
+    }
+
+    return true
   }
 }

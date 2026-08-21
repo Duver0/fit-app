@@ -1,14 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { RedisService } from '../../redis/redis.service'
 import { WgerExercise, WgerSearchResult } from '../../common/models/wger.model'
 
 // Language ID for English in wger
 const LANG_ENGLISH = 2
 const LANG_SPANISH = 4
 
-// Cache TTL in seconds (30 minutes)
-const CACHE_TTL_S = 30 * 60
+// In-memory cache TTL (30 minutes)
+const CACHE_TTL_MS = 30 * 60 * 1000
+
+interface CacheEntry {
+  data: WgerSearchResult
+  timestamp: number
+}
 
 interface WgerImageRaw {
   image: string
@@ -48,11 +52,9 @@ interface WgerRawResponse {
 export class WgerService {
   private readonly logger = new Logger(WgerService.name)
   private readonly baseUrl: string
+  private readonly searchCache = new Map<string, CacheEntry>()
 
-  constructor(
-    private config: ConfigService,
-    private redis: RedisService,
-  ) {
+  constructor(private config: ConfigService) {
     this.baseUrl = this.config.get(
       'WGER_API_URL',
       'https://wger.de/api/v2',
@@ -60,17 +62,22 @@ export class WgerService {
   }
 
   /**
-   * Genera una clave de caché para búsquedas.
+   * Genera una clave única para el caché en base a los parámetros de búsqueda.
    */
-  private searchCacheKey(name: string, limit: number, offset: number): string {
-    return `wger:search:${name.toLowerCase().trim()}:${limit}:${offset}`
+  private cacheKey(name: string, limit: number, offset: number): string {
+    return `${name.toLowerCase().trim()}|${limit}|${offset}`
   }
 
   /**
-   * Genera una clave de caché para búsqueda por ID.
+   * Limpia entradas expiradas del caché.
    */
-  private idCacheKey(id: number): string {
-    return `wger:id:${id}`
+  private cleanExpiredCache(): void {
+    const now = Date.now()
+    for (const [key, entry] of this.searchCache.entries()) {
+      if (now - entry.timestamp > CACHE_TTL_MS) {
+        this.searchCache.delete(key)
+      }
+    }
   }
 
   /**
@@ -83,12 +90,15 @@ export class WgerService {
     limit: number = 20,
     offset: number = 0,
   ): Promise<WgerSearchResult> {
-    // Revisar caché en Redis
-    const cacheKey = this.searchCacheKey(name, limit, offset)
-    const cached = await this.redis.get(cacheKey)
-    if (cached) {
+    // Limpiar caché expirada periódicamente (una de cada 10 búsquedas)
+    if (Math.random() < 0.1) this.cleanExpiredCache()
+
+    // Revisar caché
+    const key = this.cacheKey(name, limit, offset)
+    const cached = this.searchCache.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       this.logger.log(`Cache hit for wger search: "${name}" (limit=${limit}, offset=${offset})`)
-      return JSON.parse(cached)
+      return cached.data
     }
 
     this.logger.log(`Cache miss for wger search: "${name}" — fetching from API`)
@@ -136,8 +146,8 @@ export class WgerService {
       hasNextPage: result.next !== null,
     }
 
-    // Guardar en caché Redis con TTL de 30 minutos
-    await this.redis.set(cacheKey, JSON.stringify(data), CACHE_TTL_S)
+    // Guardar en caché
+    this.searchCache.set(key, { data, timestamp: Date.now() })
 
     return data
   }
@@ -147,11 +157,11 @@ export class WgerService {
    * Cachea el resultado por ID (los datos de un ejercicio no cambian frecuentemente).
    */
   async findById(id: number): Promise<WgerExercise | null> {
-    const cacheKey = this.idCacheKey(id)
-    const cached = await this.redis.get(cacheKey)
-    if (cached) {
+    const key = `id:${id}`
+    const cached = this.searchCache.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       this.logger.log(`Cache hit for wger exercise #${id}`)
-      return JSON.parse(cached)
+      return cached.data as unknown as WgerExercise
     }
 
     this.logger.log(`Cache miss for wger exercise #${id} — fetching from API`)
@@ -167,8 +177,7 @@ export class WgerService {
     const item: WgerExerciseRaw = await response.json()
     const exercise = this.mapExercise(item)
 
-    // Guardar en caché Redis con TTL de 30 minutos
-    await this.redis.set(cacheKey, JSON.stringify(exercise), CACHE_TTL_S)
+    this.searchCache.set(key, { data: exercise as unknown as WgerSearchResult, timestamp: Date.now() })
 
     return exercise
   }

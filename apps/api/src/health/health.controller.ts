@@ -1,13 +1,26 @@
 import { Controller, Get } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { RedisService } from '../redis/redis.service'
+import Redis from 'ioredis'
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private prisma: PrismaService,
-    private redisService: RedisService,
-  ) {}
+  private redis: Redis
+
+  constructor(private prisma: PrismaService) {
+    if (process.env.REDIS_HOST) {
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        connectTimeout: 5000,
+      })
+      this.redis.on('error', () => {
+        // Silently handle Redis connection errors
+      })
+    }
+  }
 
   @Get()
   async check() {
@@ -25,10 +38,10 @@ export class HealthController {
     }
 
     // Redis check (5s timeout) — only if configured
-    if (this.redisService.isConnected) {
+    if (this.redis) {
       try {
         await Promise.race([
-          this.redisService.ping(),
+          this.redis.ping(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
         ])
         checks.redis = 'ok'
