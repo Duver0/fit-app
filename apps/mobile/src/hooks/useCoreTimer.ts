@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Audio } from 'expo-av'
-import { BEEP_SOURCE } from '../lib/sound'
+import { BEEP_SOURCE, LONG_BEEP_SOURCE } from '../lib/sound'
 
 export type TimerStatus = 'idle' | 'countdown' | 'running' | 'paused' | 'finished'
 
@@ -133,9 +133,15 @@ export function segmentLabel(type: SegmentType): string {
   return SEGMENT_LABELS[type]
 }
 
-/** Carga un único beep y expone helpers para reproducirlo 1 o 2 veces. */
+/**
+ * Carga los beeps y expone helpers para reproducirlos.
+ * - `playOnce`: pitido corto (avisos 3-2-1, inicio de ejercicio).
+ * - `playDouble`: doble pitido LARGO (doble de duración que el normal)
+ *   para marcar cambios de estado.
+ */
 function useBeep() {
   const soundRef = useRef<Audio.Sound | null>(null)
+  const longSoundRef = useRef<Audio.Sound | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -148,10 +154,18 @@ function useBeep() {
         else sound.unloadAsync().catch(() => {})
       })
       .catch(() => {})
+    Audio.Sound.createAsync(LONG_BEEP_SOURCE)
+      .then(({ sound }) => {
+        if (mounted) longSoundRef.current = sound
+        else sound.unloadAsync().catch(() => {})
+      })
+      .catch(() => {})
     return () => {
       mounted = false
       soundRef.current?.unloadAsync().catch(() => {})
       soundRef.current = null
+      longSoundRef.current?.unloadAsync().catch(() => {})
+      longSoundRef.current = null
     }
   }, [])
 
@@ -165,21 +179,34 @@ function useBeep() {
     }
   }, [])
 
-  const playDouble = useCallback(async () => {
+  const playLongOnce = useCallback(async () => {
     try {
-      await playOnce()
-      setTimeout(() => {
-        playOnce()
-      }, 180)
+      if (!longSoundRef.current) return
+      await longSoundRef.current.setPositionAsync(0)
+      await longSoundRef.current.replayAsync()
     } catch {
       // ignora errores de audio
     }
-  }, [playOnce])
+  }, [])
+
+  const playDouble = useCallback(async () => {
+    try {
+      await playLongOnce()
+      setTimeout(() => {
+        playLongOnce()
+      }, LONG_BEEP_GAP)
+    } catch {
+      // ignora errores de audio
+    }
+  }, [playLongOnce])
 
   return { playOnce, playDouble }
 }
 
 const COUNTDOWN_START = 3
+
+/** Separación entre los dos pitidos largos del doble pitido (beep largo = 300ms). */
+const LONG_BEEP_GAP = 350
 
 export function useCoreTimer(cfg: TimerConfig) {
   const { playOnce, playDouble } = useBeep()
@@ -272,10 +299,7 @@ export function useCoreTimer(cfg: TimerConfig) {
           return 0
         }
         setSegIndexSync(nextIdx)
-        // Pitido al iniciar el siguiente ejercicio
-        if (all[nextIdx].type === 'work') {
-          playOnce()
-        }
+        // La fase siguiente arranca justo después del doble pitido (sin beep extra)
         return 0
       }
 

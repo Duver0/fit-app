@@ -16,6 +16,7 @@ vi.mock('expo-av', () => ({
 // Vitest hace hoisting de este mock antes de importar el hook.
 vi.mock('../../src/lib/sound', () => ({
   BEEP_SOURCE: 0,
+  LONG_BEEP_SOURCE: 0,
 }))
 
 import {
