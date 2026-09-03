@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Audio } from 'expo-av'
 import { BEEP_SOURCE } from '../lib/sound'
 
-export type TimerStatus = 'idle' | 'running' | 'paused' | 'finished'
+export type TimerStatus = 'idle' | 'countdown' | 'running' | 'paused' | 'finished'
 
 export type SegmentType = 'work' | 'interval' | 'rest'
+
+export type RestMode = 'none' | 'half' | 'thirds'
 
 export interface Segment {
   type: SegmentType
@@ -18,17 +20,43 @@ export interface TimerConfig {
   totalTime: number // segundos
   workTime: number // segundos (máx 60)
   intervalTime: number // segundos (máx 15)
-  restEnabled: boolean
-  restTime: number // 30s fijo
+  restMode: RestMode
+  restTime: number // 30s fijo por descanso
+}
+
+/** Número de ejercicio en el que se inserta cada descanso según el modo. */
+export function restExerciseIndexes(totalExercises: number, mode: RestMode): number[] {
+  if (mode === 'half') {
+    // 1 descanso a la mitad (redondeado hacia arriba). Ej: 6 → 3, 5 → 3
+    return [Math.ceil(totalExercises / 2)]
+  }
+  if (mode === 'thirds') {
+    // 2 descansos que parten el tiempo en 3 bloques de ejercicios.
+    return [Math.floor(totalExercises / 3), Math.floor((2 * totalExercises) / 3)]
+  }
+  return []
 }
 
 /**
  * Construye la secuencia de segmentos de la rutina de core.
- * Siempre respeta el tiempo total (suma de duraciones === total).
- * El descanso (30s) se inserta después del ejercicio 3, 6, 9... (máx 1 cada 3
- * ejercicios) sólo si restEnabled.
+ * Siempre respeta el tiempo total (suma de duraciones === total). Los
+ * descansos se cuentan dentro del tiempo total (no agregan duración extra).
+ * Un descanso se inserta al FINALIZAR el ejercicio correspondiente (nunca
+ * interrumpe un ejercicio): after work(ej) + interval(ej).
  */
 export function buildSegments(cfg: TimerConfig): Segment[] {
+  // Contamos cuántos ejercicios (trabajos) caben en el tiempo total.
+  let totalExercises = 0
+  let remaining = cfg.totalTime
+  while (remaining > 0 && totalExercises < 1000) {
+    totalExercises += 1
+    remaining -= cfg.workTime
+    if (remaining <= 0) break
+    remaining -= cfg.intervalTime
+  }
+  if (totalExercises === 0) totalExercises = 1
+  const restAfter = new Set(restExerciseIndexes(totalExercises, cfg.restMode))
+
   const segments: Segment[] = []
   let t = 0
   let exercise = 0
@@ -43,7 +71,7 @@ export function buildSegments(cfg: TimerConfig): Segment[] {
     }
     if (t >= cfg.totalTime) break
 
-    // 2. Intervalo (tiempo para acomodarse al siguiente ejercicio)
+    // 2. Intervalo
     const intervalDur = Math.min(cfg.intervalTime, cfg.totalTime - t)
     if (intervalDur > 0) {
       segments.push({ type: 'interval', exercise, duration: intervalDur })
@@ -51,8 +79,8 @@ export function buildSegments(cfg: TimerConfig): Segment[] {
     }
     if (t >= cfg.totalTime) break
 
-    // 3. Descanso opcional, cada 3 ejercicios (máx 1 por cada 3)
-    if (cfg.restEnabled && exercise > 0 && exercise % 3 === 0) {
+    // 3. Descanso opcional (30s), al finalizar el ejercicio marcado
+    if (restAfter.has(exercise)) {
       const restDur = Math.min(cfg.restTime, cfg.totalTime - t)
       if (restDur > 0) {
         segments.push({ type: 'rest', exercise, duration: restDur })
@@ -120,10 +148,13 @@ function useBeep() {
   return { playOnce, playDouble }
 }
 
+const COUNTDOWN_START = 3
+
 export function useCoreTimer(cfg: TimerConfig) {
   const { playOnce, playDouble } = useBeep()
 
   const [status, setStatus] = useState<TimerStatus>('idle')
+  const [countdown, setCountdown] = useState(COUNTDOWN_START)
   const [segIndex, setSegIndex] = useState(0)
   const [segElapsed, setSegElapsed] = useState(0)
   const [sessionTotal, setSessionTotal] = useState(0)
@@ -174,6 +205,7 @@ export function useCoreTimer(cfg: TimerConfig) {
   const reset = useCallback(() => {
     stopTicking()
     setStatus('idle')
+    setCountdown(COUNTDOWN_START)
     setSegIndexSync(0)
     setSegElapsed(0)
     setSessionTotal(0)
@@ -198,10 +230,8 @@ export function useCoreTimer(cfg: TimerConfig) {
       const nextElapsed = prev + 1
 
       if (nextElapsed >= cur.duration) {
-        // Fin del segmento actual
-        if (cur.type === 'work') {
-          playDouble() // doble pitido al finalizar el ejercicio (llegó a cero)
-        }
+        // Fin del segmento actual: doble pitido marca el cambio de estado
+        playDouble()
         const nextIdx = idx + 1
         if (nextIdx >= all.length) {
           stopTicking()
@@ -218,8 +248,9 @@ export function useCoreTimer(cfg: TimerConfig) {
         return 0
       }
 
-      // Aviso: 3s antes de terminar el trabajo
-      if (cur.type === 'work' && nextElapsed === cur.duration - 3) {
+      // Cuenta 3-2-1 antes de terminar cualquier segmento (trabajo, intervalo o descanso)
+      const isCountdownBeep = ['work', 'interval', 'rest'].includes(cur.type)
+      if (isCountdownBeep && nextElapsed >= cur.duration - COUNTDOWN_START) {
         playOnce()
       }
 
@@ -228,17 +259,31 @@ export function useCoreTimer(cfg: TimerConfig) {
   }, [playOnce, playDouble, setSegIndexSync, stopTicking])
 
   const start = useCallback(() => {
-    if (status === 'running') return
+    if (status === 'running' || status === 'countdown') return
     const segs = buildSegments(cfg)
     segmentsRef.current = segs
     setSessionTotal(segs.reduce((a, s) => a + s.duration, 0))
     setSegIndexSync(0)
     setSegElapsed(0)
-    setStatus('running')
-    playOnce() // pitido de inicio
+    setCountdown(COUNTDOWN_START)
+    setStatus('countdown')
+    playOnce() // pitido al iniciar la cuenta
     stopTicking()
-    intervalRef.current = setInterval(tick, 1000)
-  }, [cfg, playOnce, setSegIndexSync, status, stopTicking, tick])
+    let cd = COUNTDOWN_START
+    intervalRef.current = setInterval(() => {
+      cd -= 1
+      if (cd <= 0) {
+        stopTicking()
+        setCountdown(0)
+        setStatus('running')
+        playDouble() // doble pitido: ¡ya!
+        intervalRef.current = setInterval(tick, 1000)
+      } else {
+        setCountdown(cd)
+        playOnce()
+      }
+    }, 1000)
+  }, [cfg, playOnce, playDouble, setSegIndexSync, status, stopTicking, tick])
 
   const pauseAndLock = useCallback(() => {
     if (status !== 'running') return
@@ -260,6 +305,7 @@ export function useCoreTimer(cfg: TimerConfig) {
 
   return {
     status,
+    countdown,
     segments,
     currentSegment,
     segRemaining,

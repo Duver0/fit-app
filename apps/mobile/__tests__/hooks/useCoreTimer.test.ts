@@ -18,15 +18,38 @@ vi.mock('../../src/lib/sound', () => ({
   BEEP_SOURCE: 0,
 }))
 
-import { buildSegments, segmentLabel, useCoreTimer, type TimerConfig } from '../../src/hooks/useCoreTimer'
+import {
+  buildSegments,
+  segmentLabel,
+  restExerciseIndexes,
+  useCoreTimer,
+  type TimerConfig,
+} from '../../src/hooks/useCoreTimer'
 
 const base: TimerConfig = {
   totalTime: 180,
   workTime: 40,
   intervalTime: 10,
-  restEnabled: false,
+  restMode: 'none',
   restTime: 30,
 }
+
+describe('restExerciseIndexes', () => {
+  it('half: un solo descanso a la mitad (redondeado hacia arriba)', () => {
+    expect(restExerciseIndexes(6, 'half')).toEqual([3])
+    expect(restExerciseIndexes(5, 'half')).toEqual([3])
+    expect(restExerciseIndexes(1, 'half')).toEqual([1])
+  })
+
+  it('thirds: dos descansos partiendo en tercios', () => {
+    expect(restExerciseIndexes(6, 'thirds')).toEqual([2, 4])
+    expect(restExerciseIndexes(9, 'thirds')).toEqual([3, 6])
+  })
+
+  it('none: sin descansos', () => {
+    expect(restExerciseIndexes(6, 'none')).toEqual([])
+  })
+})
 
 describe('buildSegments', () => {
   it('alterna trabajo e intervalo respetando el tiempo total', () => {
@@ -47,38 +70,40 @@ describe('buildSegments', () => {
     })
   })
 
-  it('no inserta descansos si restEnabled es falso', () => {
+  it('no inserta descansos si restMode es none', () => {
     const segs = buildSegments(base)
     expect(segs.some((s) => s.type === 'rest')).toBe(false)
   })
 
-  it('inserta descanso de 30s después del ejercicio 3 solo si restEnabled', () => {
-    const cfg: TimerConfig = { ...base, totalTime: 300, restEnabled: true }
+  it('half: inserta un descanso de 30s al finalizar el ejercicio de la mitad', () => {
+    // totalTime 300 + ciclo 50 => 6 ejercicios => descanso tras el ej. 3
+    const cfg: TimerConfig = { ...base, totalTime: 300, restMode: 'half' }
     const segs = buildSegments(cfg)
+    const rests = segs.filter((s) => s.type === 'rest')
+    expect(rests).toHaveLength(1)
+    expect(rests[0].duration).toBe(30)
     const restIndex = segs.findIndex((s) => s.type === 'rest')
-    expect(restIndex).toBeGreaterThan(-1)
-    expect(segs[restIndex].duration).toBe(30)
-    // La secuencia es: trabajo(ej3) -> intervalo(ej3) -> descanso
+    // Secuencia: trabajo(ej3) -> intervalo(ej3) -> descanso
     expect(segs[restIndex - 1].type).toBe('interval')
     expect(segs[restIndex - 1].exercise).toBe(3)
     expect(segs[restIndex - 2].type).toBe('work')
     expect(segs[restIndex - 2].exercise).toBe(3)
   })
 
+  it('thirds: inserta dos descansos partiendo el trabajo en tercios', () => {
+    // totalTime 300 => 6 ejercicios => descansos tras los ejercicios 2 y 4
+    const cfg: TimerConfig = { ...base, totalTime: 300, restMode: 'thirds' }
+    const segs = buildSegments(cfg)
+    const restExercises = segs.filter((s) => s.type === 'rest').map((s) => s.exercise)
+    expect(restExercises).toEqual([2, 4])
+  })
+
   it('respeta el tiempo total aunque haya descansos (restos se toman del total)', () => {
-    const cfg: TimerConfig = { totalTime: 300, workTime: 40, intervalTime: 10, restEnabled: true, restTime: 30 }
+    const cfg: TimerConfig = { totalTime: 300, workTime: 40, intervalTime: 10, restMode: 'half', restTime: 30 }
     const segs = buildSegments(cfg)
     const total = segs.reduce((a, s) => a + s.duration, 0)
     expect(total).toBe(300)
     expect(segs.some((s) => s.type === 'rest')).toBe(true)
-  })
-
-  it('solo descansa una vez cada 3 ejercicios (máx)', () => {
-    const cfg: TimerConfig = { totalTime: 600, workTime: 40, intervalTime: 10, restEnabled: true, restTime: 30 }
-    const segs = buildSegments(cfg)
-    const works = segs.filter((s) => s.type === 'work').length
-    const rests = segs.filter((s) => s.type === 'rest').length
-    expect(rests).toBe(Math.floor(works / 3))
   })
 
   it('devuelve vacío si el tiempo total es 0', () => {
@@ -86,7 +111,7 @@ describe('buildSegments', () => {
   })
 
   it('trunca el último segmento si el tiempo total corta en medio', () => {
-    const cfg: TimerConfig = { totalTime: 95, workTime: 40, intervalTime: 10, restEnabled: false, restTime: 30 }
+    const cfg: TimerConfig = { totalTime: 95, workTime: 40, intervalTime: 10, restMode: 'none', restTime: 30 }
     const segs = buildSegments(cfg)
     const total = segs.reduce((a, s) => a + s.duration, 0)
     expect(total).toBe(95)
@@ -106,10 +131,10 @@ describe('useCoreTimer', () => {
     vi.useRealTimers()
   })
 
-  it('arranca en reposo y pasa de trabajo a intervalo tras el trabajo completo', async () => {
+  it('arranca con cuenta atrás de 3 y luego pasa de trabajo a intervalo', async () => {
     vi.useFakeTimers()
 
-    const cfg: TimerConfig = { totalTime: 100, workTime: 40, intervalTime: 10, restEnabled: false, restTime: 30 }
+    const cfg: TimerConfig = { totalTime: 100, workTime: 40, intervalTime: 10, restMode: 'none', restTime: 30 }
     const { result } = renderHook(() => useCoreTimer(cfg))
 
     expect(result.current.status).toBe('idle')
@@ -117,15 +142,21 @@ describe('useCoreTimer', () => {
     act(() => {
       result.current.start()
     })
+    expect(result.current.status).toBe('countdown')
+    expect(result.current.countdown).toBe(3)
+
+    // Avanza la cuenta atrás de 3s → arranca el trabajo
+    await act(async () => {
+      vi.advanceTimersByTime(1000 * 3)
+    })
     expect(result.current.status).toBe('running')
     expect(result.current.currentSegment?.type).toBe('work')
     expect(result.current.segRemaining).toBe(40)
 
+    // Avanza los 40s de trabajo → pasa a intervalo
     await act(async () => {
       vi.advanceTimersByTime(1000 * 40)
     })
-
-    // Tras 40s de trabajo debe estar en la fase de intervalo
     expect(result.current.status).toBe('running')
     expect(result.current.currentSegment?.type).toBe('interval')
     expect(result.current.segRemaining).toBe(10)
@@ -135,12 +166,16 @@ describe('useCoreTimer', () => {
     vi.useFakeTimers()
 
     // total = 1 trabajo de 5s (termina en 5)
-    const cfg: TimerConfig = { totalTime: 5, workTime: 5, intervalTime: 5, restEnabled: false, restTime: 30 }
+    const cfg: TimerConfig = { totalTime: 5, workTime: 5, intervalTime: 5, restMode: 'none', restTime: 30 }
     const { result } = renderHook(() => useCoreTimer(cfg))
 
     act(() => {
       result.current.start()
     })
+    await act(async () => {
+      vi.advanceTimersByTime(1000 * 3)
+    })
+    expect(result.current.status).toBe('running')
 
     await act(async () => {
       vi.advanceTimersByTime(1000 * 5)
@@ -152,11 +187,14 @@ describe('useCoreTimer', () => {
   it('pausa y reanuda preservando el progreso', async () => {
     vi.useFakeTimers()
 
-    const cfg: TimerConfig = { totalTime: 100, workTime: 40, intervalTime: 10, restEnabled: false, restTime: 30 }
+    const cfg: TimerConfig = { totalTime: 100, workTime: 40, intervalTime: 10, restMode: 'none', restTime: 30 }
     const { result } = renderHook(() => useCoreTimer(cfg))
 
     act(() => {
       result.current.start()
+    })
+    await act(async () => {
+      vi.advanceTimersByTime(1000 * 3)
     })
     await act(async () => {
       vi.advanceTimersByTime(1000 * 10)
@@ -187,4 +225,3 @@ describe('useCoreTimer', () => {
     expect(result.current.currentSegment?.type).toBe('interval')
   })
 })
-

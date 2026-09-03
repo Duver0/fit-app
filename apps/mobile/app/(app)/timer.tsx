@@ -2,13 +2,12 @@ import { useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Switch,
   TouchableOpacity,
   ScrollView,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/theme/ThemeProvider'
-import { useTimerStore } from '../../src/stores/timerStore'
+import { useTimerStore, RestMode } from '../../src/stores/timerStore'
 import { useCoreTimer, TimerConfig, segmentLabel } from '../../src/hooks/useCoreTimer'
 import ConfirmModal from '../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../src/lib/toast'
@@ -110,7 +109,7 @@ export default function TimerScreen() {
   const setTotalSeconds = useTimerStore((s) => s.setTotalSeconds)
   const setWorkSeconds = useTimerStore((s) => s.setWorkSeconds)
   const setIntervalSeconds = useTimerStore((s) => s.setIntervalSeconds)
-  const setRestEnabled = useTimerStore((s) => s.setRestEnabled)
+  const setRestMode = useTimerStore((s) => s.setRestMode)
 
   const [showPauseConfirm, setShowPauseConfirm] = useState(false)
   const [showFinishConfirm, setShowFinishConfirm] = useState(false)
@@ -121,7 +120,7 @@ export default function TimerScreen() {
       totalTime: settings.totalSeconds,
       workTime: settings.workSeconds,
       intervalTime: settings.intervalSeconds,
-      restEnabled: settings.restEnabled,
+      restMode: settings.restMode,
       restTime: 30,
     }),
     [settings],
@@ -250,30 +249,65 @@ export default function TimerScreen() {
 
             <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 18 }} />
 
-            {/* Descansos */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
-                  Descansos (30s)
-                </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                  Un descanso de 30s cada 3 ejercicios. Opcional.
-                </Text>
-              </View>
-              <Switch
-                value={settings.restEnabled}
-                onValueChange={setRestEnabled}
-                trackColor={{ false: colors.border, true: colors.accent }}
-                thumbColor={colors.surface}
-                accessibilityLabel="Habilitar descansos"
-              />
+            {/* Modo de descanso */}
+            <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
+              Descansos (30s)
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2, marginBottom: 10 }}>
+              Elegí cómo distribuir los descansos. Nunca cortan un ejercicio a mitad.
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              {(
+                [
+                  { key: 'none', label: 'Sin descansos', hint: 'Solo trabajo e intervalo' },
+                  { key: 'half', label: 'Mitad', hint: '1 descanso a la mitad de la sesión' },
+                  { key: 'thirds', label: 'Tercios', hint: '2 descansos repartiendo el tiempo en 3' },
+                ] as { key: RestMode; label: string; hint: string }[]
+              ).map((opt) => {
+                const active = settings.restMode === opt.key
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => setRestMode(opt.key)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={opt.label}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderRadius: 14,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.accent : colors.border,
+                      backgroundColor: active ? `${colors.accent}14` : colors.background,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Ionicons
+                      name={active ? 'radio-button-on' : 'radio-button-off'}
+                      size={20}
+                      color={active ? colors.accent : colors.textSecondary}
+                    />
+                    <View style={{ marginLeft: 10, flex: 1 }}>
+                      <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
+                        {opt.label}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 1 }}>
+                        {opt.hint}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })}
             </View>
           </View>
 
           {/* Resumen */}
-          {settings.restEnabled && (
+          {settings.restMode !== 'none' && (
             <Text style={{ color: colors.accent, fontSize: 13, textAlign: 'center', marginTop: 12 }}>
-              ⏸ Descansos de 30s activados cada 3 ejercicios
+              ⏸ Descansos de 30s activados
+              {settings.restMode === 'half' ? ' a la mitad' : ' (tercios)'}
             </Text>
           )}
 
@@ -304,6 +338,42 @@ export default function TimerScreen() {
             </Text>
           </TouchableOpacity>
         </ScrollView>
+      </View>
+    )
+  }
+
+  // Modo countdown (cuenta atrás de 3 antes de arrancar)
+  if (timer.status === 'countdown') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+          Preparate…
+        </Text>
+
+        <View style={{
+          width: 220,
+          height: 220,
+          borderRadius: 110,
+          backgroundColor: colors.surface,
+          borderWidth: 8,
+          borderColor: colors.primary,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginTop: 28,
+          shadowColor: colors.text,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
+          shadowRadius: 14,
+          elevation: 5,
+        }}>
+          <Text style={{ color: colors.primary, fontSize: 90, fontWeight: '800', fontVariant: ['tabular-nums'] as const }}>
+            {timer.countdown}
+          </Text>
+        </View>
+
+        <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 20 }}>
+          El ejercicio arranca en {timer.countdown}…
+        </Text>
       </View>
     )
   }
