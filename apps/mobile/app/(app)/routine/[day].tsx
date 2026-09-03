@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../../src/theme/ThemeProvider'
 import { useSmartBack } from '../../../src/hooks/useSmartBack'
 import {
@@ -97,6 +98,7 @@ function formatPerformance(perf: any, unit: string): string {
 
 export default function RoutineDayScreen() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const { day } = useLocalSearchParams<{ day: string }>()
   const handleBack = useSmartBack('/(app)/routine')
   const dayOfWeek = parseInt(day ?? '0', 10)
@@ -526,7 +528,7 @@ export default function RoutineDayScreen() {
       {/* Header with back arrow + name edit button + add button */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8,
+        paddingHorizontal: 16, paddingTop: insets.top + 14, paddingBottom: 8,
         backgroundColor: colors.background,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
