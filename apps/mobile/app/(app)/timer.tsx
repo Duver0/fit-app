@@ -6,6 +6,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useTimerStore, RestMode } from '../../src/stores/timerStore'
 import { useCoreTimer, TimerConfig, segmentLabel, allowedRestModes, normalizeRestMode } from '../../src/hooks/useCoreTimer'
@@ -105,6 +106,7 @@ function Stepper({ label, valueLabel, onDecrement, onIncrement, disabled, color 
 
 export default function TimerScreen() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const settings = useTimerStore((s) => s.settings)
   const setTotalSeconds = useTimerStore((s) => s.setTotalSeconds)
   const setWorkSeconds = useTimerStore((s) => s.setWorkSeconds)
@@ -192,10 +194,10 @@ export default function TimerScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: 0 }}>
             Timer de Core
           </Text>
 
@@ -347,7 +349,7 @@ export default function TimerScreen() {
   // Modo countdown (cuenta atrás de 3 antes de arrancar)
   if (timer.status === 'countdown') {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: insets.top + 20, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
           Preparate…
         </Text>
@@ -388,9 +390,9 @@ export default function TimerScreen() {
   const progressPercent = Math.min(100, Math.max(0, timer.globalProgress * 100))
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, padding: 20 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: insets.top + 12 }}>
       {/* Encabezado de estado */}
-      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 8 }}>
+      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 0 }}>
         {isFinished
           ? '¡Rutina completada!'
           : isPaused
