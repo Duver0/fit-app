@@ -7,6 +7,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useTimerStore, RestMode } from '../../src/stores/timerStore'
 import { useCoreTimer, TimerConfig, segmentLabel, allowedRestModes, normalizeRestMode } from '../../src/hooks/useCoreTimer'
@@ -145,6 +146,34 @@ export default function TimerScreen() {
       setRestMode(normalized)
     }
   }, [settings.totalSeconds, settings.restMode, setRestMode])
+
+  // Mantener la pantalla encendida solo mientras corre la rutina
+  // (cuenta atrás + ejercicio), como cuando se mira un video.
+  // En pausa/fin/config se libera para no gastar batería.
+  // En web (PWA) usa la Wake Lock API: si el navegador libera el lock
+  // al ocultar la pestaña, se re-activa al volver si la rutina sigue corriendo.
+  useEffect(() => {
+    const tag = 'core-timer'
+    if (timer.status === 'running' || timer.status === 'countdown') {
+      activateKeepAwakeAsync(tag).catch(() => {})
+      const onVisible = () => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          activateKeepAwakeAsync(tag).catch(() => {})
+        }
+      }
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', onVisible)
+      }
+      return () => {
+        if (typeof document !== 'undefined') {
+          document.removeEventListener('visibilitychange', onVisible)
+        }
+        deactivateKeepAwake(tag).catch(() => {})
+      }
+    }
+    deactivateKeepAwake(tag).catch(() => {})
+    return undefined
+  }, [timer.status])
 
   // Preview de sesión: base + descansos (los descansos alargan la sesión).
   const sessionTotal = useMemo(
