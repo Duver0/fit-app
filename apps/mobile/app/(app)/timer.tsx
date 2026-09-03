@@ -147,6 +147,15 @@ export default function TimerScreen() {
     }
   }, [settings.totalSeconds, settings.restMode, setRestMode])
 
+  // Al finalizar el tiempo: toast de celebración y vuelta
+  // automática a la configuración inicial (sin pantalla intermedia).
+  useEffect(() => {
+    if (timer.status === 'finished') {
+      showSuccessToast('¡Rutina completada! 🎉')
+      timer.reset()
+    }
+  }, [timer.status, timer.reset])
+
   // Mantener la pantalla encendida solo mientras corre la rutina
   // (cuenta atrás + ejercicio), como cuando se mira un video.
   // En pausa/fin/config se libera para no gastar batería.
@@ -411,9 +420,9 @@ export default function TimerScreen() {
     )
   }
 
-  // Modo en progreso / pausado / finalizado
+  // Modo en progreso / pausado
+  // (al finalizar, un efecto vuelve solo a la configuración con un toast)
   const isPaused = timer.status === 'paused'
-  const isFinished = timer.status === 'finished'
 
   // Muestra el progreso global como barra
   const progressPercent = Math.min(100, Math.max(0, timer.globalProgress * 100))
@@ -422,11 +431,7 @@ export default function TimerScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: insets.top + 16 }}>
       {/* Encabezado de estado */}
       <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 0 }}>
-        {isFinished
-          ? '¡Rutina completada!'
-          : isPaused
-          ? 'ENTRENAMIENTO EN PAUSA'
-          : 'ESFUERZATE 💪'}
+        {isPaused ? 'ENTRENAMIENTO EN PAUSA' : 'ESFUERZATE 💪'}
       </Text>
 
       {/* Número de ejercicio / fase */}
@@ -459,19 +464,17 @@ export default function TimerScreen() {
       }}>
         <Text style={{
           color: phaseColor,
-          fontSize: isFinished ? 56 : 80,
+          fontSize: 80,
           fontWeight: '800',
           fontVariant: ['tabular-nums'] as const,
         }}>
-          {isFinished ? '✓' : formatTime(timer.segRemaining)}
+          {formatTime(timer.segRemaining)}
         </Text>
-        {!isFinished && (
-          <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 6 }}>
-            {timer.currentSegment?.type === 'work'
-              ? `Quedan en este ejercicio`
-              : `Quedan en este ${segmentLabel(timer.currentSegment?.type || 'interval').toLowerCase()}`}
-          </Text>
-        )}
+        <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 6 }}>
+          {timer.currentSegment?.type === 'work'
+            ? `Quedan en este ejercicio`
+            : `Quedan en este ${segmentLabel(timer.currentSegment?.type || 'interval').toLowerCase()}`}
+        </Text>
       </View>
 
       {/* Barra de progreso global */}
@@ -495,87 +498,64 @@ export default function TimerScreen() {
       </Text>
 
       {/* Controles */}
-      {!isFinished && (
-        <View style={{ marginTop: 20, gap: 12 }}>
-          {isPaused ? (
-            <TouchableOpacity
-              onPress={timer.resume}
-              accessibilityRole="button"
-              accessibilityLabel="Reanudar entrenamiento"
-              style={{
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: colors.success,
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-            >
-              <Ionicons name="play" size={26} color="#1A1A1A" />
-              <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>REANUDAR</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => setShowPauseConfirm(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Pausar entrenamiento"
-              style={{
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: colors.warning,
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-            >
-              <Ionicons name="pause" size={26} color="#1A1A1A" />
-              <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>PAUSAR</Text>
-            </TouchableOpacity>
-          )}
-
+      <View style={{ marginTop: 20, gap: 12 }}>
+        {isPaused ? (
           <TouchableOpacity
-            onPress={() => setShowFinishConfirm(true)}
+            onPress={timer.resume}
             accessibilityRole="button"
-            accessibilityLabel="Finalizar entrenamiento"
-            style={{
-              height: 52,
-              borderRadius: 26,
-              backgroundColor: 'transparent',
-              borderWidth: 1,
-              borderColor: colors.error,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: colors.error, fontSize: 16, fontWeight: '700' }}>
-              Finalizar y salir
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {isFinished && (
-        <View style={{ marginTop: 20 }}>
-          <TouchableOpacity
-            onPress={timer.reset}
-            accessibilityRole="button"
-            accessibilityLabel="Volver a configurar"
+            accessibilityLabel="Reanudar entrenamiento"
             style={{
               height: 64,
               borderRadius: 32,
-              backgroundColor: colors.primary,
+              backgroundColor: colors.success,
               justifyContent: 'center',
               alignItems: 'center',
+              flexDirection: 'row',
+              gap: 8,
             }}
           >
-            <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>
-              VOLVER A CONFIGURAR
-            </Text>
+            <Ionicons name="play" size={26} color="#1A1A1A" />
+            <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>REANUDAR</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        ) : (
+          <TouchableOpacity
+            onPress={() => setShowPauseConfirm(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Pausar entrenamiento"
+            style={{
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: colors.warning,
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexDirection: 'row',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="pause" size={26} color="#1A1A1A" />
+            <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>PAUSAR</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          onPress={() => setShowFinishConfirm(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Finalizar entrenamiento"
+          style={{
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: colors.error,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: colors.error, fontSize: 16, fontWeight: '700' }}>
+            Finalizar y salir
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Confirmación de pausa */}
       <ConfirmModal
