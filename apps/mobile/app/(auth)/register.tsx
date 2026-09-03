@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native'
 import { router } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuth } from '../../src/hooks/useAuth'
 import { useSmartBack } from '../../src/hooks/useSmartBack'
 
 export default function RegisterScreen() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const { register, isLoading } = useAuth()
   const handleBack = useSmartBack('/(auth)/login')
   const [name, setName] = useState('')
@@ -35,7 +37,7 @@ export default function RegisterScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 24, paddingTop: 60 }}>
+      <View style={{ padding: 24, paddingTop: insets.top + 32 }}>
         <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: 24 }}>
           Crear cuenta
         </Text>

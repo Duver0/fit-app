@@ -223,7 +223,7 @@ export default function TimerScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView
-          contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: 24 }}
+          contentContainerStyle={{ padding: 16, paddingTop: insets.top + 14, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: 0 }}>
@@ -419,7 +419,7 @@ export default function TimerScreen() {
   const progressPercent = Math.min(100, Math.max(0, timer.globalProgress * 100))
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: insets.top + 12 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: insets.top + 16 }}>
       {/* Encabezado de estado */}
       <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 0 }}>
         {isFinished

@@ -23,7 +23,7 @@ export default function ScreenHeader({ title, showBack = true, rightAction, fall
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
-      paddingTop: insets.top + 8,
+      paddingTop: insets.top + 14,
       paddingBottom: 12,
       backgroundColor: colors.background,
     }}>
