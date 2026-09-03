@@ -69,12 +69,12 @@ export function normalizeRestMode(totalSeconds: number, mode: RestMode): RestMod
 
 /**
  * Construye la secuencia de segmentos de la rutina de core.
- * La base (trabajo + intervalos) siempre se respeta íntegra hasta totalTime;
- * los descansos (30s) se SUMAN encima y alargan la sesión en consecuencia
- * (nunca le restan tiempo a los ejercicios).
- * Un descanso se inserta al FINALIZAR el ejercicio correspondiente (nunca
- * interrumpe un ejercicio): después de work(ej) + interval(ej), y nunca
- * como último segmento de la sesión.
+ * La base (trabajo + intervalos) se respeta íntegra hasta totalTime, salvo
+ * los intervalos que un descanso reemplaza (ver abajo).
+ * Cada descanso (30s) se SUMA a la sesión (alarga el total) y REEMPLAZA al
+ * intervalo de ese ejercicio: un descanso nunca queda antes ni después de
+ * un intervalo (siempre entre dos trabajos). Tampoco interrumpe un ejercicio
+ * ni queda como último segmento de la sesión.
  */
 export function buildSegments(cfg: TimerConfig): Segment[] {
   const effectiveMode = normalizeRestMode(cfg.totalTime, cfg.restMode)
@@ -105,19 +105,21 @@ export function buildSegments(cfg: TimerConfig): Segment[] {
   const restAfter = new Set(restExerciseIndexes(totalExercises, effectiveMode))
   if (restAfter.size === 0) return base
 
-  // 2. Insertar descansos completos tras el intervalo del ejercicio marcado
-  // (nunca al final de la sesión).
+  // 2. Reemplazar por un descanso completo el intervalo del ejercicio
+  // marcado (el descanso queda entre dos trabajos, nunca junto a un
+  // intervalo ni al final de la sesión).
   const segments: Segment[] = []
   for (let i = 0; i < base.length; i++) {
     const seg = base[i]
-    segments.push(seg)
     if (
       seg.type === 'interval' &&
       restAfter.has(seg.exercise) &&
       i < base.length - 1
     ) {
       segments.push({ type: 'rest', exercise: seg.exercise, duration: cfg.restTime })
+      continue
     }
+    segments.push(seg)
   }
 
   return segments

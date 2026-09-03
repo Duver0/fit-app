@@ -97,19 +97,32 @@ describe('buildSegments', () => {
     expect(segs.some((s) => s.type === 'rest')).toBe(false)
   })
 
-  it('half: inserta un descanso de 30s al finalizar el ejercicio de la mitad', () => {
-    // totalTime 300 + ciclo 50 => 6 ejercicios => descanso tras el ej. 3
+  it('half: el descanso reemplaza al intervalo (trabajo -> descanso -> trabajo)', () => {
+    // totalTime 300 + ciclo 50 => 6 ejercicios => descanso en lugar del intervalo del ej. 3
     const cfg: TimerConfig = { ...base, totalTime: 300, restMode: 'half' }
     const segs = buildSegments(cfg)
     const rests = segs.filter((s) => s.type === 'rest')
     expect(rests).toHaveLength(1)
     expect(rests[0].duration).toBe(30)
     const restIndex = segs.findIndex((s) => s.type === 'rest')
-    // Secuencia: trabajo(ej3) -> intervalo(ej3) -> descanso
-    expect(segs[restIndex - 1].type).toBe('interval')
+    // Secuencia: trabajo(ej3) -> descanso -> trabajo(ej4), sin intervalo pegado
+    expect(segs[restIndex - 1].type).toBe('work')
     expect(segs[restIndex - 1].exercise).toBe(3)
-    expect(segs[restIndex - 2].type).toBe('work')
-    expect(segs[restIndex - 2].exercise).toBe(3)
+    expect(segs[restIndex + 1].type).toBe('work')
+    expect(segs[restIndex + 1].exercise).toBe(4)
+  })
+
+  it('ningún descanso queda antes ni después de un intervalo', () => {
+    for (const mode of ['half', 'thirds'] as const) {
+      const cfg: TimerConfig = { ...base, totalTime: 600, restMode: mode }
+      const segs = buildSegments(cfg)
+      expect(segs.some((s) => s.type === 'rest')).toBe(true)
+      segs.forEach((s, i) => {
+        if (s.type !== 'rest') return
+        expect(segs[i - 1]?.type).not.toBe('interval')
+        expect(segs[i + 1]?.type).not.toBe('interval')
+      })
+    }
   })
 
   it('thirds: inserta dos descansos partiendo el trabajo en tercios', () => {
@@ -120,30 +133,34 @@ describe('buildSegments', () => {
     expect(restExercises).toEqual([2, 4])
   })
 
-  it('half: los descansos se SUMAN a la base sin recortar ejercicios (300 + 30)', () => {
+  it('half: el descanso se SUMA pero reemplaza su intervalo (300 - 10 + 30 = 320)', () => {
     const cfg: TimerConfig = { totalTime: 300, workTime: 40, intervalTime: 10, restMode: 'half', restTime: 30 }
     const segs = buildSegments(cfg)
     const total = segs.reduce((a, s) => a + s.duration, 0)
-    expect(total).toBe(330)
+    expect(total).toBe(320)
     expect(segs.some((s) => s.type === 'rest')).toBe(true)
-    // La base (trabajo) queda intacta: 6 ejercicios de 40s
+    // Los trabajos quedan intactos: 6 ejercicios de 40s
     const works = segs.filter((s) => s.type === 'work')
     expect(works).toHaveLength(6)
     expect(works.every((w) => w.duration === 40)).toBe(true)
+    // Hay un intervalo menos (el reemplazado por el descanso)
+    expect(segs.filter((s) => s.type === 'interval')).toHaveLength(5)
   })
 
-  it('thirds: dos descansos se SUMAN a la base (300 + 60)', () => {
+  it('thirds: dos descansos reemplazan sus intervalos (300 - 20 + 60 = 340)', () => {
     const cfg: TimerConfig = { totalTime: 300, workTime: 40, intervalTime: 10, restMode: 'thirds', restTime: 30 }
     const segs = buildSegments(cfg)
     const total = segs.reduce((a, s) => a + s.duration, 0)
-    expect(total).toBe(360)
+    expect(total).toBe(340)
     expect(segs.filter((s) => s.type === 'rest')).toHaveLength(2)
   })
 
-  it('con 2 min el modo thirds degrada a half (120 + 30)', () => {
+  it('con 2 min el modo thirds degrada a half (120 - 10 + 30 = 140)', () => {
     const cfg: TimerConfig = { totalTime: 120, workTime: 40, intervalTime: 10, restMode: 'thirds', restTime: 30 }
     const segs = buildSegments(cfg)
     expect(segs.filter((s) => s.type === 'rest')).toHaveLength(1)
+    const total = segs.reduce((a, s) => a + s.duration, 0)
+    expect(total).toBe(140)
   })
 
   it('devuelve vacío si el tiempo total es 0', () => {
