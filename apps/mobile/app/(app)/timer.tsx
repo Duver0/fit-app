@@ -149,10 +149,6 @@ export default function TimerScreen() {
     () => timer.segments.reduce((a, s) => a + s.duration, 0),
     [timer.segments],
   )
-  const sessionRests = useMemo(
-    () => timer.segments.filter((s) => s.type === 'rest').length,
-    [timer.segments],
-  )
 
   // Función de color según fase
   const phaseColor =
@@ -228,13 +224,6 @@ export default function TimerScreen() {
             <Text style={{ color: colors.primary, fontSize: 40, fontWeight: '800', fontVariant: ['tabular-nums'] as const, marginTop: 2 }}>
               {formatTotal(sessionTotal)}
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-              {timer.totalWorkSegments > 0
-                ? sessionRests > 0
-                  ? `${formatTotal(settings.totalSeconds)} + ${formatTotal(sessionRests * 30)} · ${timer.totalWorkSegments} ej.`
-                  : `${timer.totalWorkSegments} ejercicios`
-                : 'configura la secuencia'}
-            </Text>
           </View>
 
           {/* Configuradores */}
@@ -274,14 +263,6 @@ export default function TimerScreen() {
             </View>
 
             <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
-
-            {/* Modo de descanso */}
-            <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
-              Descansos (30s)
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2, marginBottom: 10 }}>
-              Los descansos se suman al tiempo base. Nunca cortan un ejercicio a mitad.
-            </Text>
 
             <View style={{ gap: 8 }}>
               {(
@@ -331,15 +312,6 @@ export default function TimerScreen() {
               })}
             </View>
           </View>
-
-          {/* Resumen */}
-          {settings.restMode !== 'none' && (
-            <Text style={{ color: colors.accent, fontSize: 13, textAlign: 'center', marginTop: 8 }}>
-              ⏸ +{formatTotal(sessionRests * 30)} de descansos
-              {settings.restMode === 'half' ? ' a la mitad' : ' (tercios)'}
-              {` · sesión ${formatTotal(sessionTotal)}`}
-            </Text>
-          )}
 
           {/* Botón iniciar grande */}
           <TouchableOpacity
