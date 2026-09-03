@@ -334,10 +334,18 @@ export default function RoutineDayScreen() {
       setEditWeightLb(w != null && w > 0 ? kgToLb(w).toString() : '')
       setEditValue('')
       setEditValueLb('')
-    } else {
+    } else if (item.exercise.unit === 'KG') {
       const v = perf?.value
       setEditValue(v != null ? v.toString() : '')
       setEditValueLb(v != null && v > 0 ? kgToLb(v).toString() : '')
+      setEditReps('')
+      setEditWeight('')
+      setEditWeightLb('')
+    } else {
+      // Unidades simples sin peso (REPS, MIN, SEC, M): un solo valor
+      const v = perf?.value
+      setEditValue(v != null ? v.toString() : '')
+      setEditValueLb('')
       setEditReps('')
       setEditWeight('')
       setEditWeightLb('')
@@ -366,8 +374,8 @@ export default function RoutineDayScreen() {
             },
           },
         })
-      } else {
-        // Para unidades simples: editValue es el valor en kg, editValueLb es el valor en lb
+      } else if (unit === 'KG') {
+        // KG: editValue es el valor en kg, editValueLb es el valor en lb
         let value = parseFloat(editValue)
         // Si el usuario escribió en lb, convertir a kg
         if (isNaN(value) || value <= 0) {
@@ -379,6 +387,21 @@ export default function RoutineDayScreen() {
             showErrorToast('Valor inválido')
             return
           }
+        }
+        await upsertPerformance({
+          variables: {
+            input: {
+              exerciseId,
+              value,
+            },
+          },
+        })
+      } else {
+        // Unidades simples sin peso (REPS, MIN, SEC, M): valor directo
+        const value = parseFloat(editValue)
+        if (isNaN(value) || value <= 0) {
+          showErrorToast('Valor inválido')
+          return
         }
         await upsertPerformance({
           variables: {
@@ -459,8 +482,10 @@ export default function RoutineDayScreen() {
           currentPerf: null,
         })
         setEditValue('')
+        setEditValueLb('')
         setEditReps('')
         setEditWeight('')
+        setEditWeightLb('')
       }, 500)
     } catch (e: any) {
       showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
@@ -1289,11 +1314,11 @@ export default function RoutineDayScreen() {
                   </View>
                 </View>
               </>
-            ) : (
+            ) : showEditMark.unit === 'KG' ? (
               <>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Valor ({UNIT_LABELS[showEditMark.unit] || showEditMark.unit})
+                    Valor (kg)
                   </Text>
                   <View style={{
                     backgroundColor: colors.primary + '15',
@@ -1352,6 +1377,29 @@ export default function RoutineDayScreen() {
                     />
                   </View>
                 </View>
+              </>
+            ) : (
+              <>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                  Valor ({UNIT_LABELS[showEditMark.unit] || showEditMark.unit})
+                </Text>
+                <TextInput
+                  value={editValue}
+                  onChangeText={setEditValue}
+                  placeholder="Tu marca"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                  style={{
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderRadius: 12,
+                    padding: 16,
+                    fontSize: 18,
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                />
               </>
             )}
 
