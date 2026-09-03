@@ -37,55 +37,86 @@ export function restExerciseIndexes(totalExercises: number, mode: RestMode): num
   return []
 }
 
+/** Minutos enteros de la base configurada. */
+export function totalMinutes(totalSeconds: number): number {
+  return Math.floor(Math.max(0, totalSeconds) / 60)
+}
+
+/**
+ * Modos de descanso permitidos según la duración base.
+ * - >= 3 min: none, half, thirds
+ * - == 2 min: none, half (thirds requiere 3+)
+ * - <= 1 min: solo none
+ */
+export function allowedRestModes(totalSeconds: number): RestMode[] {
+  const m = totalMinutes(totalSeconds)
+  if (m >= 3) return ['none', 'half', 'thirds']
+  if (m === 2) return ['none', 'half']
+  return ['none']
+}
+
+/**
+ * Normaliza un modo de descanso a uno válido para la duración dada.
+ * Si thirds no está permitido pero half sí, degrada a half;
+ * en otro caso cae a none. Cambio silencioso (sin toast).
+ */
+export function normalizeRestMode(totalSeconds: number, mode: RestMode): RestMode {
+  const allowed = allowedRestModes(totalSeconds)
+  if (allowed.includes(mode)) return mode
+  if (mode === 'thirds' && allowed.includes('half')) return 'half'
+  return 'none'
+}
+
 /**
  * Construye la secuencia de segmentos de la rutina de core.
- * Siempre respeta el tiempo total (suma de duraciones === total). Los
- * descansos se cuentan dentro del tiempo total (no agregan duración extra).
+ * La base (trabajo + intervalos) siempre se respeta íntegra hasta totalTime;
+ * los descansos (30s) se SUMAN encima y alargan la sesión en consecuencia
+ * (nunca le restan tiempo a los ejercicios).
  * Un descanso se inserta al FINALIZAR el ejercicio correspondiente (nunca
- * interrumpe un ejercicio): after work(ej) + interval(ej).
+ * interrumpe un ejercicio): después de work(ej) + interval(ej), y nunca
+ * como último segmento de la sesión.
  */
 export function buildSegments(cfg: TimerConfig): Segment[] {
-  // Contamos cuántos ejercicios (trabajos) caben en el tiempo total.
-  let totalExercises = 0
-  let remaining = cfg.totalTime
-  while (remaining > 0 && totalExercises < 1000) {
-    totalExercises += 1
-    remaining -= cfg.workTime
-    if (remaining <= 0) break
-    remaining -= cfg.intervalTime
-  }
-  if (totalExercises === 0) totalExercises = 1
-  const restAfter = new Set(restExerciseIndexes(totalExercises, cfg.restMode))
+  const effectiveMode = normalizeRestMode(cfg.totalTime, cfg.restMode)
 
-  const segments: Segment[] = []
+  // 1. Base: trabajo + intervalos hasta completar totalTime (sin descansos).
+  const base: Segment[] = []
   let t = 0
   let exercise = 0
-
   while (t < cfg.totalTime) {
-    // 1. Trabajo
     const workDur = Math.min(cfg.workTime, cfg.totalTime - t)
     if (workDur > 0) {
       exercise += 1
-      segments.push({ type: 'work', exercise, duration: workDur })
+      base.push({ type: 'work', exercise, duration: workDur })
       t += workDur
     }
     if (t >= cfg.totalTime) break
 
-    // 2. Intervalo
     const intervalDur = Math.min(cfg.intervalTime, cfg.totalTime - t)
     if (intervalDur > 0) {
-      segments.push({ type: 'interval', exercise, duration: intervalDur })
+      base.push({ type: 'interval', exercise, duration: intervalDur })
       t += intervalDur
     }
     if (t >= cfg.totalTime) break
+  }
 
-    // 3. Descanso opcional (30s), al finalizar el ejercicio marcado
-    if (restAfter.has(exercise)) {
-      const restDur = Math.min(cfg.restTime, cfg.totalTime - t)
-      if (restDur > 0) {
-        segments.push({ type: 'rest', exercise, duration: restDur })
-        t += restDur
-      }
+  const totalExercises = base.filter((s) => s.type === 'work').length
+  if (totalExercises === 0) return []
+  const restAfter = new Set(restExerciseIndexes(totalExercises, effectiveMode))
+  if (restAfter.size === 0) return base
+
+  // 2. Insertar descansos completos tras el intervalo del ejercicio marcado
+  // (nunca al final de la sesión).
+  const segments: Segment[] = []
+  for (let i = 0; i < base.length; i++) {
+    const seg = base[i]
+    segments.push(seg)
+    if (
+      seg.type === 'interval' &&
+      restAfter.has(seg.exercise) &&
+      i < base.length - 1
+    ) {
+      segments.push({ type: 'rest', exercise: seg.exercise, duration: cfg.restTime })
     }
   }
 

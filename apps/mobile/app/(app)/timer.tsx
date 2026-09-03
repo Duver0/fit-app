@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useTimerStore, RestMode } from '../../src/stores/timerStore'
-import { useCoreTimer, TimerConfig, segmentLabel } from '../../src/hooks/useCoreTimer'
+import { useCoreTimer, TimerConfig, segmentLabel, allowedRestModes, normalizeRestMode } from '../../src/hooks/useCoreTimer'
 import ConfirmModal from '../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../src/lib/toast'
 
@@ -130,6 +130,30 @@ export default function TimerScreen() {
 
   const totalMin = Math.floor(settings.totalSeconds / 60)
 
+  // Modos de descanso permitidos para la duración base + autocorrección
+  // silenciosa (sin toast) cuando la duración deja inválido el modo actual.
+  const allowedModes = useMemo(
+    () => allowedRestModes(settings.totalSeconds),
+    [settings.totalSeconds],
+  )
+
+  useEffect(() => {
+    const normalized = normalizeRestMode(settings.totalSeconds, settings.restMode)
+    if (normalized !== settings.restMode) {
+      setRestMode(normalized)
+    }
+  }, [settings.totalSeconds, settings.restMode, setRestMode])
+
+  // Preview de sesión: base + descansos (los descansos alargan la sesión).
+  const sessionTotal = useMemo(
+    () => timer.segments.reduce((a, s) => a + s.duration, 0),
+    [timer.segments],
+  )
+  const sessionRests = useMemo(
+    () => timer.segments.filter((s) => s.type === 'rest').length,
+    [timer.segments],
+  )
+
   // Función de color según fase
   const phaseColor =
     timer.currentSegment?.type === 'work'
@@ -167,47 +191,49 @@ export default function TimerScreen() {
     timer.reset()
   }
 
-  // Modo inactivo: configuración
+  // Modo inactivo: configuración (compacto, sin scroll en pantallas típicas)
   if (timer.status === 'idle') {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ fontSize: 26, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: 8 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: 4 }}>
             Timer de Core
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 24 }}>
-            Configurá tu rutina y dale empezar. Sonará un pitido en cada fase.
-          </Text>
 
-          {/* Preview del tiempo total */}
+          {/* Preview del tiempo total (sesión = base + descansos) */}
           <View style={{
             alignSelf: 'center',
-            width: 220,
-            height: 220,
-            borderRadius: 110,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
             backgroundColor: colors.surface,
-            borderWidth: 6,
+            borderWidth: 5,
             borderColor: colors.primary,
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: 28,
+            marginTop: 10,
+            marginBottom: 14,
             shadowColor: colors.text,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.12,
             shadowRadius: 12,
             elevation: 4,
           }}>
-            <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600' }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600' }}>
               TIEMPO TOTAL
             </Text>
-            <Text style={{ color: colors.primary, fontSize: 52, fontWeight: '800', fontVariant: ['tabular-nums'] as const, marginTop: 4 }}>
-              {formatTotal(settings.totalSeconds)}
+            <Text style={{ color: colors.primary, fontSize: 40, fontWeight: '800', fontVariant: ['tabular-nums'] as const, marginTop: 2 }}>
+              {formatTotal(sessionTotal)}
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-              {timer.totalWorkSegments > 0 ? `${timer.totalWorkSegments} ejercicios` : 'configura la secuencia'}
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+              {timer.totalWorkSegments > 0
+                ? sessionRests > 0
+                  ? `${formatTotal(settings.totalSeconds)} + ${formatTotal(sessionRests * 30)} · ${timer.totalWorkSegments} ej.`
+                  : `${timer.totalWorkSegments} ejercicios`
+                : 'configura la secuencia'}
             </Text>
           </View>
 
@@ -217,8 +243,8 @@ export default function TimerScreen() {
             borderRadius: 20,
             borderWidth: 1,
             borderColor: colors.border,
-            padding: 16,
-            paddingTop: 20,
+            padding: 14,
+            paddingTop: 14,
           }}>
             <Stepper
               label="Tiempo total (min)"
@@ -228,7 +254,7 @@ export default function TimerScreen() {
               color={colors.text}
             />
 
-            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 18 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
 
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Stepper
@@ -247,31 +273,33 @@ export default function TimerScreen() {
               />
             </View>
 
-            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 18 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
 
             {/* Modo de descanso */}
             <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
               Descansos (30s)
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2, marginBottom: 10 }}>
-              Elegí cómo distribuir los descansos. Nunca cortan un ejercicio a mitad.
+              Los descansos se suman al tiempo base. Nunca cortan un ejercicio a mitad.
             </Text>
 
             <View style={{ gap: 8 }}>
               {(
                 [
-                  { key: 'none', label: 'Sin descansos', hint: 'Solo trabajo e intervalo' },
-                  { key: 'half', label: 'Mitad', hint: '1 descanso a la mitad de la sesión' },
-                  { key: 'thirds', label: 'Tercios', hint: '2 descansos repartiendo el tiempo en 3' },
-                ] as { key: RestMode; label: string; hint: string }[]
+                  { key: 'none', label: 'Sin descansos', hint: 'Solo trabajo e intervalo', blockedHint: null },
+                  { key: 'half', label: 'Mitad', hint: '1 descanso a la mitad de la sesión', blockedHint: 'Requiere 2 min o más' },
+                  { key: 'thirds', label: 'Tercios', hint: '2 descansos repartiendo el tiempo en 3', blockedHint: 'Requiere 3 min o más' },
+                ] as { key: RestMode; label: string; hint: string; blockedHint: string | null }[]
               ).map((opt) => {
                 const active = settings.restMode === opt.key
+                const enabled = allowedModes.includes(opt.key)
                 return (
                   <TouchableOpacity
                     key={opt.key}
-                    onPress={() => setRestMode(opt.key)}
+                    onPress={() => enabled && setRestMode(opt.key)}
+                    disabled={!enabled}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
+                    accessibilityState={{ selected: active, disabled: !enabled }}
                     accessibilityLabel={opt.label}
                     style={{
                       flexDirection: 'row',
@@ -282,6 +310,7 @@ export default function TimerScreen() {
                       backgroundColor: active ? `${colors.accent}14` : colors.background,
                       paddingHorizontal: 14,
                       paddingVertical: 12,
+                      opacity: enabled ? 1 : 0.45,
                     }}
                   >
                     <Ionicons
@@ -294,7 +323,7 @@ export default function TimerScreen() {
                         {opt.label}
                       </Text>
                       <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 1 }}>
-                        {opt.hint}
+                        {enabled ? opt.hint : opt.blockedHint}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -305,9 +334,10 @@ export default function TimerScreen() {
 
           {/* Resumen */}
           {settings.restMode !== 'none' && (
-            <Text style={{ color: colors.accent, fontSize: 13, textAlign: 'center', marginTop: 12 }}>
-              ⏸ Descansos de 30s activados
+            <Text style={{ color: colors.accent, fontSize: 13, textAlign: 'center', marginTop: 8 }}>
+              ⏸ +{formatTotal(sessionRests * 30)} de descansos
               {settings.restMode === 'half' ? ' a la mitad' : ' (tercios)'}
+              {` · sesión ${formatTotal(sessionTotal)}`}
             </Text>
           )}
 
@@ -317,9 +347,9 @@ export default function TimerScreen() {
             accessibilityRole="button"
             accessibilityLabel="Iniciar entrenamiento"
             style={{
-              marginTop: 28,
-              height: 72,
-              borderRadius: 36,
+              marginTop: 16,
+              height: 62,
+              borderRadius: 31,
               backgroundColor: colors.primary,
               justifyContent: 'center',
               alignItems: 'center',
@@ -332,8 +362,8 @@ export default function TimerScreen() {
               elevation: 6,
             }}
           >
-            <Ionicons name="play" size={30} color="#1A1A1A" />
-            <Text style={{ color: '#1A1A1A', fontSize: 22, fontWeight: '800' }}>
+            <Ionicons name="play" size={26} color="#1A1A1A" />
+            <Text style={{ color: '#1A1A1A', fontSize: 20, fontWeight: '800' }}>
               INICIAR
             </Text>
           </TouchableOpacity>
@@ -405,18 +435,19 @@ export default function TimerScreen() {
           : ''}
       </Text>
 
-      {/* Timer grande */}
+      {/* Timer grande (legible a distancia) */}
       <View style={{
         alignSelf: 'center',
-        width: 280,
-        height: 280,
-        borderRadius: 140,
+        width: 330,
+        height: 330,
+        borderRadius: 165,
+        maxWidth: '100%',
         backgroundColor: colors.surface,
-        borderWidth: 8,
+        borderWidth: 10,
         borderColor: phaseColor,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 28,
+        marginTop: 16,
         shadowColor: colors.text,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
@@ -425,7 +456,7 @@ export default function TimerScreen() {
       }}>
         <Text style={{
           color: phaseColor,
-          fontSize: isFinished ? 46 : 60,
+          fontSize: isFinished ? 56 : 80,
           fontWeight: '800',
           fontVariant: ['tabular-nums'] as const,
         }}>
@@ -442,7 +473,7 @@ export default function TimerScreen() {
 
       {/* Barra de progreso global */}
       <View style={{
-        marginTop: 32,
+        marginTop: 20,
         height: 10,
         borderRadius: 5,
         backgroundColor: colors.border,
@@ -462,7 +493,7 @@ export default function TimerScreen() {
 
       {/* Controles */}
       {!isFinished && (
-        <View style={{ marginTop: 32, gap: 12 }}>
+        <View style={{ marginTop: 20, gap: 12 }}>
           {isPaused ? (
             <TouchableOpacity
               onPress={timer.resume}
@@ -523,7 +554,7 @@ export default function TimerScreen() {
       )}
 
       {isFinished && (
-        <View style={{ marginTop: 32 }}>
+        <View style={{ marginTop: 20 }}>
           <TouchableOpacity
             onPress={timer.reset}
             accessibilityRole="button"
