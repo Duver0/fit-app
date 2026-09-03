@@ -50,6 +50,17 @@ export default function AppLayout() {
           }}
         />
         <Tabs.Screen
+          name="timer"
+          options={{
+            title: 'Timer',
+            tabBarLabel: 'Timer',
+            tabBarIcon: ({ color, size }) => <Ionicons name="timer" size={size} color={color} />,
+            tabBarButton: (props) => (
+              <TabBarButton {...props} rootHref="/(app)/timer" />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: 'Perfil',
