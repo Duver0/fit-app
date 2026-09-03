@@ -23,6 +23,7 @@ import {
   UPSERT_PERFORMANCE_MUTATION,
   MY_EXERCISES_FOR_ROUTINE_QUERY,
   UPDATE_ROUTINE_DAY_NAME_MUTATION,
+  SWAP_ROUTINE_DAYS_MUTATION,
   MY_GROUPS_QUERY,
   CREATE_EXERCISE_MUTATION,
   EXERCISE_CATEGORIES_QUERY,
@@ -157,6 +158,12 @@ export default function RoutineDayScreen() {
     onError: (e) => showErrorToast(e.message),
   })
 
+  const [swapRoutineDays] = useMutation(SWAP_ROUTINE_DAYS_MUTATION, {
+    refetchQueries: ['MyRoutineDays'],
+    onCompleted: () => showSuccessToast('Rutina movida'),
+    onError: (e) => showErrorToast(e.message),
+  })
+
   const [upsertPerformance] = useMutation(UPSERT_PERFORMANCE_MUTATION, {
     refetchQueries: [
       { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
@@ -174,6 +181,9 @@ export default function RoutineDayScreen() {
   const [savingName, setSavingName] = useState(false)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null)
   const [showEditMark, setShowEditMark] = useState<{ exerciseId: string; exerciseName: string; unit: string; currentPerf: any } | null>(null)
+  const [showMoveDay, setShowMoveDay] = useState(false)
+  const [movingDayTo, setMovingDayTo] = useState<number | null>(null)
+  const [movingDay, setMovingDay] = useState(false)
 
   // Edit mark form state
   const [editValue, setEditValue] = useState('')
@@ -273,6 +283,22 @@ export default function RoutineDayScreen() {
     reorderExercises({ variables: { dayOfWeek, exerciseIds: newOrder } })
   }
 
+  const handleMoveDay = async () => {
+    if (movingDayTo === null || movingDayTo === dayOfWeek) return
+    setMovingDay(true)
+    try {
+      await swapRoutineDays({
+        variables: { fromDayOfWeek: dayOfWeek, toDayOfWeek: movingDayTo },
+      })
+      setShowMoveDay(false)
+      setMovingDayTo(null)
+    } catch {
+      // error handled by onError callback
+    } finally {
+      setMovingDay(false)
+    }
+  }
+
   const handleStartEditName = () => {
     setDayNameInput(routineDay?.name || '')
     setEditingName(true)
@@ -301,11 +327,21 @@ export default function RoutineDayScreen() {
       currentPerf: perf,
     })
 
-    setEditValue(perf?.value?.toString() || '')
-    setEditValueLb('')
-    setEditWeight('')
-    setEditWeightLb('')
-    setEditReps('')
+    if (item.exercise.unit === 'REPS_AND_WEIGHT') {
+      setEditReps(perf?.reps?.toString() || '')
+      const w = perf?.weight
+      setEditWeight(w != null ? w.toString() : '')
+      setEditWeightLb(w != null && w > 0 ? kgToLb(w).toString() : '')
+      setEditValue('')
+      setEditValueLb('')
+    } else {
+      const v = perf?.value
+      setEditValue(v != null ? v.toString() : '')
+      setEditValueLb(v != null && v > 0 ? kgToLb(v).toString() : '')
+      setEditReps('')
+      setEditWeight('')
+      setEditWeightLb('')
+    }
   }
 
   const handleSaveMark = async () => {
@@ -508,6 +544,35 @@ export default function RoutineDayScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Move day / add buttons row */}
+      {exercises.length > 0 && (
+        <View style={{
+          flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 4,
+        }}>
+          <TouchableOpacity
+            onPress={() => setShowMoveDay(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Mover rutina a otro día"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            }}
+          >
+            <Ionicons name="swap-horizontal" size={15} color={colors.text} />
+            <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>
+              Mover día
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         data={exercises}
@@ -732,6 +797,92 @@ export default function RoutineDayScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Move Day Modal --- */}
+      <Modal visible={showMoveDay} transparent animationType="slide" onRequestClose={() => setShowMoveDay(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>
+                Mover rutina a otro día
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowMoveDay(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+              Mover todos los ejercicios de {dayName} a:
+            </Text>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {DAY_NAMES.map((name, index) => {
+                const selected = movingDayTo === index
+                const isCurrent = index === dayOfWeek
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setMovingDayTo(index)}
+                    disabled={isCurrent || movingDay}
+                    style={{
+                      width: '47%',
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected ? colors.primary + '15' : colors.background,
+                      opacity: isCurrent ? 0.4 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Text style={{ color: colors.text, fontWeight: selected ? '600' : '400', fontSize: 14 }}>
+                      {name}
+                    </Text>
+                    {selected ? (
+                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                    ) : isCurrent ? (
+                      <Ionicons name="locate" size={16} color={colors.textSecondary} />
+                    ) : null}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
+            <TouchableOpacity
+              onPress={handleMoveDay}
+              disabled={movingDayTo === null || movingDay}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 24,
+                padding: 16,
+                alignItems: 'center',
+                marginTop: 20,
+                opacity: movingDayTo === null || movingDay ? 0.5 : 1,
+              }}
+            >
+              {movingDay ? (
+                <ActivityIndicator color="#1A1A1A" />
+              ) : (
+                <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 16 }}>
+                  Mover rutina
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

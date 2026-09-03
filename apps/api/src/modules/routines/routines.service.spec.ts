@@ -112,6 +112,7 @@ describe('RoutinesService', () => {
               findMany: jest.fn(),
               findUnique: jest.fn(),
               upsert: jest.fn(),
+              deleteMany: jest.fn(),
             },
             routineExercise: {
               findUnique: jest.fn(),
@@ -119,6 +120,8 @@ describe('RoutinesService', () => {
               create: jest.fn(),
               delete: jest.fn(),
               update: jest.fn(),
+              updateMany: jest.fn(),
+              findMany: jest.fn(),
             },
             exercise: {
               findUnique: jest.fn(),
@@ -636,6 +639,89 @@ describe('RoutinesService', () => {
       expect(prisma.routineDay.findUnique).toHaveBeenCalledWith({
         where: { userId_dayOfWeek: { userId: 'user-1', dayOfWeek: 99 } },
       })
+    })
+  })
+
+  describe('swapRoutineDays', () => {
+    const mockSourceDay: any = {
+      id: 'day-1',
+      userId: 'user-1',
+      dayOfWeek: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      exercises: [mockRoutineExercise],
+    }
+
+    it('debería mover los ejercicios del día origen al día destino', async () => {
+      // Source day has exercises
+      jest.spyOn(prisma.routineDay, 'findUnique').mockResolvedValue(mockSourceDay)
+      // Target day (or create)
+      jest.spyOn(prisma.routineDay, 'upsert').mockResolvedValue({
+        ...mockSourceDay,
+        id: 'day-2',
+        dayOfWeek: 2,
+      })
+      // Target day has no exercises
+      jest.spyOn(prisma.routineExercise, 'findMany').mockResolvedValue([])
+      jest.spyOn(prisma.routineExercise, 'updateMany').mockResolvedValue({
+        count: 1,
+      } as any)
+      jest.spyOn(prisma.routineDay, 'deleteMany').mockResolvedValue({
+        count: 1,
+      } as any)
+
+      // getRoutineDay final call
+      const targetDayWithExercises: any = {
+        ...mockSourceDay,
+        id: 'day-2',
+        dayOfWeek: 2,
+        exercises: [mockRoutineExercise],
+      }
+      jest
+        .spyOn(prisma.routineDay, 'findUnique')
+        .mockResolvedValueOnce(mockSourceDay)
+        .mockResolvedValueOnce(targetDayWithExercises)
+      jest
+        .spyOn(prisma.performanceRecord, 'findUnique')
+        .mockResolvedValue(mockPerformance as any)
+
+      const result = await service.swapRoutineDays('user-1', 1, 2)
+
+      expect(result!.id).toBe('day-2')
+      expect(result!.dayOfWeek).toBe(2)
+      expect(result!.exercises).toHaveLength(1)
+      expect(prisma.routineExercise.updateMany).toHaveBeenCalledWith({
+        where: { dayId: 'day-1' },
+        data: { dayId: 'day-2' },
+      })
+      expect(prisma.routineDay.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'day-1', userId: 'user-1' },
+      })
+    })
+
+    it('debería lanzar BadRequestException si desde y hacia son el mismo día', async () => {
+      await expect(
+        service.swapRoutineDays('user-1', 1, 1),
+      ).rejects.toThrow(BadRequestException)
+    })
+
+    it('debería lanzar NotFoundException si el día origen no tiene ejercicios', async () => {
+      jest.spyOn(prisma.routineDay, 'findUnique').mockResolvedValue({
+        ...mockSourceDay,
+        exercises: [],
+      })
+
+      await expect(
+        service.swapRoutineDays('user-1', 1, 2),
+      ).rejects.toThrow(NotFoundException)
+    })
+
+    it('debería lanzar NotFoundException si el día origen no existe', async () => {
+      jest.spyOn(prisma.routineDay, 'findUnique').mockResolvedValue(null)
+
+      await expect(
+        service.swapRoutineDays('user-1', 1, 2),
+      ).rejects.toThrow(NotFoundException)
     })
   })
 })

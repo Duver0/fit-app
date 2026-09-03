@@ -230,6 +230,57 @@ export class RoutinesService {
     })
   }
 
+  async swapRoutineDays(userId: string, fromDayOfWeek: number, toDayOfWeek: number) {
+    if (fromDayOfWeek === toDayOfWeek) {
+      throw new BadRequestException('Cannot move routine to the same day')
+    }
+
+    // Verify source day exists and has exercises
+    const sourceDay = await this.prisma.routineDay.findUnique({
+      where: { userId_dayOfWeek: { userId, dayOfWeek: fromDayOfWeek } },
+      include: { exercises: true },
+    })
+    if (!sourceDay || sourceDay.exercises.length === 0) {
+      throw new NotFoundException('Source day has no exercises to move')
+    }
+
+    // Get or create target day
+    const targetDay = await this.prisma.routineDay.upsert({
+      where: { userId_dayOfWeek: { userId, dayOfWeek: toDayOfWeek } },
+      update: {},
+      create: { userId, dayOfWeek: toDayOfWeek },
+    })
+
+    // Check for duplicate exercises between source and target
+    if (targetDay.id !== sourceDay.id) {
+      const targetExercises = await this.prisma.routineExercise.findMany({
+        where: { dayId: targetDay.id },
+      })
+      const targetExerciseIds = new Set(targetExercises.map((e) => e.exerciseId))
+      const duplicates = sourceDay.exercises.filter((e) =>
+        targetExerciseIds.has(e.exerciseId),
+      )
+      if (duplicates.length > 0) {
+        throw new BadRequestException(
+          'Some exercises already exist in the target day',
+        )
+      }
+    }
+
+    // Move all source exercises to target day
+    await this.prisma.routineExercise.updateMany({
+      where: { dayId: sourceDay.id },
+      data: { dayId: targetDay.id },
+    })
+
+    // Clean up empty source day
+    await this.prisma.routineDay.deleteMany({
+      where: { id: sourceDay.id, userId },
+    })
+
+    return this.getRoutineDay(userId, toDayOfWeek)
+  }
+
   async getExercisesForRoutine(userId: string) {
     // Get all groups the user belongs to
     const memberships = await this.prisma.groupMember.findMany({

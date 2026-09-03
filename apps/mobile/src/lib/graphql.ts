@@ -728,6 +728,37 @@ export const UPDATE_ROUTINE_DAY_NAME_MUTATION = gql`
   }
 `
 
+export const SWAP_ROUTINE_DAYS_MUTATION = gql`
+  mutation SwapRoutineDays($fromDayOfWeek: Int!, $toDayOfWeek: Int!) {
+    swapRoutineDays(fromDayOfWeek: $fromDayOfWeek, toDayOfWeek: $toDayOfWeek) {
+      id
+      dayOfWeek
+      name
+      exercises {
+        id
+        sortOrder
+        exercise {
+          id
+          name
+          unit
+          imageUrl
+          groupId
+        }
+        group {
+          id
+          name
+        }
+        myPerformance {
+          id
+          value
+          reps
+          weight
+        }
+      }
+    }
+  }
+`
+
 export const MY_EXERCISES_FOR_ROUTINE_QUERY = gql`
   query MyExercisesForRoutine {
     myExercisesForRoutine {
