@@ -39,9 +39,9 @@ export default function RoutineIndexScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title="Mi Rutina" showBack={false} />
-        <View style={{ padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <View style={{ padding: 20, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {Array.from({ length: 7 }).map((_, i) => (
-            <View key={i} style={{ width: '48%', marginBottom: 12 }}>
+            <View key={i} style={{ width: '48%', marginBottom: 16 }}>
               <Skeleton height={100} borderRadius={16} />
             </View>
           ))}
@@ -76,7 +76,7 @@ export default function RoutineIndexScreen() {
       <ScreenHeader title="Mi Rutina" showBack={false} />
 
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 32 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -116,7 +116,7 @@ export default function RoutineIndexScreen() {
                   borderColor: colors.border,
                   padding: 16,
                   width: '48%',
-                  marginBottom: 12,
+                  marginBottom: 16,
                 }}
                 activeOpacity={0.7}
               >

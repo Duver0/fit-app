@@ -501,7 +501,7 @@ export default function RoutineDayScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title={dayName} showBack />
-        <View style={{ padding: 16, gap: 12 }}>
+        <View style={{ padding: 20, gap: 16 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} height={80} borderRadius={16} />
           ))}
@@ -528,7 +528,7 @@ export default function RoutineDayScreen() {
       {/* Header with back arrow + name edit button + add button */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingTop: insets.top + 14, paddingBottom: 8,
+        paddingHorizontal: 20, paddingTop: insets.top + 14, paddingBottom: 8,
         backgroundColor: colors.background,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -575,7 +575,7 @@ export default function RoutineDayScreen() {
       {/* Move day / add buttons row */}
       {exercises.length > 0 && (
         <View style={{
-          flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 4,
+          flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 4,
         }}>
           <TouchableOpacity
             onPress={() => setShowMoveDay(true)}
@@ -604,7 +604,7 @@ export default function RoutineDayScreen() {
       <FlatList
         data={exercises}
         keyExtractor={(item: any) => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -629,7 +629,7 @@ export default function RoutineDayScreen() {
               borderWidth: 1,
               borderColor: colors.border,
               padding: 16,
-              marginBottom: 12,
+              marginBottom: 16,
             }}
           >
             {/* Header: nombre + grupo */}
