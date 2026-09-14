@@ -731,43 +731,21 @@ export default function RoutineDayScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => setShowAddModal(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Agregar ejercicio"
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Ionicons name="add" size={18} color="#1A1A1A" />
-            <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 13 }}>
-              Agregar
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setShowKebabMenu(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`Opciones de ${DAY_NAMES[dayOfWeek]}`}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => setShowKebabMenu(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Opciones de ${DAY_NAMES[dayOfWeek]}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
