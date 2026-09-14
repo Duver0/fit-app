@@ -249,55 +249,71 @@ export class RoutinesService {
     })
   }
 
+  private assertDayOfWeek(n: number) {
+    if (!Number.isInteger(n) || n < 0 || n > 6)
+      throw new BadRequestException('dayOfWeek must be between 0 and 6')
+  }
+
   async swapRoutineDays(userId: string, fromDayOfWeek: number, toDayOfWeek: number) {
+    this.assertDayOfWeek(fromDayOfWeek)
+    this.assertDayOfWeek(toDayOfWeek)
     if (fromDayOfWeek === toDayOfWeek) {
       throw new BadRequestException('Cannot move routine to the same day')
     }
 
     // Verify source day exists and has exercises
-    const sourceDay = await this.prisma.routineDay.findUnique({
+    const source = await this.prisma.routineDay.findUnique({
       where: { userId_dayOfWeek: { userId, dayOfWeek: fromDayOfWeek } },
       include: { exercises: true },
     })
-    if (!sourceDay || sourceDay.exercises.length === 0) {
+    if (!source || source.exercises.length === 0) {
       throw new NotFoundException('Source day has no exercises to move')
     }
 
-    // Get or create target day
-    const targetDay = await this.prisma.routineDay.upsert({
+    const target = await this.prisma.routineDay.findUnique({
       where: { userId_dayOfWeek: { userId, dayOfWeek: toDayOfWeek } },
-      update: {},
-      create: { userId, dayOfWeek: toDayOfWeek },
+      include: { exercises: true },
     })
+    const targetHasContent = !!target && target.exercises.length > 0
 
-    // Check for duplicate exercises between source and target
-    if (targetDay.id !== sourceDay.id) {
-      const targetExercises = await this.prisma.routineExercise.findMany({
-        where: { dayId: targetDay.id },
+    if (!targetHasContent) {
+      // — Move simple (destino inexistente o vacío) —
+      await this.prisma.$transaction(async (tx) => {
+        if (target) {
+          this.logger.warn(
+            `swapRoutineDays: removing empty orphan row ${target.id} (user ${userId}, day ${toDayOfWeek})`,
+          )
+          await tx.routineDay.delete({ where: { id: target.id } })
+        }
+        await tx.routineDay.update({
+          where: { id: source.id },
+          data: { dayOfWeek: toDayOfWeek },
+        })
       })
-      const targetExerciseIds = new Set(targetExercises.map((e) => e.exerciseId))
-      const duplicates = sourceDay.exercises.filter((e) =>
-        targetExerciseIds.has(e.exerciseId),
-      )
-      if (duplicates.length > 0) {
-        throw new BadRequestException(
-          'Some exercises already exist in the target day',
-        )
-      }
+      return this.getRoutineDay(userId, toDayOfWeek)
     }
 
-    // Move all source exercises to target day
-    await this.prisma.routineExercise.updateMany({
-      where: { dayId: sourceDay.id },
-      data: { dayId: targetDay.id },
+    // — Swap real A↔B (ambos con contenido): dayOfWeek viaja con la fila,
+    // el name viaja con el contenido automáticamente al estar en la misma fila. —
+    await this.prisma.$transaction(async (tx) => {
+      await tx.routineDay.update({ where: { id: source.id }, data: { dayOfWeek: -1 } })
+      await tx.routineDay.update({ where: { id: target!.id }, data: { dayOfWeek: fromDayOfWeek } })
+      await tx.routineDay.update({ where: { id: source.id }, data: { dayOfWeek: toDayOfWeek } })
     })
-
-    // Clean up empty source day
-    await this.prisma.routineDay.deleteMany({
-      where: { id: sourceDay.id, userId },
-    })
-
     return this.getRoutineDay(userId, toDayOfWeek)
+  }
+
+  async deleteRoutineDay(userId: string, dayOfWeek: number): Promise<boolean> {
+    this.assertDayOfWeek(dayOfWeek)
+    const day = await this.prisma.routineDay.findUnique({
+      where: { userId_dayOfWeek: { userId, dayOfWeek } },
+      include: { exercises: { select: { id: true } } },
+    })
+    if (!day || day.exercises.length === 0)
+      throw new NotFoundException('Routine day not found')
+    // Cascada de RoutineExercise por onDelete: Cascade; PerformanceRecord intactos.
+    await this.prisma.routineDay.delete({ where: { id: day.id } })
+    return true
   }
 
   async getExercisesForRoutine(userId: string) {

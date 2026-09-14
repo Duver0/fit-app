@@ -755,6 +755,15 @@ export const SWAP_ROUTINE_DAYS_MUTATION = gql`
   }
 `
 
+export const DELETE_ROUTINE_DAY_MUTATION = gql`
+  mutation DeleteRoutineDay($dayOfWeek: Int!) {
+    deleteRoutineDay(dayOfWeek: $dayOfWeek) {
+      id
+      dayOfWeek
+    }
+  }
+`
+
 export const MY_EXERCISES_FOR_ROUTINE_QUERY = gql`
   query MyExercisesForRoutine {
     myExercisesForRoutine {

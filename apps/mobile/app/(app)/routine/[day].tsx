@@ -13,7 +13,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, router } from 'expo-router'
 import { useQuery, useMutation, useApolloClient } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,6 +28,7 @@ import {
   MY_EXERCISES_FOR_ROUTINE_QUERY,
   UPDATE_ROUTINE_DAY_NAME_MUTATION,
   SWAP_ROUTINE_DAYS_MUTATION,
+  DELETE_ROUTINE_DAY_MUTATION,
   MY_GROUPS_QUERY,
   CREATE_EXERCISE_MUTATION,
   EXERCISE_CATEGORIES_QUERY,
@@ -274,6 +275,15 @@ export default function RoutineDayScreen() {
     onError: (e) => showErrorToast(e.message),
   })
 
+  const [deleteRoutineDay] = useMutation(DELETE_ROUTINE_DAY_MUTATION, {
+    refetchQueries: ['MyRoutineDays'],
+    onCompleted: () => {
+      showSuccessToast('Día eliminado')
+      router.replace('/(app)/routine')
+    },
+    onError: (e) => showErrorToast(e.message),
+  })
+
   const [upsertPerformance] = useMutation(UPSERT_PERFORMANCE_MUTATION, {
     refetchQueries: [
       { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
@@ -291,9 +301,10 @@ export default function RoutineDayScreen() {
   const [savingName, setSavingName] = useState(false)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null)
   const [showEditMark, setShowEditMark] = useState<{ exerciseId: string; exerciseName: string; unit: string; currentPerf: any } | null>(null)
-  const [showMoveDay, setShowMoveDay] = useState(false)
-  const [movingDayTo, setMovingDayTo] = useState<number | null>(null)
-  const [movingDay, setMovingDay] = useState(false)
+  const [showKebabMenu, setShowKebabMenu] = useState(false)
+  const [showMoveDayPicker, setShowMoveDayPicker] = useState(false)
+  const [showDeleteDayConfirm, setShowDeleteDayConfirm] = useState(false)
+  const [deletingDay, setDeletingDay] = useState(false)
 
   // Edit mark form state
   const [editValue, setEditValue] = useState('')
@@ -441,25 +452,38 @@ export default function RoutineDayScreen() {
     [client, dayOfWeek, exercises, reorderExercises, reordering],
   )
 
-  const handleMoveDay = async () => {
-    if (movingDayTo === null || movingDayTo === dayOfWeek) return
-    setMovingDay(true)
-    try {
-      await swapRoutineDays({
-        variables: { fromDayOfWeek: dayOfWeek, toDayOfWeek: movingDayTo },
-      })
-      setShowMoveDay(false)
-      setMovingDayTo(null)
-    } catch {
-      // error handled by onError callback
-    } finally {
-      setMovingDay(false)
-    }
-  }
-
   const handleStartEditName = () => {
     setDayNameInput(routineDay?.name || '')
     setEditingName(true)
+  }
+
+  // --- Kebab menu handlers ---
+  const handleOpenAddExercise = () => {
+    setShowKebabMenu(false)
+    setShowAddModal(true)
+  }
+
+  const handleMoveDay = async (toDayOfWeek: number) => {
+    setShowMoveDayPicker(false)
+    try {
+      await swapRoutineDays({
+        variables: { fromDayOfWeek: dayOfWeek, toDayOfWeek },
+      })
+    } catch {
+      // error handled by onError callback
+    }
+  }
+
+  const handleDeleteDay = async () => {
+    setShowDeleteDayConfirm(false)
+    setDeletingDay(true)
+    try {
+      await deleteRoutineDay({ variables: { dayOfWeek } })
+    } catch {
+      // error handled by onError callback
+    } finally {
+      setDeletingDay(false)
+    }
   }
 
   const handleSaveName = async () => {
@@ -681,7 +705,7 @@ export default function RoutineDayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Header with back arrow + name edit button + add button */}
+      {/* Header with back arrow + name edit button + add button + kebab menu */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingTop: insets.top + 14, paddingBottom: 8,
@@ -707,55 +731,44 @@ export default function RoutineDayScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={() => setShowAddModal(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Agregar ejercicio"
-          style={{
-            backgroundColor: colors.primary,
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <Ionicons name="add" size={18} color="#1A1A1A" />
-          <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 13 }}>
-            Agregar
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Move day / add buttons row */}
-      {exercises.length > 0 && (
-        <View style={{
-          flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 4,
-        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity
-            onPress={() => setShowMoveDay(true)}
+            onPress={() => setShowAddModal(true)}
             accessibilityRole="button"
-            accessibilityLabel="Mover rutina a otro día"
+            accessibilityLabel="Agregar ejercicio"
             style={{
+              backgroundColor: colors.primary,
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
+              gap: 4,
             }}
           >
-            <Ionicons name="swap-horizontal" size={15} color={colors.text} />
-            <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>
-              Mover día
+            <Ionicons name="add" size={18} color="#1A1A1A" />
+            <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 13 }}>
+              Agregar
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setShowKebabMenu(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Opciones de ${DAY_NAMES[dayOfWeek]}`}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+          </TouchableOpacity>
         </View>
-      )}
+      </View>
 
       <FlatList
         data={exercises}
@@ -994,8 +1007,82 @@ export default function RoutineDayScreen() {
         </View>
       </Modal>
 
-      {/* --- Move Day Modal --- */}
-      <Modal visible={showMoveDay} transparent animationType="slide" onRequestClose={() => setShowMoveDay(false)}>
+      {/* --- Kebab Menu BottomSheetModal --- */}
+      <BottomSheetModal
+        visible={showKebabMenu}
+        onClose={() => setShowKebabMenu(false)}
+        maxHeightPercent={50}
+        avoidKeyboard={false}
+        scrollable={false}
+      >
+        <View style={{ gap: 4 }}>
+          {/* Agregar ejercicio */}
+          <TouchableOpacity
+            onPress={handleOpenAddExercise}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar ejercicio"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 16,
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+            <Text style={{ color: colors.text, fontSize: 16 }}>Agregar ejercicio</Text>
+          </TouchableOpacity>
+          <View style={{ borderBottomWidth: 1, borderColor: colors.border }} />
+
+          {/* Mover día - solo si hay ejercicios */}
+          {exercises.length > 0 && (
+            <>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowKebabMenu(false)
+                  // Show the day picker inline in the bottom sheet
+                  setShowMoveDayPicker(true)
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Mover día a otro día"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: 16,
+                }}
+              >
+                <Ionicons name="swap-horizontal" size={22} color={colors.text} />
+                <Text style={{ color: colors.text, fontSize: 16 }}>Mover día</Text>
+              </TouchableOpacity>
+              <View style={{ borderBottomWidth: 1, borderColor: colors.border }} />
+            </>
+          )}
+
+          {/* Eliminar día - solo si hay ejercicios */}
+          {exercises.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setShowKebabMenu(false)
+                setShowDeleteDayConfirm(true)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Eliminar día"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                padding: 16,
+              }}
+            >
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+              <Text style={{ color: colors.error, fontSize: 16 }}>Eliminar día</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </BottomSheetModal>
+
+      {/* --- Move Day Picker Modal --- */}
+      <Modal visible={showMoveDayPicker} transparent animationType="slide" onRequestClose={() => setShowMoveDayPicker(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{
             backgroundColor: colors.surface,
@@ -1009,7 +1096,7 @@ export default function RoutineDayScreen() {
                 Mover rutina a otro día
               </Text>
               <TouchableOpacity
-                onPress={() => setShowMoveDay(false)}
+                onPress={() => setShowMoveDayPicker(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -1022,60 +1109,33 @@ export default function RoutineDayScreen() {
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
               {DAY_NAMES.map((name, index) => {
-                const selected = movingDayTo === index
                 const isCurrent = index === dayOfWeek
                 return (
                   <TouchableOpacity
                     key={index}
-                    onPress={() => setMovingDayTo(index)}
-                    disabled={isCurrent || movingDay}
+                    onPress={() => handleMoveDay(index)}
+                    disabled={isCurrent}
                     style={{
                       width: '47%',
                       paddingVertical: 12,
                       paddingHorizontal: 12,
                       borderRadius: 12,
                       borderWidth: 1,
-                      borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.primary + '15' : colors.background,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
                       opacity: isCurrent ? 0.4 : 1,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
+                      justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: colors.text, fontWeight: selected ? '600' : '400', fontSize: 14 }}>
+                    <Text style={{ color: colors.text, fontWeight: '500', fontSize: 14 }}>
                       {name}
                     </Text>
-                    {selected ? (
-                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-                    ) : isCurrent ? (
-                      <Ionicons name="locate" size={16} color={colors.textSecondary} />
-                    ) : null}
                   </TouchableOpacity>
                 )
               })}
             </View>
-
-            <TouchableOpacity
-              onPress={handleMoveDay}
-              disabled={movingDayTo === null || movingDay}
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 24,
-                padding: 16,
-                alignItems: 'center',
-                marginTop: 20,
-                opacity: movingDayTo === null || movingDay ? 0.5 : 1,
-              }}
-            >
-              {movingDay ? (
-                <ActivityIndicator color="#1A1A1A" />
-              ) : (
-                <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 16 }}>
-                  Mover rutina
-                </Text>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1594,6 +1654,18 @@ export default function RoutineDayScreen() {
           </>
         )}
       </BottomSheetModal>
+
+      {/* --- Delete Day Confirm Modal --- */}
+      <ConfirmModal
+        visible={showDeleteDayConfirm}
+        title="Eliminar día"
+        message={`¿Estás seguro de que querés eliminar ${dayName}? Se quitarán ${exercises.length} ejercicio(s) de tu rutina. Tus marcas se conservan.`}
+        confirmLabel={deletingDay ? 'Eliminando...' : 'Eliminar día'}
+        cancelLabel="Cancelar"
+        confirmDestructive
+        onConfirm={handleDeleteDay}
+        onCancel={() => setShowDeleteDayConfirm(false)}
+      />
     </View>
   )
 }

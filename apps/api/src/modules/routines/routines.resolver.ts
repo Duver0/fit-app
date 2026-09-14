@@ -103,6 +103,14 @@ export class RoutinesResolver {
     )
   }
 
+  @Mutation(() => Boolean)
+  async deleteRoutineDay(
+    @CurrentUser() user: User,
+    @Args('dayOfWeek', { type: () => Int }) dayOfWeek: number,
+  ) {
+    return this.routinesService.deleteRoutineDay(user.id, dayOfWeek)
+  }
+
   @Mutation(() => RoutineDay)
   async reorderExercises(
     @CurrentUser() user: User,
