@@ -28,7 +28,11 @@ export class User {
   @Field(() => UserRole)
   role: UserRole
 
-  @Field({ defaultValue: false, description: 'Whether the routine tab is enabled for this user' })
+  @Field({
+    defaultValue: true,
+    description: 'Whether the routine tab is enabled for this user',
+    deprecationReason: 'Rutina siempre visible. Campo ignorado por el cliente.',
+  })
   routineEnabled: boolean
 
   @Field({ defaultValue: false, description: 'Whether to auto-navigate to the group detail when user has only one group' })

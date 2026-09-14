@@ -9,6 +9,7 @@ export const ME_QUERY = gql`
       phone
       avatarUrl
       role
+      # @deprecated routineEnabled se mantiene solo por compatibilidad con backend/clientes viejos. La tab Rutina es fija y no usa este flag para visibilidad.
       routineEnabled
       singleGroupAutoEnter
       createdAt
@@ -570,14 +571,9 @@ export const SEARCH_STOCK_IMAGES_QUERY = SEARCH_GROUP_AVATAR_QUERY
 // Routine (Rutina)
 // ---------------------------------------------------------------------------
 
-export const TOGGLE_ROUTINE_MUTATION = gql`
-  mutation ToggleRoutine($enabled: Boolean!) {
-    toggleRoutine(enabled: $enabled) {
-      id
-      routineEnabled
-    }
-  }
-`
+// @deprecated TOGGLE_ROUTINE_MUTATION eliminado: la tab Rutina es fija para todos.
+// Se mantiene routineEnabled en los queries solo por compatibilidad con el backend.
+// export const TOGGLE_ROUTINE_MUTATION = ... (removed)
 
 export const TOGGLE_SINGLE_GROUP_AUTO_ENTER_MUTATION = gql`
   mutation ToggleSingleGroupAutoEnter($enabled: Boolean!) {

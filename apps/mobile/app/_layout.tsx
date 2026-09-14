@@ -15,8 +15,10 @@ import PWAInstallButton from '../src/components/PWAInstallButton'
 
 // Refreshes the persisted user from the server whenever a session is active.
 // Rendered INSIDE <ApolloProvider> so it can use useQuery. This keeps
-// routineEnabled / singleGroupAutoEnter in sync with the backend, so per-user
+// singleGroupAutoEnter in sync with the backend, so per-user
 // preferences are applied automatically on cold start and after re-login.
+// NOTE: routineEnabled se mantiene en ME_QUERY solo por compatibilidad con el
+// backend y no se usa para visibilidad (la tab Rutina es fija para todos).
 function UserSync() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const updateUser = useAuthStore((state) => state.updateUser)

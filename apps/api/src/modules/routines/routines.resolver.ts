@@ -22,7 +22,13 @@ export class RoutinesResolver {
     return routineExercise.exercise?.group || null
   }
 
-  @Mutation(() => User)
+  /**
+   * @deprecated Flag routineEnabled irrelevante: la rutina siempre es visible.
+   * Mantenida como no-op seguro/idempotente para no romper clientes viejos.
+   */
+  @Mutation(() => User, {
+    deprecationReason: 'Rutina siempre visible. Campo ignorado por el cliente.',
+  })
   async toggleRoutine(
     @CurrentUser() user: User,
     @Args('enabled') enabled: boolean,

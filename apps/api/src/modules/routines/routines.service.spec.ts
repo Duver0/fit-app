@@ -107,6 +107,7 @@ describe('RoutinesService', () => {
           useValue: {
             user: {
               update: jest.fn(),
+              findUnique: jest.fn(),
             },
             routineDay: {
               findMany: jest.fn(),
@@ -145,12 +146,26 @@ describe('RoutinesService', () => {
     prisma = module.get<PrismaService>(PrismaService)
   })
 
-  describe('toggleRoutine', () => {
-    it('debería habilitar la rutina (setear routineEnabled = true)', async () => {
-      const updatedUser = { ...mockUser, routineEnabled: true }
-      jest.spyOn(prisma.user, 'update').mockResolvedValue(updatedUser as any)
+  describe('toggleRoutine (DEPRECATED: no-op legacy)', () => {
+    it('debería ignorar enabled=true y retornar el usuario con routineEnabled = true', async () => {
+      const storedUser = { ...mockUser, routineEnabled: true }
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(storedUser as any)
+      const updateSpy = jest.spyOn(prisma.user, 'update')
 
       const result = await service.toggleRoutine('user-1', true)
+
+      expect(result.routineEnabled).toBe(true)
+      // No-op cuando ya está en true: sin escritura
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('debería ignorar enabled=false y normalizar routineEnabled a true (idempotente)', async () => {
+      const storedUser = { ...mockUser, routineEnabled: false }
+      const normalizedUser = { ...mockUser, routineEnabled: true }
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(storedUser as any)
+      jest.spyOn(prisma.user, 'update').mockResolvedValue(normalizedUser as any)
+
+      const result = await service.toggleRoutine('user-1', false)
 
       expect(result.routineEnabled).toBe(true)
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -159,17 +174,12 @@ describe('RoutinesService', () => {
       })
     })
 
-    it('debería deshabilitar la rutina (setear routineEnabled = false)', async () => {
-      const updatedUser = { ...mockUser, routineEnabled: false }
-      jest.spyOn(prisma.user, 'update').mockResolvedValue(updatedUser as any)
+    it('debería lanzar NotFoundException si el usuario no existe', async () => {
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null)
 
-      const result = await service.toggleRoutine('user-1', false)
-
-      expect(result.routineEnabled).toBe(false)
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { routineEnabled: false },
-      })
+      await expect(service.toggleRoutine('unknown', true)).rejects.toThrow(
+        NotFoundException,
+      )
     })
   })
 

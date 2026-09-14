@@ -9,6 +9,7 @@ export interface User {
   phone?: string | null
   avatarUrl?: string | null
   role: 'USER' | 'SUPER_ADMIN'
+  /** @deprecated Se mantiene por compatibilidad con backend/persist. No usar para visibilidad: la tab Rutina es fija. */
   routineEnabled?: boolean
   singleGroupAutoEnter?: boolean
   createdAt?: string

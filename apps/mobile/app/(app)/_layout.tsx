@@ -12,7 +12,6 @@ export default function AppLayout() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
   const user = useAuthStore(state => state.user)
   const isAdmin = user?.role === 'SUPER_ADMIN'
-  const routineEnabled = user?.routineEnabled === true
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />
@@ -38,6 +37,17 @@ export default function AppLayout() {
         }}
       >
         <Tabs.Screen
+          name="routine"
+          options={{
+            title: 'Rutina',
+            tabBarLabel: 'Rutina',
+            tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
+            tabBarButton: (props) => (
+              <TabBarButton {...props} rootHref="/(app)/routine" />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="groups"
           options={{
             title: 'Grupos',
@@ -46,17 +56,6 @@ export default function AppLayout() {
             tabBarButton: (props) => (
               <TabBarButton {...props} rootHref="/(app)/groups" />
             ),
-          }}
-        />
-        <Tabs.Screen
-          name="routine"
-          options={{
-            title: 'Rutina',
-            tabBarLabel: 'Rutina',
-            tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
-            tabBarButton: routineEnabled
-              ? (props) => <TabBarButton {...props} rootHref="/(app)/routine" />
-              : () => <View style={{ display: 'none' }} />,
           }}
         />
         <Tabs.Screen

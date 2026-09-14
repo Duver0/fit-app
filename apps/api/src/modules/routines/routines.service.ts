@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
@@ -8,13 +9,31 @@ import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class RoutinesService {
+  private readonly logger = new Logger(RoutinesService.name)
+
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * @deprecated Flag routineEnabled irrelevante: la rutina siempre es visible.
+   * Mantenido como no-op seguro/idempotente para no romper clientes viejos.
+   * Siempre retorna el usuario; normaliza routineEnabled a true si quedó en false.
+   */
   async toggleRoutine(userId: string, enabled: boolean) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { routineEnabled: enabled },
-    })
+    this.logger.warn(
+      `[LEGACY] toggleRoutine llamado para user ${userId} con enabled=${enabled}. ` +
+        `Flag deprecado (rutina siempre visible). No-op: se ignora el valor recibido.`,
+    )
+    const user = await this.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+    if (!user.routineEnabled) {
+      return this.prisma.user.update({
+        where: { id: userId },
+        data: { routineEnabled: true },
+      })
+    }
+    return user
   }
 
   async toggleSingleGroupAutoEnter(userId: string, enabled: boolean) {
