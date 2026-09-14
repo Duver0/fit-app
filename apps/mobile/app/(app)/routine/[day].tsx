@@ -747,14 +747,43 @@ export default function RoutineDayScreen() {
                     {item.group.name}
                   </Text>
                 )}
-                {/* Marca actual: una sola línea, sin badge redundante */}
-                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                  Marca actual: {formatPerformance(item.myPerformance, item.exercise.unit)}
-                </Text>
+                {/* Marca actual: badge unidad + texto en la misma fila */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                  <View
+                    style={{
+                      backgroundColor: colors.primary + '15',
+                      borderRadius: 8,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
+                      {UNIT_LABELS[item.exercise.unit] || item.exercise.unit}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, flexShrink: 1 }}>
+                    Marca actual: {formatPerformance(item.myPerformance, item.exercise.unit)}
+                  </Text>
+                </View>
               </View>
-              {/* Columna derecha: flechas + editar */}
+              {/* Columna derecha: quitar + flechas + editar */}
               <View style={{ alignItems: 'center', gap: 8 }}>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowRemoveConfirm(item.exercise.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quitar ${item.exercise.name} de la rutina`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={colors.error} />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleMove(index, 'up')}
                     disabled={index === 0 || reordering}
@@ -818,28 +847,6 @@ export default function RoutineDayScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-
-            {/* Quitar: ghost pequeño color error al pie, alineado flex-end */}
-            <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
-              <TouchableOpacity
-                onPress={() => setShowRemoveConfirm(item.exercise.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Quitar ${item.exercise.name} de la rutina`}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                }}
-              >
-                <Ionicons name="trash-outline" size={14} color={colors.error} />
-                <Text style={{ color: colors.error, fontSize: 13, fontWeight: '500' }}>
-                  Quitar
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         )}
