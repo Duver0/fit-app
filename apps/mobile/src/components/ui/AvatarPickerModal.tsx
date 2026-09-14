@@ -314,7 +314,7 @@ export default function AvatarPickerModal({ visible, context = 'user', initialSt
                     style={{
                       flex: 1,
                       color: colors.text,
-                      fontSize: 15,
+                      fontSize: 16,
                       paddingVertical: 14,
                     }}
                   />

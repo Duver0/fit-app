@@ -442,7 +442,7 @@ export function ExerciseDbSearchModal({
                 style={{
                   flex: 1,
                   color: colors.text,
-                  fontSize: 15,
+                  fontSize: 16,
                   paddingVertical: 14,
                 }}
               />

@@ -48,19 +48,19 @@ export default function RegisterScreen() {
 
         <TextInput placeholder="Nombre" placeholderTextColor={colors.textSecondary} value={name}
           onChangeText={setName}
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 16 }} />
 
         <TextInput placeholder="Email" placeholderTextColor={colors.textSecondary} value={email}
           onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 16 }} />
 
         <TextInput placeholder="Celular (opcional)" placeholderTextColor={colors.textSecondary} value={phone}
           onChangeText={setPhone} keyboardType="phone-pad"
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 16 }} />
 
         <TextInput placeholder="Contraseña" placeholderTextColor={colors.textSecondary} value={password}
           onChangeText={setPassword} secureTextEntry
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: colors.border }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: colors.border, fontSize: 16 }} />
 
         <TouchableOpacity onPress={handleRegister} disabled={isLoading}
           style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', opacity: isLoading ? 0.6 : 1 }}>

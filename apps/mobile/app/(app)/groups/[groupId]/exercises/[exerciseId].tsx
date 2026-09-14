@@ -658,7 +658,7 @@ export default function ExerciseDetailScreen() {
                   value={newWeight}
                   onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
                   keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -668,7 +668,7 @@ export default function ExerciseDetailScreen() {
                   value={newWeightLb}
                   onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
                   keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                 />
               </View>
             </View>
@@ -688,7 +688,7 @@ export default function ExerciseDetailScreen() {
                   value={newValue}
                   onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
                   keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -698,7 +698,7 @@ export default function ExerciseDetailScreen() {
                   value={newValueLb}
                   onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
                   keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                 />
               </View>
             </View>
@@ -747,7 +747,7 @@ export default function ExerciseDetailScreen() {
               placeholderTextColor={colors.textSecondary}
               value={disputeReason} onChangeText={setDisputeReason}
               multiline numberOfLines={3}
-              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, minHeight: 80, textAlignVertical: 'top' }}
+              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, minHeight: 80, textAlignVertical: 'top', fontSize: 16 }}
             />
             <TouchableOpacity onPress={handleDispute} disabled={!disputeReason}
               style={{ backgroundColor: colors.error, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: disputeReason ? 1 : 0.6 }}>
@@ -974,7 +974,7 @@ export default function ExerciseDetailScreen() {
                     onChangeText={setNewCatName}
                     placeholder="Nombre de la nueva categoría"
                     placeholderTextColor={colors.textSecondary}
-                    style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
+                    style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
                     autoFocus
                   />
                   <TouchableOpacity

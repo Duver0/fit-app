@@ -668,7 +668,7 @@ export default function GroupDashboardScreen() {
               onChangeText={setCatName}
               placeholder="Nombre de la categoría"
               placeholderTextColor={colors.textSecondary}
-              style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, fontSize: 15 }}
+              style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, fontSize: 16 }}
               autoFocus
             />
             <View style={{ flexDirection: 'row', gap: 8 }}>

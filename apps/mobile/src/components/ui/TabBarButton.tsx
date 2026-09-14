@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react'
-import { TouchableOpacity, View, Text } from 'react-native'
+import { TouchableOpacity, View, Text, Platform } from 'react-native'
 import { router } from 'expo-router'
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
 
@@ -8,7 +8,7 @@ interface TabBarButtonProps extends BottomTabBarButtonProps {
   rootHref: string
 }
 
-export default function TabBarButton({ onPress, rootHref, children, ...rest }: TabBarButtonProps) {
+export default function TabBarButton({ onPress, rootHref, children, style, ...rest }: TabBarButtonProps) {
   const lastPress = useRef(0)
 
   const handlePress = useCallback(
@@ -25,7 +25,13 @@ export default function TabBarButton({ onPress, rootHref, children, ...rest }: T
   )
 
   return (
-    <TouchableOpacity onPress={handlePress} {...(rest as any)}>
+    <TouchableOpacity
+      onPress={handlePress}
+      {...(rest as any)}
+      // Web-only: touch-action:manipulation disables Safari double-tap-zoom
+      // without affecting native. Merged with any incoming style.
+      style={[{ ...(Platform.OS === 'web' ? { touchAction: 'manipulation' } : null) }, style]}
+    >
       {children}
     </TouchableOpacity>
   )

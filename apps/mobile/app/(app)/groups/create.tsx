@@ -36,11 +36,11 @@ export default function CreateGroupScreen() {
 
         <TextInput placeholder="Nombre del grupo" placeholderTextColor={colors.textSecondary}
           value={name} onChangeText={setName}
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, fontSize: 16 }} />
 
         <TextInput placeholder="Descripción (opcional)" placeholderTextColor={colors.textSecondary}
           value={description} onChangeText={setDescription} multiline numberOfLines={3}
-          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: colors.border, minHeight: 80, textAlignVertical: 'top' }} />
+          style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: 12, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: colors.border, minHeight: 80, textAlignVertical: 'top', fontSize: 16 }} />
 
         <TouchableOpacity onPress={handleCreate} disabled={isCreating}
           style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', opacity: isCreating ? 0.6 : 1 }}>
