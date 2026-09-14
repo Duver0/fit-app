@@ -20,6 +20,7 @@ export default function AppLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs
+        initialRouteName="routine"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: colors.primary,

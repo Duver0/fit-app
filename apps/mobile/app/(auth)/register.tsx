@@ -29,7 +29,7 @@ export default function RegisterScreen() {
     try {
       setError('')
       await register(email, password, name, phone || undefined)
-      router.replace('/(app)/groups')
+      router.replace('/(app)/routine')
     } catch (e: any) {
       setError(e.message || 'Error al registrarse')
     }

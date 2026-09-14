@@ -15,7 +15,7 @@ export default function LoginScreen() {
     try {
       setError('')
       await login(email, password)
-      router.replace('/(app)/groups')
+      router.replace('/(app)/routine')
     } catch (e: any) {
       setError(e.message || 'Error al iniciar sesión')
     }
