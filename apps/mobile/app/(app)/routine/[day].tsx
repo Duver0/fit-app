@@ -9,9 +9,12 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { useQuery, useMutation } from '@apollo/client'
+import { useQuery, useMutation, useApolloClient } from '@apollo/client'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../../src/theme/ThemeProvider'
@@ -58,6 +61,12 @@ const UNIT_LABELS: Record<string, string> = {
 
 const KG_TO_LB = 2.20462
 
+// LayoutAnimation no requiere plugin de babel (a diferencia de reanimated).
+// En Android debe habilitarse explícitamente.
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true)
+}
+
 function kgToLb(kg: number): number {
   return Math.round(kg * KG_TO_LB * 100) / 100
 }
@@ -88,11 +97,40 @@ function syncLbToKg(
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 
 function formatPerformance(perf: any, unit: string): string {
-  if (!perf) return '—'
-  if (unit === 'REPS_AND_WEIGHT' && perf.reps != null && perf.weight != null) {
-    return `${perf.reps} × ${perf.weight} ${UNIT_LABELS[unit] || unit}`
+  if (!perf) return 'Sin marca'
+  if (unit === 'REPS_AND_WEIGHT') {
+    const reps = perf.reps
+    const weight = perf.weight
+    if (reps != null && weight != null) return `${reps} reps × ${weight} kg`
+    if (weight != null) return `${weight} kg`
+    if (reps != null) return `${reps} reps`
+    return 'Sin marca'
   }
+  if (unit === 'KG') {
+    if (perf.weight != null) return `${perf.weight} kg`
+    if (perf.value != null) return `${perf.value} kg`
+    return 'Sin marca'
+  }
+  if (unit === 'REPS') {
+    if (perf.reps != null) return `${perf.reps} reps`
+    if (perf.value != null) return `${perf.value} reps`
+    return 'Sin marca'
+  }
+  if (unit === 'MIN') {
+    if (perf.value != null) return `${perf.value} min`
+    return 'Sin marca'
+  }
+  if (unit === 'SEC') {
+    if (perf.value != null) return `${perf.value} seg`
+    return 'Sin marca'
+  }
+  if (unit === 'M') {
+    if (perf.value != null) return `${perf.value} m`
+    return 'Sin marca'
+  }
+  // Fallback: usa UNIT_LABELS sin repetir la unidad si ya viene incluida
   const label = UNIT_LABELS[unit] || unit
+  if (perf.value == null) return 'Sin marca'
   return `${perf.value} ${label}`
 }
 
@@ -141,12 +179,30 @@ export default function RoutineDayScreen() {
     },
   )
 
+  const client = useApolloClient()
+
   const [reorderExercises, { loading: reordering }] = useMutation(
     REORDER_EXERCISES_MUTATION,
     {
+      // Reconciliación contra el servidor; el reorder local ya se aplicó
+      // de forma optimista en handleMove.
       refetchQueries: [
         { query: ROUTINE_DAY_QUERY, variables: { dayOfWeek } },
       ],
+      update(cache, { data }) {
+        // Normaliza la respuesta del servidor en la cache de ROUTINE_DAY_QUERY.
+        const reordered = (data as any)?.reorderExercises
+        if (!reordered) return
+        try {
+          cache.writeQuery({
+            query: ROUTINE_DAY_QUERY,
+            variables: { dayOfWeek },
+            data: { routineDay: reordered },
+          })
+        } catch {
+          // Si la forma del cache no coincide, refetchQueries reconcilia.
+        }
+      },
       onError: (e) => showErrorToast(e.message),
     },
   )
@@ -269,21 +325,69 @@ export default function RoutineDayScreen() {
     }
   }
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return
-    const exerciseIds = exercises.map((e: any) => e.exercise.id)
-    const newOrder = [...exerciseIds]
-    ;[newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]]
-    reorderExercises({ variables: { dayOfWeek, exerciseIds: newOrder } })
-  }
+  const handleMove = useCallback(
+    async (index: number, dir: 'up' | 'down') => {
+      const target = dir === 'up' ? index - 1 : index + 1
+      if (target < 0 || target >= exercises.length || reordering) return
+      const newExercises = [...exercises]
+      ;[newExercises[index], newExercises[target]] = [newExercises[target], newExercises[index]]
+      const newOrder = newExercises.map((e: any) => e.exercise.id)
 
-  const handleMoveDown = (index: number) => {
-    if (index === exercises.length - 1) return
-    const exerciseIds = exercises.map((e: any) => e.exercise.id)
-    const newOrder = [...exerciseIds]
-    ;[newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]]
-    reorderExercises({ variables: { dayOfWeek, exerciseIds: newOrder } })
-  }
+      // Snapshot para rollback en caso de error.
+      let previous: any = null
+      try {
+        previous =
+          client.readQuery({
+            query: ROUTINE_DAY_QUERY,
+            variables: { dayOfWeek },
+          }) ?? null
+      } catch {
+        previous = null
+      }
+
+      // Anima el cambio de layout antes del reorder.
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+
+      // Update optimista: reordena localmente en cache.
+      try {
+        if (previous?.routineDay) {
+          client.writeQuery({
+            query: ROUTINE_DAY_QUERY,
+            variables: { dayOfWeek },
+            data: {
+              routineDay: {
+                ...previous.routineDay,
+                exercises: newExercises.map((e: any, i: number) => ({
+                  ...e,
+                  sortOrder: i + 1,
+                })),
+              },
+            },
+          })
+        }
+      } catch {
+        // Si falla la escritura optimista, se sigue con la mutación.
+      }
+
+      try {
+        await reorderExercises({ variables: { dayOfWeek, exerciseIds: newOrder } })
+      } catch {
+        // Rollback al estado anterior; el onError del hook ya muestra el toast.
+        try {
+          if (previous) {
+            client.writeQuery({
+              query: ROUTINE_DAY_QUERY,
+              variables: { dayOfWeek },
+              data: previous,
+            })
+          }
+        } catch {
+          // refetchQueries reconcilia en el siguiente ciclo.
+        }
+      }
+    },
+    [client, dayOfWeek, exercises, reorderExercises, reordering],
+  )
 
   const handleMoveDay = async () => {
     if (movingDayTo === null || movingDayTo === dayOfWeek) return
@@ -632,109 +736,103 @@ export default function RoutineDayScreen() {
               marginBottom: 16,
             }}
           >
-            {/* Header: nombre + grupo */}
+            {/* Main row: info (izq) + acciones (der) */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1, marginRight: 12 }}>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 }}>
                   {item.exercise.name}
                 </Text>
                 {item.group && (
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>
                     {item.group.name}
                   </Text>
                 )}
+                {/* Marca actual: una sola línea, sin badge redundante */}
+                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                  Marca actual: {formatPerformance(item.myPerformance, item.exercise.unit)}
+                </Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
+              {/* Columna derecha: flechas + editar */}
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  <TouchableOpacity
+                    onPress={() => handleMove(index, 'up')}
+                    disabled={index === 0 || reordering}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Mover ${item.exercise.name} arriba`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: colors.background,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: index === 0 ? 0.3 : 1,
+                    }}
+                  >
+                    <Ionicons name="chevron-up" size={20} color={colors.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleMove(index, 'down')}
+                    disabled={index === exercises.length - 1 || reordering}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Mover ${item.exercise.name} abajo`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: colors.background,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: index === exercises.length - 1 ? 0.3 : 1,
+                    }}
+                  >
+                    <Ionicons name="chevron-down" size={20} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Editar: botón cuadrado grande, sólido primary */}
                 <TouchableOpacity
-                  onPress={() => handleMoveUp(index)}
-                  disabled={index === 0 || reordering}
+                  onPress={() => handleOpenEditMark(item)}
                   accessibilityRole="button"
-                  accessibilityLabel="Mover arriba"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={`Editar marca de ${item.exercise.name}`}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: colors.background,
-                    justifyContent: 'center',
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    opacity: index === 0 ? 0.3 : 1,
+                    justifyContent: 'center',
+                    gap: 6,
+                    minWidth: 92,
+                    minHeight: 48,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: colors.primary,
                   }}
                 >
-                  <Ionicons name="chevron-up" size={18} color={colors.text} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleMoveDown(index)}
-                  disabled={index === exercises.length - 1 || reordering}
-                  accessibilityRole="button"
-                  accessibilityLabel="Mover abajo"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: colors.background,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    opacity: index === exercises.length - 1 ? 0.3 : 1,
-                  }}
-                >
-                  <Ionicons name="chevron-down" size={18} color={colors.text} />
+                  <Ionicons name="pencil" size={16} color="#1A1A1A" />
+                  <Text style={{ color: '#1A1A1A', fontSize: 14, fontWeight: '600' }}>
+                    Editar
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Unit + Current mark */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 }}>
-              <View style={{
-                backgroundColor: colors.primary + '15',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-              }}>
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
-                  {UNIT_LABELS[item.exercise.unit] || item.exercise.unit}
-                </Text>
-              </View>
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                Marca: {item.myPerformance ? formatPerformance(item.myPerformance, item.exercise.unit) : '—'}
-              </Text>
-            </View>
-
-            {/* Action buttons */}
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <TouchableOpacity
-                onPress={() => handleOpenEditMark(item)}
-                accessibilityRole="button"
-                accessibilityLabel="Editar marca"
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: colors.primary + '20',
-                }}
-              >
-                <Ionicons name="pencil-outline" size={14} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '500' }}>
-                  Editar marca
-                </Text>
-              </TouchableOpacity>
-
+            {/* Quitar: ghost pequeño color error al pie, alineado flex-end */}
+            <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowRemoveConfirm(item.exercise.id)}
                 accessibilityRole="button"
-                accessibilityLabel="Eliminar de rutina"
+                accessibilityLabel={`Quitar ${item.exercise.name} de la rutina`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: colors.error + '20',
+                  paddingHorizontal: 8,
+                  paddingVertical: 6,
                 }}
               >
                 <Ionicons name="trash-outline" size={14} color={colors.error} />
@@ -743,17 +841,6 @@ export default function RoutineDayScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-
-            {/* Sort order indicator */}
-            <Text style={{
-              position: 'absolute',
-              top: 8,
-              right: 74,
-              color: colors.textSecondary,
-              fontSize: 11,
-            }}>
-              #{item.sortOrder}
-            </Text>
           </View>
         )}
       />
