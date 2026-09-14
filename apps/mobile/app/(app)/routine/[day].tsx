@@ -96,43 +96,95 @@ function syncLbToKg(
 
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
 
-function formatPerformance(perf: any, unit: string): string {
-  if (!perf) return 'Sin marca'
+type MarkPart = { text: string; bold: boolean }
+
+function getMarkParts(perf: any, unit: string): MarkPart[] {
+  if (!perf) return [{ text: 'Sin marca', bold: false }]
   if (unit === 'REPS_AND_WEIGHT') {
     const reps = perf.reps
     const weight = perf.weight
-    if (reps != null && weight != null) return `${reps} reps × ${weight} kg`
-    if (weight != null) return `${weight} kg`
-    if (reps != null) return `${reps} reps`
-    return 'Sin marca'
+    if (reps != null && weight != null)
+      return [
+        { text: `${reps}`, bold: true },
+        { text: ' reps \u00D7 ', bold: false },
+        { text: `${weight}`, bold: true },
+        { text: ' kg', bold: false },
+      ]
+    if (weight != null) return [{ text: `${weight}`, bold: true }, { text: ' kg', bold: false }]
+    if (reps != null) return [{ text: `${reps}`, bold: true }, { text: ' reps', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   if (unit === 'KG') {
-    if (perf.weight != null) return `${perf.weight} kg`
-    if (perf.value != null) return `${perf.value} kg`
-    return 'Sin marca'
+    const v = perf.weight ?? perf.value
+    if (v != null) return [{ text: `${v}`, bold: true }, { text: ' kg', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   if (unit === 'REPS') {
-    if (perf.reps != null) return `${perf.reps} reps`
-    if (perf.value != null) return `${perf.value} reps`
-    return 'Sin marca'
+    const v = perf.reps ?? perf.value
+    if (v != null) return [{ text: `${v}`, bold: true }, { text: ' reps', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   if (unit === 'MIN') {
-    if (perf.value != null) return `${perf.value} min`
-    return 'Sin marca'
+    if (perf.value != null) return [{ text: `${perf.value}`, bold: true }, { text: ' min', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   if (unit === 'SEC') {
-    if (perf.value != null) return `${perf.value} seg`
-    return 'Sin marca'
+    if (perf.value != null) return [{ text: `${perf.value}`, bold: true }, { text: ' seg', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   if (unit === 'M') {
-    if (perf.value != null) return `${perf.value} m`
-    return 'Sin marca'
+    if (perf.value != null) return [{ text: `${perf.value}`, bold: true }, { text: ' m', bold: false }]
+    return [{ text: 'Sin marca', bold: false }]
   }
   // Fallback: usa UNIT_LABELS sin repetir la unidad si ya viene incluida
   const label = UNIT_LABELS[unit] || unit
-  if (perf.value == null) return 'Sin marca'
-  return `${perf.value} ${label}`
+  if (perf.value == null) return [{ text: 'Sin marca', bold: false }]
+  return [{ text: `${perf.value}`, bold: true }, { text: ` ${label}`, bold: false }]
 }
+
+function formatMarkPlain(perf: any, unit: string): string {
+  return getMarkParts(perf, unit)
+    .map((p) => p.text)
+    .join('')
+}
+
+// Marca con numeros en bold y unidades en regular. Dark-mode via colores inyectados.
+function MarkText({
+  perf,
+  unit,
+  baseColor,
+  strongColor,
+}: {
+  perf: any
+  unit: string
+  baseColor: string
+  strongColor: string
+}) {
+  const parts = getMarkParts(perf, unit)
+  const plain = formatMarkPlain(perf, unit)
+  return (
+    <Text
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`Marca: ${plain}`}
+      numberOfLines={2}
+      style={{ color: baseColor, fontSize: 13, flexShrink: 1, flexWrap: 'wrap' }}
+    >
+      {parts.map((p, i) =>
+        p.bold ? (
+          <Text key={i} style={{ fontWeight: '700', color: strongColor }}>
+            {p.text}
+          </Text>
+        ) : (
+          <Text key={i}>{p.text}</Text>
+        ),
+      )}
+    </Text>
+  )
+}
+
+// Ancho fijo columna derecha: 44*3 + gap 4*2 = 140. Editar ocupa 100% (140).
+const ACTION_COL_WIDTH = 44 * 3 + 4 * 2
 
 export default function RoutineDayScreen() {
   const { colors } = useTheme()
@@ -725,7 +777,12 @@ export default function RoutineDayScreen() {
             onAction={() => setShowAddModal(true)}
           />
         }
-        renderItem={({ item, index }: { item: any; index: number }) => (
+        renderItem={({ item, index }: { item: any; index: number }) => {
+          // Backend ya resuelve RoutineExercise.group (resolver -> exercise.group).
+          // Fallback elegante: si no viene, se omite sin romper el layout.
+          const groupName: string | null =
+            item.group?.name ?? item.exercise?.group?.name ?? null
+          return (
           <View
             style={{
               backgroundColor: colors.surface,
@@ -736,39 +793,52 @@ export default function RoutineDayScreen() {
               marginBottom: 16,
             }}
           >
-            {/* Main row: info (izq) + acciones (der) */}
+            {/* Main row: info (izq flexible) + acciones (der ancho fijo 140) */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 }}>
+              <View style={{ flex: 1, flexShrink: 1, minWidth: 0, marginRight: 12 }}>
+                <Text
+                  numberOfLines={2}
+                  style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2, flexShrink: 1, flexWrap: 'wrap' }}
+                >
                   {item.exercise.name}
                 </Text>
-                {item.group && (
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>
-                    {item.group.name}
-                  </Text>
-                )}
-                {/* Marca actual: badge unidad + texto en la misma fila */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                  <View
-                    style={{
-                      backgroundColor: colors.primary + '15',
-                      borderRadius: 8,
-                      paddingHorizontal: 10,
-                      paddingVertical: 4,
-                    }}
+                {groupName ? (
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 2, flexShrink: 1 }}
                   >
-                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
-                      {UNIT_LABELS[item.exercise.unit] || item.exercise.unit}
-                    </Text>
-                  </View>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, flexShrink: 1 }}>
-                    Marca actual: {formatPerformance(item.myPerformance, item.exercise.unit)}
+                    {groupName}
+                  </Text>
+                ) : null}
+                {/* Layout vertical: pill arriba, marca debajo en linea separada */}
+                <View
+                  style={{
+                    backgroundColor: colors.primary + '15',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    alignSelf: 'flex-start',
+                    flexShrink: 0,
+                    marginTop: 8,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
+                    {UNIT_LABELS[item.exercise.unit] || item.exercise.unit}
                   </Text>
                 </View>
+                <View style={{ marginTop: 6, flexShrink: 1, flexDirection: 'row' }}>
+                  <MarkText
+                    perf={item.myPerformance}
+                    unit={item.exercise.unit}
+                    baseColor={colors.textSecondary}
+                    strongColor={colors.text}
+                  />
+                </View>
               </View>
-              {/* Columna derecha: quitar + flechas + editar */}
-              <View style={{ alignItems: 'center', gap: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {/* Columna derecha fija 140 = 44*3 + gap 4*2. Editar = 100% (140). */}
+              <View style={{ width: ACTION_COL_WIDTH, flexShrink: 0, alignItems: 'stretch', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, width: '100%' }}>
                   <TouchableOpacity
                     onPress={() => setShowRemoveConfirm(item.exercise.id)}
                     accessibilityRole="button"
@@ -822,7 +892,7 @@ export default function RoutineDayScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Editar: botón cuadrado grande, sólido primary */}
+                {/* Editar: mismo ancho que la fila superior (100% de 140) */}
                 <TouchableOpacity
                   onPress={() => handleOpenEditMark(item)}
                   accessibilityRole="button"
@@ -833,7 +903,8 @@ export default function RoutineDayScreen() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
-                    minWidth: 92,
+                    width: '100%',
+                    alignSelf: 'stretch',
                     minHeight: 48,
                     paddingHorizontal: 14,
                     paddingVertical: 12,
@@ -849,7 +920,8 @@ export default function RoutineDayScreen() {
               </View>
             </View>
           </View>
-        )}
+          )
+        }}
       />
 
       {/* --- Edit Day Name Modal --- */}
