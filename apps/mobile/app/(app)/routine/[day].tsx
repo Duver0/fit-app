@@ -320,6 +320,10 @@ export default function RoutineDayScreen() {
   const [editWeight, setEditWeight] = useState('')
   const [editWeightLb, setEditWeightLb] = useState('')
   const [savingMark, setSavingMark] = useState(false)
+  // Foco por caja (kg/lb): el borde del contenedor se ilumina en primary y el
+  // TextInput pierde su subrayado/highlight nativo → un solo borde al presionar.
+  const [isKgFocused, setIsKgFocused] = useState(false)
+  const [isLbFocused, setIsLbFocused] = useState(false)
 
   // Add exercise modal tabs: 'groups' | 'create'
   const [addTab, setAddTab] = useState<'groups' | 'create'>('groups')
@@ -1547,22 +1551,25 @@ export default function RoutineDayScreen() {
                       marginRight: 8,
                       paddingHorizontal: 16,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: isKgFocused ? colors.primary : colors.border,
                     }}
                   >
                     <TextInput
                       value={editWeight}
                       onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
-                      placeholder="0"
+                      placeholder="Ej: 50"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
                       accessibilityLabel="Peso en kilogramos"
+                      onFocus={() => setIsKgFocused(true)}
+                      onBlur={() => setIsKgFocused(false)}
+                      underlineColorAndroid="transparent"
                       style={{
                         flex: 1,
                         color: colors.text,
                         fontSize: 24,
                         textAlign: 'center',
-                        paddingVertical: 16,
+                        paddingVertical: 12,
                         paddingHorizontal: 0,
                       }}
                     />
@@ -1580,22 +1587,25 @@ export default function RoutineDayScreen() {
                       borderRadius: 12,
                       paddingHorizontal: 16,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: isLbFocused ? colors.primary : colors.border,
                     }}
                   >
                     <TextInput
                       value={editWeightLb || ''}
                       onChangeText={(t) => syncLbToKg(t, setEditWeightLb, setEditWeight)}
-                      placeholder="0"
+                      placeholder="Ej: 110"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
                       accessibilityLabel="Peso en libras"
+                      onFocus={() => setIsLbFocused(true)}
+                      onBlur={() => setIsLbFocused(false)}
+                      underlineColorAndroid="transparent"
                       style={{
                         flex: 1,
                         color: colors.text,
                         fontSize: 24,
                         textAlign: 'center',
-                        paddingVertical: 16,
+                        paddingVertical: 12,
                         paddingHorizontal: 0,
                       }}
                     />
