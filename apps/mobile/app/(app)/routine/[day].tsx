@@ -1535,48 +1535,71 @@ export default function RoutineDayScreen() {
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
                   Peso
                 </Text>
-                <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.background,
+                      borderRadius: 12,
+                      marginRight: 8,
+                      paddingHorizontal: 16,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
                     <TextInput
                       value={editWeight}
                       onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
-                      placeholder="Ej: 50"
+                      placeholder="0"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
+                      accessibilityLabel="Peso en kilogramos"
                       style={{
-                        backgroundColor: colors.background,
+                        flex: 1,
                         color: colors.text,
-                        borderRadius: 12,
-                        padding: 16,
-                        fontSize: 18,
-                        marginBottom: 20,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        fontSize: 24,
+                        textAlign: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 0,
                       }}
                     />
-                    <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: -12 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
                       kg
                     </Text>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.background,
+                      borderRadius: 12,
+                      paddingHorizontal: 16,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
                     <TextInput
                       value={editWeightLb || ''}
-                      onChangeText={(t) => syncLbToKg(t, setEditWeight, setEditWeightLb)}
-                      placeholder="Ej: 110"
+                      onChangeText={(t) => syncLbToKg(t, setEditWeightLb, setEditWeight)}
+                      placeholder="0"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
+                      accessibilityLabel="Peso en libras"
                       style={{
-                        backgroundColor: colors.background,
+                        flex: 1,
                         color: colors.text,
-                        borderRadius: 12,
-                        padding: 16,
-                        fontSize: 18,
-                        marginBottom: 20,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        fontSize: 24,
+                        textAlign: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 0,
                       }}
                     />
-                    <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: -12 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
                       lb
                     </Text>
                   </View>
