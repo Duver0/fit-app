@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -91,6 +91,15 @@ export default function UpsertMarkModal({
   const [weightLb, setWeightLb] = useState(initialWeightLb)
   const [value, setValue] = useState(initialValue)
   const [valueLb, setValueLb] = useState(initialValueLb)
+
+  // Sync state with props when they change (e.g. data finishes loading)
+  useEffect(() => {
+    setReps(initialReps)
+    setWeight(initialWeight)
+    setWeightLb(initialWeightLb)
+    setValue(initialValue)
+    setValueLb(initialValueLb)
+  }, [initialReps, initialWeight, initialWeightLb, initialValue, initialValueLb])
 
   // Focus state for kg/lb inputs
   const [kgFocused, setKgFocused] = useState(false)
