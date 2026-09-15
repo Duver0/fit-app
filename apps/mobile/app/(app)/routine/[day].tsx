@@ -196,6 +196,9 @@ export default function RoutineDayScreen() {
   const { day } = useLocalSearchParams<{ day: string }>()
   const handleBack = useSmartBack('/(app)/routine')
   const dayOfWeek = parseInt(day ?? '0', 10)
+  // NOTE: hook must stay ABOVE the loading/error early returns to respect rules of hooks.
+  const currentRestDay = useAuthStore(state => state.restDay)
+  const isCurrentRestDay = dayOfWeek === currentRestDay
 
   // --- Queries ---
   const {
@@ -491,11 +494,15 @@ export default function RoutineDayScreen() {
 
   const handleSetRestDay = () => {
     setShowKebabMenu(false)
-    const setRestDay = useAuthStore.getState().setRestDay
-    setRestDay(dayOfWeek)
-    showSuccessToast(`${DAY_NAMES_ARRAY[dayOfWeek]} marcado como día de descanso`)
-    // Trigger a re-render to update UI (the store update will persist but we need to reflect it)
-    // The parent screen (routine index) reads from store directly so it will update on next render
+    const { restDay, setRestDay } = useAuthStore.getState()
+    if (dayOfWeek === restDay) {
+      // Ya es el día de descanso -> desmarcar (volver al default: Domingo 6)
+      setRestDay(6)
+      showSuccessToast('Día de descanso desmarcado')
+    } else {
+      setRestDay(dayOfWeek)
+      showSuccessToast(`${DAY_NAMES_ARRAY[dayOfWeek]} marcado como día de descanso`)
+    }
   }
 
   const handleSaveName = async () => {
@@ -714,9 +721,6 @@ export default function RoutineDayScreen() {
       </View>
     )
   }
-
-  const currentRestDay = useAuthStore(state => state.restDay)
-  const isCurrentRestDay = dayOfWeek === currentRestDay
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
