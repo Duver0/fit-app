@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Pressable,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { useQuery, useMutation, useApolloClient } from '@apollo/client'
@@ -40,7 +39,7 @@ import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import ConfirmModal from '../../../src/components/ui/ConfirmModal'
 import BottomSheetModal from '../../../src/components/ui/BottomSheetModal'
-import { NumberSpinner } from '../../../src/components/ui/NumberSpinner'
+import UpsertMarkModal from '../../../src/components/ui/UpsertMarkModal'
 import { showSuccessToast, showErrorToast } from '../../../src/lib/toast'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { DAY_NAMES, DayOfWeek } from '../../../src/utils/dayHelpers'
@@ -75,29 +74,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 function kgToLb(kg: number): number {
   return Math.round(kg * KG_TO_LB * 100) / 100
-}
-
-// Sync helpers for the dual kg/lb inputs. They keep the typed field as-is and
-// update the paired field; on an invalid/empty value the paired field is cleared.
-function syncKgToLb(
-  t: string,
-  setKg: (v: string) => void,
-  setLb: (v: string) => void,
-) {
-  const v = parseFloat(t)
-  setKg(t)
-  if (!isNaN(v) && v > 0) setLb(kgToLb(v).toString())
-  else setLb('')
-}
-
-function syncLbToKg(
-  t: string,
-  setKg: (v: string) => void,
-  setLb: (v: string) => void,
-) {
-  const v = parseFloat(t)
-  setLb(t)
-  if (!isNaN(v) && v > 0) setKg((v / KG_TO_LB).toString().substring(0, 6))
 }
 
 const UNIT_OPTIONS = ['KG', 'REPS', 'REPS_AND_WEIGHT', 'MIN', 'SEC', 'M'] as const
@@ -315,18 +291,7 @@ export default function RoutineDayScreen() {
   const [deletingDay, setDeletingDay] = useState(false)
 
   // Edit mark form state
-  const [editValue, setEditValue] = useState('')
-  const [editValueLb, setEditValueLb] = useState('')
-  const [editReps, setEditReps] = useState('')
-  const [editWeight, setEditWeight] = useState('')
-  const [editWeightLb, setEditWeightLb] = useState('')
   const [savingMark, setSavingMark] = useState(false)
-  // Foco por caja (kg/lb): el borde del contenedor se ilumina en primary y el
-  // TextInput pierde su subrayado/highlight nativo → un solo borde al presionar.
-  const [isKgFocused, setIsKgFocused] = useState(false)
-  const [isLbFocused, setIsLbFocused] = useState(false)
-  const kgInputRef = useRef<TextInput>(null)
-  const lbInputRef = useRef<TextInput>(null)
 
   // Add exercise modal tabs: 'groups' | 'create'
   const [addTab, setAddTab] = useState<'groups' | 'create'>('groups')
@@ -535,103 +500,6 @@ export default function RoutineDayScreen() {
       unit: item.exercise.unit,
       currentPerf: perf,
     })
-
-    if (item.exercise.unit === 'REPS_AND_WEIGHT') {
-      setEditReps(perf?.reps?.toString() || '')
-      const w = perf?.weight
-      setEditWeight(w != null ? w.toString() : '')
-      setEditWeightLb(w != null && w > 0 ? kgToLb(w).toString() : '')
-      setEditValue('')
-      setEditValueLb('')
-    } else if (item.exercise.unit === 'KG') {
-      const v = perf?.value
-      setEditValue(v != null ? v.toString() : '')
-      setEditValueLb(v != null && v > 0 ? kgToLb(v).toString() : '')
-      setEditReps('')
-      setEditWeight('')
-      setEditWeightLb('')
-    } else {
-      // Unidades simples sin peso (REPS, MIN, SEC, M): un solo valor
-      const v = perf?.value
-      setEditValue(v != null ? v.toString() : '')
-      setEditValueLb('')
-      setEditReps('')
-      setEditWeight('')
-      setEditWeightLb('')
-    }
-  }
-
-  const handleSaveMark = async () => {
-    if (!showEditMark) return
-    setSavingMark(true)
-    try {
-      const { exerciseId, unit } = showEditMark
-      if (unit === 'REPS_AND_WEIGHT') {
-        const reps = parseInt(editReps, 10)
-        let weight = parseFloat(editWeight)
-        if (isNaN(reps) || isNaN(weight) || reps < 1 || weight <= 0) {
-          showErrorToast('Valores inválidos')
-          return
-        }
-        await upsertPerformance({
-          variables: {
-            input: {
-              exerciseId,
-              value: 0,
-              reps,
-              weight,
-            },
-          },
-        })
-      } else if (unit === 'KG') {
-        // KG: editValue es el valor en kg, editValueLb es el valor en lb
-        let value = parseFloat(editValue)
-        // Si el usuario escribió en lb, convertir a kg
-        if (isNaN(value) || value <= 0) {
-          // Intentar convertir desde lb si value no es válido
-          const lbValue = parseFloat(editValueLb)
-          if (!isNaN(lbValue) && lbValue > 0) {
-            value = lbValue / KG_TO_LB
-          } else {
-            showErrorToast('Valor inválido')
-            return
-          }
-        }
-        await upsertPerformance({
-          variables: {
-            input: {
-              exerciseId,
-              value,
-            },
-          },
-        })
-      } else {
-        // Unidades simples sin peso (REPS, MIN, SEC, M): valor directo
-        const value = parseFloat(editValue)
-        if (isNaN(value) || value <= 0) {
-          showErrorToast('Valor inválido')
-          return
-        }
-        await upsertPerformance({
-          variables: {
-            input: {
-              exerciseId,
-              value,
-            },
-          },
-        })
-      }
-      setShowEditMark(null)
-      setEditValue('')
-      setEditValueLb('')
-      setEditReps('')
-      setEditWeight('')
-      setEditWeightLb('')
-    } catch (e: any) {
-      showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
-    } finally {
-      setSavingMark(false)
-    }
   }
 
   const [createExerciseMutation] = useMutation(CREATE_EXERCISE_MUTATION, {
@@ -690,11 +558,6 @@ export default function RoutineDayScreen() {
           unit: newExUnit,
           currentPerf: null,
         })
-        setEditValue('')
-        setEditValueLb('')
-        setEditReps('')
-        setEditWeight('')
-        setEditWeightLb('')
       }, 500)
     } catch (e: any) {
       showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
@@ -1510,233 +1373,40 @@ export default function RoutineDayScreen() {
       />
 
       {/* --- Edit Mark Modal --- */}
-      <BottomSheetModal
-        visible={!!showEditMark}
-        onClose={() => setShowEditMark(null)}
-      >
-        {showEditMark && (
-          <>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 }}>
-              Actualizar marca
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 20 }}>
-              {showEditMark.exerciseName}
-            </Text>
-
-            {showEditMark.unit === 'REPS_AND_WEIGHT' ? (
-              <>
-                <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>
-                  Repeticiones
-                </Text>
-                <NumberSpinner
-                  value={editReps}
-                  onChange={setEditReps}
-                  step={1}
-                  min={0}
-                  max={99}
-                  decimals={0}
-                  unit="reps"
-                  accessibilityLabel="Repeticiones"
-                />
-                <View style={{ height: 20 }} />
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
-                  Peso
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                  <Pressable
-                    onPress={() => kgInputRef.current?.focus()}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: colors.background,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: isKgFocused ? colors.primary : colors.border,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <TextInput
-                      ref={kgInputRef}
-                      value={editWeight}
-                      onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
-                      placeholder="50"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      maxLength={7}
-                      accessibilityLabel="Peso en kilogramos"
-                      onFocus={() => setIsKgFocused(true)}
-                      onBlur={() => setIsKgFocused(false)}
-                      underlineColorAndroid="transparent"
-                      style={{
-                        flex: 1,
-                        color: colors.text,
-                        fontSize: 22,
-                        textAlign: 'center',
-                        paddingVertical: 14,
-                        minWidth: 0,
-                        // @ts-ignore — outlineStyle es soportado por RN Web pero no está en los tipos RN core
-                        outlineStyle: 'none',
-                      }}
-                    />
-                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
-                      kg
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => lbInputRef.current?.focus()}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: colors.background,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: isLbFocused ? colors.primary : colors.border,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <TextInput
-                      ref={lbInputRef}
-                      value={editWeightLb || ''}
-                      onChangeText={(t) => syncLbToKg(t, setEditWeight, setEditWeightLb)}
-                      placeholder="110"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      maxLength={7}
-                      accessibilityLabel="Peso en libras"
-                      onFocus={() => setIsLbFocused(true)}
-                      onBlur={() => setIsLbFocused(false)}
-                      underlineColorAndroid="transparent"
-                      style={{
-                        flex: 1,
-                        color: colors.text,
-                        fontSize: 22,
-                        textAlign: 'center',
-                        paddingVertical: 14,
-                        minWidth: 0,
-                        // @ts-ignore — outlineStyle es soportado por RN Web pero no está en los tipos RN core
-                        outlineStyle: 'none',
-                      }}
-                    />
-                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
-                      lb
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
-            ) : showEditMark.unit === 'KG' ? (
-              <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Valor (kg)
-                  </Text>
-                  <View style={{
-                    backgroundColor: colors.primary + '15',
-                    borderRadius: 8,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                  }}>
-                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '500' }}>
-                      kg
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      kg
-                    </Text>
-                    <TextInput
-                      value={editValue}
-                      onChangeText={(t) => syncKgToLb(t, setEditValue, setEditValueLb)}
-                      placeholder="Tu marca"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      style={{
-                        backgroundColor: colors.background,
-                        color: colors.text,
-                        borderRadius: 12,
-                        padding: 16,
-                        fontSize: 18,
-                        marginBottom: 20,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      lb
-                    </Text>
-                    <TextInput
-                      value={editValueLb}
-                      onChangeText={(t) => syncLbToKg(t, setEditValue, setEditValueLb)}
-                      placeholder="Tu marca"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      style={{
-                        backgroundColor: colors.background,
-                        color: colors.text,
-                        borderRadius: 12,
-                        padding: 16,
-                        fontSize: 18,
-                        marginBottom: 20,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
-                  Valor ({UNIT_LABELS[showEditMark.unit] || showEditMark.unit})
-                </Text>
-                <TextInput
-                  value={editValue}
-                  onChangeText={setEditValue}
-                  placeholder="Tu marca"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="decimal-pad"
-                  style={{
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderRadius: 12,
-                    padding: 16,
-                    fontSize: 18,
-                    marginBottom: 20,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
-              </>
-            )}
-
-            <TouchableOpacity
-              onPress={handleSaveMark}
-              disabled={savingMark}
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 24,
-                padding: 16,
-                alignItems: 'center',
-                marginBottom: 8,
-                opacity: savingMark ? 0.6 : 1,
-              }}
-            >
-              {savingMark ? (
-                <ActivityIndicator color="#1A1A1A" />
-              ) : (
-                <Text style={{ color: '#1A1A1A', fontWeight: '600', fontSize: 16 }}>
-                  Guardar marca
-                </Text>
-              )}
-            </TouchableOpacity>
-          </>
-        )}
-      </BottomSheetModal>
+      {showEditMark && (
+        <UpsertMarkModal
+          visible
+          onClose={() => setShowEditMark(null)}
+          onSave={async (data) => {
+            setSavingMark(true)
+            try {
+              const { exerciseId } = showEditMark
+              if (data.kind === 'REPS_AND_WEIGHT') {
+                await upsertPerformance({
+                  variables: { input: { exerciseId, value: 0, reps: data.reps, weight: data.weight } },
+                })
+              } else {
+                await upsertPerformance({
+                  variables: { input: { exerciseId, value: data.value } },
+                })
+              }
+              setShowEditMark(null)
+            } catch (e: any) {
+              showErrorToast(e?.graphQLErrors?.[0]?.message || e.message)
+            } finally {
+              setSavingMark(false)
+            }
+          }}
+          unit={showEditMark.unit}
+          exerciseName={showEditMark.exerciseName}
+          initialReps={showEditMark.currentPerf?.reps?.toString() || ''}
+          initialWeight={showEditMark.currentPerf?.weight?.toString() || ''}
+          initialWeightLb={showEditMark.currentPerf?.weight ? kgToLb(showEditMark.currentPerf.weight).toString() : ''}
+          initialValue={showEditMark.currentPerf?.value?.toString() || ''}
+          initialValueLb={showEditMark.currentPerf?.value ? kgToLb(showEditMark.currentPerf.value).toString() : ''}
+          isSaving={savingMark}
+        />
+      )}
 
       {/* --- Delete Day Confirm Modal --- */}
       <ConfirmModal

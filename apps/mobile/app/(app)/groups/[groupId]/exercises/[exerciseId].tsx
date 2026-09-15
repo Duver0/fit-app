@@ -16,6 +16,7 @@ import { ExerciseDbSearchModal } from '../../../../../src/components/ui/Exercise
 import ConfirmModal from '../../../../../src/components/ui/ConfirmModal'
 import { showSuccessToast, showErrorToast } from '../../../../../src/lib/toast'
 import BottomSheetModal from '../../../../../src/components/ui/BottomSheetModal'
+import UpsertMarkModal from '../../../../../src/components/ui/UpsertMarkModal'
 import ImageWithFallback from '../../../../../src/components/ui/ImageWithFallback'
 import ScreenHeader from '../../../../../src/components/ui/ScreenHeader'
 import { Skeleton } from '../../../../../src/components/ui/Skeleton'
@@ -117,11 +118,6 @@ export default function ExerciseDetailScreen() {
   const { user: currentUser } = useAuth()
 
   const [showUpsert, setShowUpsert] = useState(false)
-  const [newValue, setNewValue] = useState('')
-  const [newValueLb, setNewValueLb] = useState('')
-  const [newReps, setNewReps] = useState('')
-  const [newWeight, setNewWeight] = useState('')
-  const [newWeightLb, setNewWeightLb] = useState('')
   const [showDispute, setShowDispute] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeVotingPerformanceId, setDisputeVotingPerformanceId] = useState<string | null>(null)
@@ -305,36 +301,6 @@ export default function ExerciseDetailScreen() {
     }
   }
 
-  const handleUpsert = async () => {
-    const isRepsAndWeight = exercise?.unit === 'REPS_AND_WEIGHT'
-
-    if (isRepsAndWeight) {
-      if (!newReps || !newWeight) return
-      const reps = parseInt(newReps, 10)
-      const weight = parseFloat(newWeight)
-      if (isNaN(reps) || isNaN(weight) || reps < 1 || weight <= 0) return
-      try {
-        await upsertPerformance(0, reps, weight)
-        setShowUpsert(false)
-        setNewReps('')
-        setNewWeight('')
-        setNewWeightLb('')
-      } catch (e: any) {
-        console.error(e)
-      }
-    } else {
-      if (!newValue) return
-      try {
-        await upsertPerformance(parseFloat(newValue))
-        setShowUpsert(false)
-        setNewValue('')
-        setNewValueLb('')
-      } catch (e: any) {
-        console.error(e)
-      }
-    }
-  }
-
   const handleDispute = async () => {
     if (!showDispute || !disputeReason) return
     try {
@@ -372,21 +338,8 @@ export default function ExerciseDetailScreen() {
     }
   }
 
-  const unitLabel = exercise ? (UNIT_LABELS[exercise.unit] || exercise.unit) : ''
-
   // --- Convertimos a upsert pre-fill ---
   const openUpsertWithCurrent = () => {
-    if (!myPerformance) { setShowUpsert(true); return }
-    if (exercise?.unit === 'REPS_AND_WEIGHT') {
-      setNewReps((myPerformance.reps || '').toString())
-      const w = myPerformance.weight || 0
-      setNewWeight(w.toString())
-      setNewWeightLb(kgToLb(w).toString())
-    } else {
-      const val = myPerformance.value || 0
-      setNewValue(val.toString())
-      setNewValueLb(kgToLb(val).toString())
-    }
     setShowUpsert(true)
   }
 
@@ -627,113 +580,30 @@ export default function ExerciseDetailScreen() {
       )}
 
       {/* --- Upsert Modal --- */}
-      <BottomSheetModal visible={showUpsert} onClose={() => {
-        setShowUpsert(false)
-        setNewValue('')
-        setNewValueLb('')
-        setNewReps('')
-        setNewWeight('')
-        setNewWeightLb('')
-      }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
-          {myPerformance ? 'Actualizar marca' : 'Registrar marca'}
-        </Text>
-
-        {exercise?.unit === 'REPS_AND_WEIGHT' ? (
-          <>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Repeticiones</Text>
-            <TextInput
-              placeholder="Ej: 6"
-              placeholderTextColor={colors.textSecondary}
-              value={newReps} onChangeText={setNewReps}
-              keyboardType="number-pad"
-              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
-            />
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>Peso</Text>
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  placeholder="0 kg"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newWeight}
-                  onChangeText={(t) => { setNewWeight(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeightLb(kgToLb(v).toString()); else setNewWeightLb('') }}
-                  keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  placeholder="0 lb"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newWeightLb}
-                  onChangeText={(t) => { setNewWeightLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewWeight(lbToKg(v).toString()); else setNewWeight('') }}
-                  keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                />
-              </View>
-            </View>
-            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newReps || !newWeight}
-              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-            </TouchableOpacity>
-          </>
-        ) : exercise?.unit === 'KG' ? (
-          <>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Peso</Text>
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  placeholder="0 kg"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newValue}
-                  onChangeText={(t) => { setNewValue(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValueLb(kgToLb(v).toString()); else setNewValueLb('') }}
-                  keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  placeholder="0 lb"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newValueLb}
-                  onChangeText={(t) => { setNewValueLb(t); const v = parseFloat(t); if (!isNaN(v) && v > 0) setNewValue(lbToKg(v).toString()); else setNewValue('') }}
-                  keyboardType="decimal-pad"
-                  style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 10, padding: 10, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                />
-              </View>
-            </View>
-            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
-              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <TextInput
-              placeholder={`Valor en ${unitLabel || 'kg'}`}
-              placeholderTextColor={colors.textSecondary}
-              value={newValue} onChangeText={setNewValue}
-              keyboardType="decimal-pad"
-              style={{ backgroundColor: colors.background, color: colors.text, borderRadius: 12, padding: 16, fontSize: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}
-            />
-            <TouchableOpacity onPress={handleUpsert} disabled={isUpserting || !newValue}
-              style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, alignItems: 'center', marginBottom: 8, opacity: isUpserting ? 0.6 : 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{isUpserting ? 'Guardando...' : 'Guardar'}</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        <TouchableOpacity onPress={() => {
-          setShowUpsert(false)
-          setNewValue('')
-          setNewValueLb('')
-          setNewReps('')
-          setNewWeight('')
-          setNewWeightLb('')
-        }} style={{ padding: 12, alignItems: 'center' }}>
-          <Text style={{ color: colors.textSecondary }}>Cancelar</Text>
-        </TouchableOpacity>
-      </BottomSheetModal>
+      <UpsertMarkModal
+        visible={showUpsert}
+        onClose={() => setShowUpsert(false)}
+        onSave={async (data) => {
+          try {
+            if (data.kind === 'REPS_AND_WEIGHT') {
+              await upsertPerformance(0, data.reps, data.weight)
+            } else {
+              await upsertPerformance(data.value)
+            }
+            setShowUpsert(false)
+          } catch (e: any) {
+            console.error(e)
+          }
+        }}
+        unit={exercise?.unit || ''}
+        exerciseName={exercise?.name || ''}
+        initialReps={myPerformance?.reps?.toString() || ''}
+        initialWeight={myPerformance?.weight?.toString() || ''}
+        initialWeightLb={myPerformance?.weight ? kgToLb(myPerformance.weight).toString() : ''}
+        initialValue={myPerformance?.value?.toString() || ''}
+        initialValueLb={myPerformance?.value ? kgToLb(myPerformance.value).toString() : ''}
+        isSaving={isUpserting}
+      />
 
       {/* --- Create Dispute Modal --- */}
       <Modal visible={!!showDispute} transparent animationType="slide">
