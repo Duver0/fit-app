@@ -1577,19 +1577,9 @@ export default function RoutineDayScreen() {
                         minWidth: 0,
                       }}
                     />
-                    <View
-                      style={{
-                        backgroundColor: colors.surface,
-                        paddingHorizontal: 10,
-                        paddingVertical: 14,
-                        borderLeftWidth: 1,
-                        borderLeftColor: colors.border,
-                      }}
-                    >
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                        kg
-                      </Text>
-                    </View>
+                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '700', paddingRight: 4 }}>
+                      kg
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => lbInputRef.current?.focus()}
@@ -1625,19 +1615,9 @@ export default function RoutineDayScreen() {
                         minWidth: 0,
                       }}
                     />
-                    <View
-                      style={{
-                        backgroundColor: colors.surface,
-                        paddingHorizontal: 10,
-                        paddingVertical: 14,
-                        borderLeftWidth: 1,
-                        borderLeftColor: colors.border,
-                      }}
-                    >
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                        lb
-                      </Text>
-                    </View>
+                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '700', paddingRight: 4 }}>
+                      lb
+                    </Text>
                   </Pressable>
                 </View>
               </>
