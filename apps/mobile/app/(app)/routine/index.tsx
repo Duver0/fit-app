@@ -10,7 +10,7 @@ import { Skeleton } from '../../../src/components/ui/Skeleton'
 import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import { AvatarStack } from '../../../src/components/ui/AvatarStack'
-import { DAY_NAMES, DAY_NAMES_SHORT, DayOfWeek } from '../../../src/utils/dayHelpers'
+import { DAY_NAMES, DayOfWeek } from '../../../src/utils/dayHelpers'
 
 interface RoutineExercise {
   id: string
@@ -121,8 +121,8 @@ export default function RoutineIndexScreen() {
             const hasExercises = exercises.length > 0
             const restDay = dayOfWeek === emptyDay
 
-            // Display name: ALWAYS use short name in grid (DAY_NAMES_SHORT), never custom name
-            const displayName = DAY_NAMES_SHORT[dayOfWeek]
+            // Display name: full day name in grid
+            const displayName = DAY_NAMES[dayOfWeek]
 
             // Accessibility label
             const accessibilityLabel = restDay
@@ -153,6 +153,7 @@ export default function RoutineIndexScreen() {
               >
                 {/* Day name */}
                 <Text
+                  numberOfLines={1}
                   style={{
                     fontSize: 16,
                     fontWeight: '600',
