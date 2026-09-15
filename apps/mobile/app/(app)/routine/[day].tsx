@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Pressable,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { useQuery, useMutation, useApolloClient } from '@apollo/client'
@@ -324,6 +325,8 @@ export default function RoutineDayScreen() {
   // TextInput pierde su subrayado/highlight nativo → un solo borde al presionar.
   const [isKgFocused, setIsKgFocused] = useState(false)
   const [isLbFocused, setIsLbFocused] = useState(false)
+  const kgInputRef = useRef<TextInput>(null)
+  const lbInputRef = useRef<TextInput>(null)
 
   // Add exercise modal tabs: 'groups' | 'create'
   const [addTab, setAddTab] = useState<'groups' | 'create'>('groups')
@@ -1540,7 +1543,8 @@ export default function RoutineDayScreen() {
                   Peso
                 </Text>
                 <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-                  <View
+                  <Pressable
+                    onPress={() => kgInputRef.current?.focus()}
                     style={{
                       flex: 1,
                       flexDirection: 'row',
@@ -1555,6 +1559,7 @@ export default function RoutineDayScreen() {
                     }}
                   >
                     <TextInput
+                      ref={kgInputRef}
                       value={editWeight}
                       onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
                       placeholder="Ej: 50"
@@ -1576,8 +1581,9 @@ export default function RoutineDayScreen() {
                     <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
                       kg
                     </Text>
-                  </View>
-                  <View
+                  </Pressable>
+                  <Pressable
+                    onPress={() => lbInputRef.current?.focus()}
                     style={{
                       flex: 1,
                       flexDirection: 'row',
@@ -1591,6 +1597,7 @@ export default function RoutineDayScreen() {
                     }}
                   >
                     <TextInput
+                      ref={lbInputRef}
                       value={editWeightLb || ''}
                       onChangeText={(t) => syncLbToKg(t, setEditWeightLb, setEditWeight)}
                       placeholder="Ej: 110"
@@ -1612,7 +1619,7 @@ export default function RoutineDayScreen() {
                     <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
                       lb
                     </Text>
-                  </View>
+                  </Pressable>
                 </View>
               </>
             ) : showEditMark.unit === 'KG' ? (
