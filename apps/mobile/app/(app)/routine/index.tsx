@@ -144,7 +144,7 @@ export default function RoutineIndexScreen() {
                   borderWidth: 1,
                   borderColor: restDay ? colors.primary + '4D' : colors.border, // 30% opacity
                   padding: 16,
-                  width: '48%',
+                  width: restDay ? '100%' : '48%',
                   marginBottom: 16,
                   opacity: restDay ? 0.6 : 1,
                   overflow: 'hidden', // Prevent AvatarStack from overflowing card bounds
@@ -191,16 +191,15 @@ export default function RoutineIndexScreen() {
 
                 {/* Rest day: Moon icon centered */}
                 {restDay && (
-                  <View style={{ marginTop: 24, alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 8 }}>
                     <Ionicons
                       name="moon"
-                      size={48}
+                      size={24}
                       color={colors.primary}
                     />
                     <Text
                       style={{
-                        marginTop: 8,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: '500',
                         color: colors.textSecondary,
                       }}
