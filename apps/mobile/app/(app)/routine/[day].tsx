@@ -40,15 +40,18 @@ import { EmptyState } from '../../../src/components/ui/EmptyState'
 import ConfirmModal from '../../../src/components/ui/ConfirmModal'
 import BottomSheetModal from '../../../src/components/ui/BottomSheetModal'
 import { showSuccessToast, showErrorToast } from '../../../src/lib/toast'
+import { useAuthStore } from '../../../src/stores/authStore'
+import { DAY_NAMES, DayOfWeek } from '../../../src/utils/dayHelpers'
 
-const DAY_NAMES = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo',
+// Convert DAY_NAMES Record to array for backward compatibility
+const DAY_NAMES_ARRAY = [
+  DAY_NAMES[0 as DayOfWeek],
+  DAY_NAMES[1 as DayOfWeek],
+  DAY_NAMES[2 as DayOfWeek],
+  DAY_NAMES[3 as DayOfWeek],
+  DAY_NAMES[4 as DayOfWeek],
+  DAY_NAMES[5 as DayOfWeek],
+  DAY_NAMES[6 as DayOfWeek],
 ]
 
 const UNIT_LABELS: Record<string, string> = {
@@ -205,7 +208,7 @@ export default function RoutineDayScreen() {
   })
 
   const routineDay = data?.routineDay
-  const dayName = routineDay?.name || DAY_NAMES[dayOfWeek] || 'Día'
+  const dayName = routineDay?.name || DAY_NAMES_ARRAY[dayOfWeek] || 'Día'
 
   // --- Mutations ---
   const [addExerciseToDay, { loading: addingExercise }] = useMutation(
@@ -486,6 +489,15 @@ export default function RoutineDayScreen() {
     }
   }
 
+  const handleSetRestDay = () => {
+    setShowKebabMenu(false)
+    const setRestDay = useAuthStore.getState().setRestDay
+    setRestDay(dayOfWeek)
+    showSuccessToast(`${DAY_NAMES_ARRAY[dayOfWeek]} marcado como día de descanso`)
+    // Trigger a re-render to update UI (the store update will persist but we need to reflect it)
+    // The parent screen (routine index) reads from store directly so it will update on next render
+  }
+
   const handleSaveName = async () => {
     setSavingName(true)
     try {
@@ -703,6 +715,9 @@ export default function RoutineDayScreen() {
     )
   }
 
+  const currentRestDay = useAuthStore(state => state.restDay)
+  const isCurrentRestDay = dayOfWeek === currentRestDay
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header with back arrow + name edit button + add button + kebab menu */}
@@ -734,7 +749,7 @@ export default function RoutineDayScreen() {
         <TouchableOpacity
           onPress={() => setShowKebabMenu(true)}
           accessibilityRole="button"
-          accessibilityLabel={`Opciones de ${DAY_NAMES[dayOfWeek]}`}
+          accessibilityLabel={`Opciones de ${DAY_NAMES_ARRAY[dayOfWeek]}`}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{
             width: 44,
@@ -933,7 +948,7 @@ export default function RoutineDayScreen() {
             <TextInput
               value={dayNameInput}
               onChangeText={setDayNameInput}
-              placeholder={DAY_NAMES[dayOfWeek] || 'Día'}
+              placeholder={DAY_NAMES_ARRAY[dayOfWeek] || 'Día'}
               placeholderTextColor={colors.textSecondary}
               autoFocus
               style={{
@@ -1008,6 +1023,28 @@ export default function RoutineDayScreen() {
           >
             <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
             <Text style={{ color: colors.text, fontSize: 16 }}>Agregar ejercicio</Text>
+          </TouchableOpacity>
+          <View style={{ borderBottomWidth: 1, borderColor: colors.border }} />
+
+          {/* Marcar como día de descanso */}
+          <TouchableOpacity
+            onPress={handleSetRestDay}
+            accessibilityRole="button"
+            accessibilityLabel={isCurrentRestDay ? 'Desmarcar día de descanso' : 'Marcar como día de descanso'}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 16,
+            }}
+          >
+            <Ionicons name={isCurrentRestDay ? 'sunny-outline' : 'moon-outline'} size={22} color={isCurrentRestDay ? colors.warning : colors.text} />
+            <Text style={{ color: colors.text, fontSize: 16 }}>
+              {isCurrentRestDay ? 'Desmarcar día de descanso' : 'Marcar como día de descanso'}
+            </Text>
+            {isCurrentRestDay && (
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} style={{ marginLeft: 'auto' }} />
+            )}
           </TouchableOpacity>
           <View style={{ borderBottomWidth: 1, borderColor: colors.border }} />
 
@@ -1086,7 +1123,7 @@ export default function RoutineDayScreen() {
             </Text>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-              {DAY_NAMES.map((name, index) => {
+              {DAY_NAMES_ARRAY.map((name, index) => {
                 const isCurrent = index === dayOfWeek
                 return (
                   <TouchableOpacity

@@ -96,12 +96,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    maxWidth: '100%',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
   },
   stack: {
     flexDirection: 'row-reverse',
+    maxWidth: '100%',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
   },
   avatarWrapper: {
     position: 'relative',
+    flexShrink: 0,
   },
   ring: {
     position: 'absolute',
@@ -112,12 +119,14 @@ const styles = StyleSheet.create({
   count: {
     fontWeight: '600',
     marginLeft: 2,
+    flexShrink: 0,
   },
   overflow: {
     backgroundColor: '#E8E0D8',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: -8,
+    flexShrink: 0,
   },
   overflowText: {
     fontWeight: '700',

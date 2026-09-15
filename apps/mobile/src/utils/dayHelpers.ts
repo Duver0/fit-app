@@ -30,10 +30,13 @@ export const DAY_NAMES_SHORT: Record<DayOfWeek, string> = {
 }
 
 /**
- * Checks if a day is a rest day (Sunday = 6 for MVP)
+ * Checks if a day is a rest day.
+ * @param dayOfWeek - Day of week (0 = Monday, 6 = Sunday)
+ * @param userRestDay - Optional user-configured rest day (0-6). Defaults to 6 (Sunday) if not provided.
  */
-export function isRestDay(dayOfWeek: DayOfWeek): boolean {
-  return dayOfWeek === 6
+export function isRestDay(dayOfWeek: DayOfWeek, userRestDay?: number): boolean {
+  const restDay = userRestDay ?? 6
+  return dayOfWeek === restDay
 }
 
 /**

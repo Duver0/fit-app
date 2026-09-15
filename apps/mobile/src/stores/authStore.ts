@@ -20,9 +20,12 @@ interface AuthState {
   token: string | null
   user: User | null
   isAuthenticated: boolean
+  /** User's configured rest day (0 = Monday, 6 = Sunday). Default: 6 (Sunday). Stored locally. */
+  restDay: number
   setAuth: (token: string, user: User) => void
   clearAuth: () => void
   updateUser: (user: Partial<User>) => void
+  setRestDay: (day: number) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,9 +34,11 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isAuthenticated: false,
+      restDay: 6, // Default: Sunday (6)
       setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
       clearAuth: () => set({ token: null, user: null, isAuthenticated: false }),
       updateUser: (data) => set(state => ({ user: state.user ? { ...state.user, ...data } : null })),
+      setRestDay: (day) => set({ restDay: day }),
     }),
     {
       name: 'auth-storage',

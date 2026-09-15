@@ -11,6 +11,7 @@ import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import { AvatarStack } from '../../../src/components/ui/AvatarStack'
 import { DAY_NAMES, DAY_NAMES_SHORT, isRestDay, DayOfWeek } from '../../../src/utils/dayHelpers'
+import { useAuthStore } from '../../../src/stores/authStore'
 
 interface RoutineExercise {
   id: string
@@ -29,6 +30,7 @@ export default function RoutineIndexScreen() {
   const { colors } = useTheme()
   const { data, loading, error, refetch } = useQuery(MY_ROUTINE_DAYS_QUERY)
   const [refreshing, setRefreshing] = useState(false)
+  const userRestDay = useAuthStore(state => state.restDay)
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -110,11 +112,10 @@ export default function RoutineIndexScreen() {
             const dayData = dayMap[dayOfWeek]
             const exercises = dayData?.exercises || []
             const hasExercises = exercises.length > 0
-            const customName = dayData?.name
-            const restDay = isRestDay(dayOfWeek)
+            const restDay = isRestDay(dayOfWeek, userRestDay)
 
-            // Determine display name: custom > full default > short default
-            const displayName = customName || (restDay ? DAY_NAMES[dayOfWeek] : DAY_NAMES_SHORT[dayOfWeek])
+            // Display name: ALWAYS use short name in grid (DAY_NAMES_SHORT), never custom name
+            const displayName = DAY_NAMES_SHORT[dayOfWeek]
 
             // Accessibility label
             const accessibilityLabel = restDay
@@ -139,6 +140,7 @@ export default function RoutineIndexScreen() {
                   width: '48%',
                   marginBottom: 16,
                   opacity: restDay ? 0.6 : 1,
+                  overflow: 'hidden', // Prevent AvatarStack from overflowing card bounds
                 }}
                 activeOpacity={restDay ? 1 : 0.7}
               >
@@ -156,16 +158,18 @@ export default function RoutineIndexScreen() {
 
                 {/* Work day: AvatarStack + count */}
                 {!restDay && hasExercises && (
-                  <AvatarStack
-                    exercises={exercises.map((ex: RoutineExercise) => ({
-                      id: ex.id,
-                      name: ex.name,
-                      imageUrl: ex.imageUrl,
-                    }))}
-                    maxVisible={4}
-                    size={32}
-                    showCount={true}
-                  />
+                  <View style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <AvatarStack
+                      exercises={exercises.map((ex: RoutineExercise) => ({
+                        id: ex.id,
+                        name: ex.name,
+                        imageUrl: ex.imageUrl,
+                      }))}
+                      maxVisible={4}
+                      size={32}
+                      showCount={true}
+                    />
+                  </View>
                 )}
 
                 {/* Rest day: Moon icon centered */}
