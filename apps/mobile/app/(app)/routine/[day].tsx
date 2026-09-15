@@ -1542,29 +1542,28 @@ export default function RoutineDayScreen() {
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
                   Peso
                 </Text>
-                <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
                   <Pressable
                     onPress={() => kgInputRef.current?.focus()}
                     style={{
                       flex: 1,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
                       backgroundColor: colors.background,
                       borderRadius: 12,
-                      marginRight: 8,
-                      paddingHorizontal: 16,
                       borderWidth: 1,
                       borderColor: isKgFocused ? colors.primary : colors.border,
+                      overflow: 'hidden',
                     }}
                   >
                     <TextInput
                       ref={kgInputRef}
                       value={editWeight}
                       onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
-                      placeholder="Ej: 50"
+                      placeholder="50"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
+                      maxLength={7}
                       accessibilityLabel="Peso en kilogramos"
                       onFocus={() => setIsKgFocused(true)}
                       onBlur={() => setIsKgFocused(false)}
@@ -1572,15 +1571,25 @@ export default function RoutineDayScreen() {
                       style={{
                         flex: 1,
                         color: colors.text,
-                        fontSize: 24,
+                        fontSize: 22,
                         textAlign: 'center',
-                        paddingVertical: 12,
-                        paddingHorizontal: 0,
+                        paddingVertical: 14,
+                        minWidth: 0,
                       }}
                     />
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
-                      kg
-                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: colors.surface,
+                        paddingHorizontal: 10,
+                        paddingVertical: 14,
+                        borderLeftWidth: 1,
+                        borderLeftColor: colors.border,
+                      }}
+                    >
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+                        kg
+                      </Text>
+                    </View>
                   </Pressable>
                   <Pressable
                     onPress={() => lbInputRef.current?.focus()}
@@ -1588,21 +1597,21 @@ export default function RoutineDayScreen() {
                       flex: 1,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
                       backgroundColor: colors.background,
                       borderRadius: 12,
-                      paddingHorizontal: 16,
                       borderWidth: 1,
                       borderColor: isLbFocused ? colors.primary : colors.border,
+                      overflow: 'hidden',
                     }}
                   >
                     <TextInput
                       ref={lbInputRef}
                       value={editWeightLb || ''}
                       onChangeText={(t) => syncLbToKg(t, setEditWeightLb, setEditWeight)}
-                      placeholder="Ej: 110"
+                      placeholder="110"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
+                      maxLength={7}
                       accessibilityLabel="Peso en libras"
                       onFocus={() => setIsLbFocused(true)}
                       onBlur={() => setIsLbFocused(false)}
@@ -1610,15 +1619,25 @@ export default function RoutineDayScreen() {
                       style={{
                         flex: 1,
                         color: colors.text,
-                        fontSize: 24,
+                        fontSize: 22,
                         textAlign: 'center',
-                        paddingVertical: 12,
-                        paddingHorizontal: 0,
+                        paddingVertical: 14,
+                        minWidth: 0,
                       }}
                     />
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 }}>
-                      lb
-                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: colors.surface,
+                        paddingHorizontal: 10,
+                        paddingVertical: 14,
+                        borderLeftWidth: 1,
+                        borderLeftColor: colors.border,
+                      }}
+                    >
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+                        lb
+                      </Text>
+                    </View>
                   </Pressable>
                 </View>
               </>
