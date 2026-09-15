@@ -20,7 +20,7 @@ Refactorizar la tarjeta de ejercicio en `apps/mobile/app/(app)/routine/[day].tsx
 │ Grupo: Pecho             [▼]            │
 │                                         │
 │ ┌─────────────┐                         │
-│ │ Editar marca│  ← cuadrado grande      │
+│ │ Actualizar marca│  ← cuadrado grande      │
 │ │  (48×48+)   │     bajo las flechas    │
 │ └─────────────┘                         │
 │                                         │
@@ -135,7 +135,7 @@ const handleMove = (index: number, dir: -1 | 1) => {
 Tabla de formato (reemplaza `formatPerformance` actual):
 | `unit` | Sin marca | Con marca | Ejemplo render |
 |---|---|---|---|
-| `KG` | `Sin marca — toca Editar marca` | `{value} kg` | `Marca actual: 60 kg` |
+| `KG` | `Sin marca — toca Actualizar marca` | `{value} kg` | `Marca actual: 60 kg` |
 | `REPS` | idem | `{value} reps` | `Marca actual: 12 reps` |
 | `REPS_AND_WEIGHT` | idem | `{reps} reps × {weight} kg` | `Marca actual: 10 reps × 60 kg` |
 | `MIN` | idem | `{value} min` | `Marca actual: 30 min` |
@@ -163,7 +163,7 @@ function formatPerformance(perf: any, unit: string): string {
   </Text>
   {!item.myPerformance && (
     <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-      Toca Editar marca para registrarla
+      Toca Actualizar marca para registrarla
     </Text>
   )}
 </View>
@@ -182,7 +182,7 @@ function formatPerformance(perf: any, unit: string): string {
 
 ## Spec D — Jerarquía Editar (primario) vs Quitar (destructivo) + accesibilidad
 
-**Actual:** fila 704-744 con dos pills iguales (`paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20`): `Editar marca` (`primary+'20'`) y `Quitar` (`error+'20'`). Mismo peso visual, juntos → tap erróneo destructivo. Requerimiento: Editar bajo las flechas, cuadrado más grande; Quitar separado y menor.
+**Actual:** fila 704-744 con dos pills iguales (`paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20`): `Actualizar marca` (`primary+'20'`) y `Quitar` (`error+'20'`). Mismo peso visual, juntos → tap erróneo destructivo. Requerimiento: Editar bajo las flechas, cuadrado más grande; Quitar separado y menor.
 
 **Propuesta concreta:**
 ```tsx
@@ -209,7 +209,7 @@ function formatPerformance(perf: any, unit: string): string {
 
   {/* Editar: primario, cuadrado grande, bajo flechas */}
   <TouchableOpacity onPress={() => handleOpenEditMark(item)}
-    accessibilityRole="button" accessibilityLabel={`Editar marca de ${item.exercise.name}`}
+    accessibilityRole="button" accessibilityLabel={`Actualizar marca de ${item.exercise.name}`}
     accessibilityHint="Abre el editor de tu marca para este ejercicio"
     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     style={{ width: 92, height: 48, borderRadius: 12, backgroundColor: colors.primary, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}>

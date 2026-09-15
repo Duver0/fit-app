@@ -30,6 +30,17 @@ export const DAY_NAMES_SHORT: Record<DayOfWeek, string> = {
 }
 
 /**
+ * Returns the CURRENT day of the week as a DayOfWeek (0 = Monday ... 6 = Sunday).
+ *
+ * The app stores days with 0 = Monday, but JS `Date.getDay()` returns
+ * 0 = Sunday, so we shift by +6 mod 7 to align with the app's convention.
+ */
+export function getTodayDayOfWeek(): DayOfWeek {
+  const jsDay = new Date().getDay() // 0 = Sunday ... 6 = Saturday
+  return ((jsDay + 6) % 7) as DayOfWeek
+}
+
+/**
  * Checks if a day is a rest day.
  * @param dayOfWeek - Day of week (0 = Monday, 6 = Sunday)
  * @param userRestDay - Optional user-configured rest day (0-6). Defaults to 6 (Sunday) if not provided.

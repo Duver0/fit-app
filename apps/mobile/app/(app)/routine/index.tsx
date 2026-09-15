@@ -10,7 +10,9 @@ import { Skeleton } from '../../../src/components/ui/Skeleton'
 import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import { AvatarStack } from '../../../src/components/ui/AvatarStack'
-import { DAY_NAMES, DayOfWeek } from '../../../src/utils/dayHelpers'
+import { DAY_NAMES, DayOfWeek, getTodayDayOfWeek } from '../../../src/utils/dayHelpers'
+// IMPORTANT: hooks must never be conditionally called. Both screen state and
+// day-query hooks live at the top of this component.
 
 interface RoutineExercise {
   id: string
@@ -90,6 +92,9 @@ export default function RoutineIndexScreen() {
     .filter((d) => d !== emptyDay)
     .concat([emptyDay as DayOfWeek])
 
+  // Today's day of week (using the app's Monday=0 convention) for highlighting.
+  const todayDay = getTodayDayOfWeek()
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Mi Rutina" showBack={false} />
@@ -121,6 +126,10 @@ export default function RoutineIndexScreen() {
             const hasExercises = exercises.length > 0
             const restDay = dayOfWeek === emptyDay
 
+            // Highlight TODAY's card: strong primary border + badge, so the user
+            // always knows what routine applies right now (works for rest days too).
+            const isToday = dayOfWeek === todayDay
+
             // Display name: full day name in grid
             const displayName = DAY_NAMES[dayOfWeek]
 
@@ -139,14 +148,16 @@ export default function RoutineIndexScreen() {
                 accessibilityLabel={accessibilityLabel}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={{
-                  backgroundColor: restDay ? colors.background : colors.surface,
+                  backgroundColor: isToday ? colors.surface : (restDay ? colors.background : colors.surface),
                   borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: restDay ? colors.primary + '4D' : colors.border, // 30% opacity
+                  borderWidth: isToday ? 2 : 1,
+                  borderColor: isToday
+                    ? colors.primary // Strongest: TODAY is unmistakable
+                    : (restDay ? colors.primary + '4D' : colors.border), // 30% opacity
                   padding: 16,
                   width: restDay ? '100%' : '48%',
                   marginBottom: 16,
-                  opacity: restDay ? 0.6 : 1,
+                  opacity: (isToday && !restDay) || restDay ? 1 : 1, // keep full visibility for today & rest
                   overflow: 'hidden', // Prevent AvatarStack from overflowing card bounds
                 }}
                 activeOpacity={restDay ? 1 : 0.7}

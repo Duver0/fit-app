@@ -1484,7 +1484,7 @@ export default function RoutineDayScreen() {
         {showEditMark && (
           <>
             <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 }}>
-              Editar marca
+              Actualizar marca
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 20 }}>
               {showEditMark.exerciseName}

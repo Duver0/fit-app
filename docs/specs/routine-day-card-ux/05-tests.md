@@ -22,7 +22,7 @@ Verificar los 4 cambios sin regresión, con énfasis en update optimista + rollb
 5. Reorder rollback: mock con `error: new Error('Network')` → tap ▲ → orden cambia y **revierte** + `showErrorToast` llamado (mock `apps/mobile/src/lib/toast`).
 6. Doble-tap: dos taps rápidos en ▼ con `reordering=true` tras el primero → una sola llamada a la mutation (`toHaveBeenCalledTimes(1)`).
 7. Quitar con confirmación: tap `Quitar` → `ConfirmModal` visible → Cancelar → `REMOVE_EXERCISE...` no llamada; Confirmar → llamada con `{ dayOfWeek, exerciseId }`.
-8. Editar marca: tap `Editar` → `handleOpenEditMark` con `{ exerciseId, unit, currentPerf }` correcto por unidad (`KG` vs `REPS_AND_WEIGHT` con doble input kg/lb).
+8. Actualizar marca: tap `Editar` → `handleOpenEditMark` con `{ exerciseId, unit, currentPerf }` correcto por unidad (`KG` vs `REPS_AND_WEIGHT` con doble input kg/lb).
 
 ## E2E / manual (Expo Go o dev-client, iOS + Android)
 9. Sin numeración: abrir rutina con 1, 5 y 20 ejercicios → ningún `#N` visible; rotar a landscape sin overlap.
@@ -32,7 +32,7 @@ Verificar los 4 cambios sin regresión, con énfasis en update optimista + rollb
 13. Regresión completa: agregar ejercicio (tabs `groups/create`), editar marca kg↔lb (`syncKgToLb/syncLbToKg` intactos), `Mover día`, renombrar día, `EmptyState` con 0 ejercicios, pull-to-refresh.
 
 ## Accesibilidad (obligatorio)
-14. Screen-reader (TalkBack/VoiceOver): foco recorre `Mover {nombre} arriba → abajo → Editar marca de {nombre} → Quitar {nombre}`; flechas de borde anuncian `deshabilitado`.
+14. Screen-reader (TalkBack/VoiceOver): foco recorre `Mover {nombre} arriba → abajo → Actualizar marca de {nombre} → Quitar {nombre}`; flechas de borde anuncian `deshabilitado`.
 15. Targets: flechas ≥ 44×44, Editar 92×48 (verificar con `show layout bounds` / Accessibility Scanner); `hitSlop` efectivo.
 16. Texto grande (fontScale 1.3) + dark mode: sin truncado de `Marca actual: 10 reps × 60 kg` ni solape con columna de botones.
 

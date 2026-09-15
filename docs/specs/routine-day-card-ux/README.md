@@ -1,7 +1,7 @@
 # Mejora tarjeta de ejercicios del día en rutina
 
 ## Descripción
-Mejorar la vista `apps/mobile/app/(app)/routine/[day].tsx` (1433 líneas) para que la tarjeta de cada ejercicio sea más clara, rápida y accesible. El usuario reporta 4 problemas concretos: numeración técnica visible (`#sortOrder`), reorder sin feedback visual, redundancia en la indicación de unidad/marca, y jerarquía incorrecta entre "Editar marca" (frecuente) y "Quitar" (destructivo/infrecuente).
+Mejorar la vista `apps/mobile/app/(app)/routine/[day].tsx` (1433 líneas) para que la tarjeta de cada ejercicio sea más clara, rápida y accesible. El usuario reporta 4 problemas concretos: numeración técnica visible (`#sortOrder`), reorder sin feedback visual, redundancia en la indicación de unidad/marca, y jerarquía incorrecta entre "Actualizar marca" (frecuente) y "Quitar" (destructivo/infrecuente).
 
 Esta spec NO agrega features nuevas ni cambia el modelo de datos. Es refactor UI + UX + update optimista, confinado a un solo archivo de pantalla.
 
@@ -28,12 +28,12 @@ Esta spec NO agrega features nuevas ni cambia el modelo de datos. Es refactor UI
 - `FlatList` actual usa `keyExtractor={(item) => item.id}` y `refetchQueries` tras cada reorder → causa salto visual. El update optimista debe escribir en caché Apollo, no solo `setState` local, para no romper `pull-to-refresh`.
 - Accesibilidad mínima: cada acción con `accessibilityRole`, `accessibilityLabel` con nombre del ejercicio (ej. `"Mover Press banca arriba"`), `hitSlop ≥ 8`, target táctil ≥ 44×44 (las flechas actuales de 32×32 **violan** esto).
 - Mantener `ConfirmModal` para Quitar. No cambiar flujo de `showEditMark` / `UPSERT_PERFORMANCE_MUTATION`.
-- Idioma UI: español rioplatense existente (`Marca:`, `Quitar`, `Editar marca`). No introducir inglés en labels.
+- Idioma UI: español rioplatense existente (`Marca:`, `Quitar`, `Actualizar marca`). No introducir inglés en labels.
 
 ## Criterios de aceptación globales
 - [ ] No se renderiza ningún texto `#0`, `#1`, `#2` ni `sortOrder` en la tarjeta
 - [ ] Mover arriba/abajo reordena visualmente en < 200 ms (optimista) y persiste en servidor; ante error hace rollback + toast
 - [ ] La unidad aparece **una sola vez** por tarjeta (ver regla en `04-frontend.md` Spec C)
-- [ ] `Editar marca` es visualmente dominante y está separado de `Quitar`; `Quitar` exige confirmación
+- [ ] `Actualizar marca` es visualmente dominante y está separado de `Quitar`; `Quitar` exige confirmación
 - [ ] Sin regresión: agregar/quitar ejercicio, editar marca, pull-to-refresh, `Mover día`, modal agregar, siguen funcionando
 - [ ] `tsc --noEmit` y `eslint` pasan en `apps/mobile`
