@@ -933,6 +933,32 @@ export default function RoutineDayScreen() {
           </View>
           )
         }}
+        ListFooterComponent={
+          exercises.length > 0 ? (
+            <TouchableOpacity
+              onPress={handleOpenAddExercise}
+              accessibilityRole="button"
+              accessibilityLabel="Agregar ejercicio"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingVertical: 12,
+                marginTop: 4,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderStyle: 'dashed',
+                borderColor: colors.border,
+              }}
+            >
+              <Ionicons name="add" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>
+                Agregar ejercicio
+              </Text>
+            </TouchableOpacity>
+          ) : null
+        }
       />
 
       {/* --- Edit Day Name Modal --- */}
@@ -1492,7 +1518,7 @@ export default function RoutineDayScreen() {
 
             {showEditMark.unit === 'REPS_AND_WEIGHT' ? (
               <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>
+                <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>
                   Repeticiones
                 </Text>
                 <NumberSpinner
@@ -1511,9 +1537,6 @@ export default function RoutineDayScreen() {
                 </Text>
                 <View style={{ flexDirection: 'row', marginBottom: 16 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      kg
-                    </Text>
                     <TextInput
                       value={editWeight}
                       onChangeText={(t) => syncKgToLb(t, setEditWeight, setEditWeightLb)}
@@ -1531,11 +1554,11 @@ export default function RoutineDayScreen() {
                         borderColor: colors.border,
                       }}
                     />
+                    <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: -12 }}>
+                      kg
+                    </Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      lb
-                    </Text>
                     <TextInput
                       value={editWeightLb || ''}
                       onChangeText={(t) => syncLbToKg(t, setEditWeight, setEditWeightLb)}
@@ -1553,6 +1576,9 @@ export default function RoutineDayScreen() {
                         borderColor: colors.border,
                       }}
                     />
+                    <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: -12 }}>
+                      lb
+                    </Text>
                   </View>
                 </View>
               </>

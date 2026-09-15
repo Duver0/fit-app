@@ -47,40 +47,13 @@ export function Avatar({
 
   const resolvedUrl = getImageUrl(avatarUrl)
 
-  // Mostrar imagen solo si hay URL válida y no ha fallado la carga
-  if (resolvedUrl && !imgFailed) {
-    return (
-      <View
-        style={[
-          styles.container,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-          },
-          style,
-        ]}
-        accessibilityLabel={`Avatar for ${name}`}
-      >
-        <Image
-          source={{ uri: resolvedUrl }}
-          cachePolicy="disk"
-          style={[
-            styles.image,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-            },
-          ]}
-          onError={() => setImgFailed(true)}
-          accessibilityLabel={`Avatar for ${name}`}
-        />
-      </View>
-    )
-  }
-
-  // Fallback: iniciales
+  // Carga progresiva de UX:
+  // 1. SIEMPRE renderizamos al instante el círculo con las iniciales del nombre:
+  //    la estructura de la semana y del día se ve completa de inmediato, sin
+  //    esperar a que lleguen las imágenes de la API (que es lo que más tarda).
+  // 2. La imagen real se carga EN SEGUNDO PLANO (expo-image usa cache y no
+  //    bloquea el render) y aparece por encima de las iniciales con un fade.
+  //    Si no hay URL, falla la carga o está descargándose, quedan las iniciales.
   return (
     <View
       style={[
@@ -107,6 +80,25 @@ export function Avatar({
       >
         {getInitials(name)}
       </Text>
+
+      {resolvedUrl && !imgFailed ? (
+        <Image
+          source={{ uri: resolvedUrl }}
+          cachePolicy="disk"
+          transition={250}
+          style={[
+            styles.image,
+            styles.imageOverlay,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+            },
+          ]}
+          onError={() => setImgFailed(true)}
+          accessibilityLabel={`Avatar for ${name}`}
+        />
+      ) : null}
     </View>
   )
 }
@@ -119,10 +111,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  initials: {
+    fontWeight: '600',
+  },
   image: {
     resizeMode: 'cover',
   },
-  initials: {
-    fontWeight: '600',
+  // La imagen se superpone a las iniciales (que quedan siempre de base).
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
 })
