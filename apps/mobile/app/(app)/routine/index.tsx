@@ -9,16 +9,21 @@ import ScreenHeader from '../../../src/components/ui/ScreenHeader'
 import { Skeleton } from '../../../src/components/ui/Skeleton'
 import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
+import { AvatarStack } from '../../../src/components/ui/AvatarStack'
+import { DAY_NAMES, DAY_NAMES_SHORT, isRestDay, DayOfWeek } from '../../../src/utils/dayHelpers'
 
-const DAY_NAMES = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo',
-]
+interface RoutineExercise {
+  id: string
+  name: string
+  imageUrl?: string | null
+}
+
+interface RoutineDay {
+  id: string
+  dayOfWeek: number
+  name?: string | null
+  exercises: Array<{ exercise: RoutineExercise }>
+}
 
 export default function RoutineIndexScreen() {
   const { colors } = useTheme()
@@ -42,7 +47,7 @@ export default function RoutineIndexScreen() {
         <View style={{ padding: 20, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {Array.from({ length: 7 }).map((_, i) => (
             <View key={i} style={{ width: '48%', marginBottom: 16 }}>
-              <Skeleton height={100} borderRadius={16} />
+              <Skeleton height={140} borderRadius={16} />
             </View>
           ))}
         </View>
@@ -63,12 +68,16 @@ export default function RoutineIndexScreen() {
     )
   }
 
-  const routineDays = data?.myRoutineDays || []
+  const routineDays = (data?.myRoutineDays as RoutineDay[]) || []
 
   // Build a map dayOfWeek -> exercises for quick lookup
-  const dayMap: Record<number, { id: string; exercises: any[] }> = {}
-  routineDays.forEach((day: any) => {
-    dayMap[day.dayOfWeek] = { id: day.id, exercises: day.exercises || [] }
+  const dayMap: Record<number, { id: string; name?: string | null; exercises: RoutineExercise[] }> = {}
+  routineDays.forEach((day: RoutineDay) => {
+    dayMap[day.dayOfWeek] = {
+      id: day.id,
+      name: day.name,
+      exercises: day.exercises?.map((e) => e.exercise).filter(Boolean) || [],
+    }
   })
 
   return (
@@ -97,68 +106,95 @@ export default function RoutineIndexScreen() {
         {/* Grid of 7 days */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {Array.from({ length: 7 }).map((_, index) => {
-            const dayOfWeek = index
+            const dayOfWeek = index as DayOfWeek
             const dayData = dayMap[dayOfWeek]
             const exercises = dayData?.exercises || []
             const hasExercises = exercises.length > 0
             const customName = dayData?.name
+            const restDay = isRestDay(dayOfWeek)
+
+            // Determine display name: custom > full default > short default
+            const displayName = customName || (restDay ? DAY_NAMES[dayOfWeek] : DAY_NAMES_SHORT[dayOfWeek])
+
+            // Accessibility label
+            const accessibilityLabel = restDay
+              ? `${DAY_NAMES[dayOfWeek]}, día de descanso`
+              : `${DAY_NAMES[dayOfWeek]}${hasExercises ? `, ${exercises.length} ejercicios` : ', sin ejercicios'}`
+
+            const onPress = () => router.push(`/(app)/routine/${dayOfWeek}`)
 
             return (
               <TouchableOpacity
                 key={dayOfWeek}
-                onPress={() => router.push(`/(app)/routine/${dayOfWeek}`)}
+                onPress={onPress}
                 accessibilityRole="button"
-                accessibilityLabel={`${DAY_NAMES[dayOfWeek]}${hasExercises ? `, ${exercises.length} ejercicios` : ', sin ejercicios'}`}
+                accessibilityLabel={accessibilityLabel}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: restDay ? colors.background : colors.surface,
                   borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: restDay ? colors.primary + '4D' : colors.border, // 30% opacity
                   padding: 16,
                   width: '48%',
                   marginBottom: 16,
+                  opacity: restDay ? 0.6 : 1,
                 }}
-                activeOpacity={0.7}
+                activeOpacity={restDay ? 1 : 0.7}
               >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 }}>
-                  {customName || DAY_NAMES[dayOfWeek]}
+                {/* Day name */}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: restDay ? colors.textSecondary : colors.text,
+                    marginBottom: restDay ? 0 : 8,
+                  }}
+                >
+                  {displayName}
                 </Text>
-                {customName && (
-                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginBottom: 6 }}>
-                    {DAY_NAMES[dayOfWeek]}
-                  </Text>
+
+                {/* Work day: AvatarStack + count */}
+                {!restDay && hasExercises && (
+                  <AvatarStack
+                    exercises={exercises.map((ex: RoutineExercise) => ({
+                      id: ex.id,
+                      name: ex.name,
+                      imageUrl: ex.imageUrl,
+                    }))}
+                    maxVisible={4}
+                    size={32}
+                    showCount={true}
+                  />
                 )}
 
-                {hasExercises ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      {exercises.length} ejercicio{exercises.length !== 1 ? 's' : ''}
+                {/* Rest day: Moon icon centered */}
+                {restDay && (
+                  <View style={{ marginTop: 24, alignItems: 'center' }}>
+                    <Ionicons
+                      name="moon"
+                      size={48}
+                      color={colors.primary}
+                    />
+                    <Text
+                      style={{
+                        marginTop: 8,
+                        fontSize: 13,
+                        fontWeight: '500',
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      Día de descanso
                     </Text>
                   </View>
-                ) : (
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                )}
+
+                {/* Work day without exercises: placeholder text */}
+                {!restDay && !hasExercises && (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 8 }}>
                     Sin ejercicios
                   </Text>
                 )}
-
-                <View style={{
-                  marginTop: 12,
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: hasExercises ? colors.primary + '20' : colors.border,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                  <Text style={{
-                    fontSize: 14,
-                    fontWeight: '700',
-                    color: hasExercises ? colors.primary : colors.textSecondary,
-                  }}>
-                    {dayOfWeek + 1}
-                  </Text>
-                </View>
               </TouchableOpacity>
             )
           })}
