@@ -85,6 +85,11 @@ export default function RoutineIndexScreen() {
     (d) => !(dayMap[d]?.exercises?.length > 0),
   ) ?? 6
 
+  // Work days first (in week order), then the rest day at the END of the grid.
+  const orderedDays: DayOfWeek[] = ([0, 1, 2, 3, 4, 5, 6] as DayOfWeek[])
+    .filter((d) => d !== emptyDay)
+    .concat([emptyDay as DayOfWeek])
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Mi Rutina" showBack={false} />
@@ -108,10 +113,9 @@ export default function RoutineIndexScreen() {
           />
         )}
 
-        {/* Grid of 7 days */}
+        {/* Grid of days: work days first, rest day last */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          {Array.from({ length: 7 }).map((_, index) => {
-            const dayOfWeek = index as DayOfWeek
+          {orderedDays.map((dayOfWeek) => {
             const dayData = dayMap[dayOfWeek]
             const exercises = dayData?.exercises || []
             const hasExercises = exercises.length > 0
@@ -172,6 +176,15 @@ export default function RoutineIndexScreen() {
                       size={32}
                       showCount={true}
                     />
+                    <Text
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: 13,
+                        marginTop: 8,
+                      }}
+                    >
+                      Ejercicios: {exercises.length}
+                    </Text>
                   </View>
                 )}
 
