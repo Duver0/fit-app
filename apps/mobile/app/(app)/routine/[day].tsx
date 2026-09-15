@@ -39,6 +39,7 @@ import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import ConfirmModal from '../../../src/components/ui/ConfirmModal'
 import BottomSheetModal from '../../../src/components/ui/BottomSheetModal'
+import { NumberSpinner } from '../../../src/components/ui/NumberSpinner'
 import { showSuccessToast, showErrorToast } from '../../../src/lib/toast'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { DAY_NAMES, DayOfWeek } from '../../../src/utils/dayHelpers'
@@ -902,11 +903,11 @@ export default function RoutineDayScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Editar: mismo ancho que la fila superior (100% de 140) */}
+                {/* Actualizar: mismo ancho que la fila superior (100% de 140) */}
                 <TouchableOpacity
                   onPress={() => handleOpenEditMark(item)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Editar marca de ${item.exercise.name}`}
+                  accessibilityLabel={`Actualizar marca de ${item.exercise.name}`}
                   hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   style={{
                     flexDirection: 'row',
@@ -924,7 +925,7 @@ export default function RoutineDayScreen() {
                 >
                   <Ionicons name="pencil" size={16} color="#1A1A1A" />
                   <Text style={{ color: '#1A1A1A', fontSize: 14, fontWeight: '600' }}>
-                    Editar
+                    Actualizar
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1491,26 +1492,20 @@ export default function RoutineDayScreen() {
 
             {showEditMark.unit === 'REPS_AND_WEIGHT' ? (
               <>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 6 }}>
                   Repeticiones
                 </Text>
-                <TextInput
+                <NumberSpinner
                   value={editReps}
-                  onChangeText={setEditReps}
-                  placeholder="Ej: 6"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="number-pad"
-                  style={{
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderRadius: 12,
-                    padding: 16,
-                    fontSize: 18,
-                    marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
+                  onChange={setEditReps}
+                  step={1}
+                  min={0}
+                  max={99}
+                  decimals={0}
+                  unit="reps"
+                  accessibilityLabel="Repeticiones"
                 />
+                <View style={{ height: 20 }} />
                 <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
                   Peso
                 </Text>
