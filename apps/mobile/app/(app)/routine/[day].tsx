@@ -1599,7 +1599,7 @@ export default function RoutineDayScreen() {
                     <TextInput
                       ref={lbInputRef}
                       value={editWeightLb || ''}
-                      onChangeText={(t) => syncLbToKg(t, setEditWeightLb, setEditWeight)}
+                      onChangeText={(t) => syncLbToKg(t, setEditWeight, setEditWeightLb)}
                       placeholder="110"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
