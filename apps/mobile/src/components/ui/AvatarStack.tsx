@@ -35,33 +35,31 @@ export function AvatarStack({
 
   return (
     <View style={styles.container}>
-      <View style={styles.stack}>
-        {visibleExercises.map((exercise, index) => (
-          <View
-            key={exercise.id}
-            style={[
-              styles.avatarWrapper,
-              {
-                zIndex: maxVisible - index,
-                transform: [{ translateX: index * (size * 0.6) }],
-              },
-            ]}
-          >
-            <Avatar
-              name={exercise.name}
-              size={size}
-              avatarUrl={exercise.imageUrl || null}
-            />
-            {/* White ring separator between stacked avatars */}
-            {index < visibleExercises.length - 1 && (
-              <View style={[
-                styles.ring,
-                { width: size, height: size, borderWidth: 2, borderColor: colors.background },
-              ]} />
-            )}
-          </View>
-        ))}
-      </View>
+      {visibleExercises.map((exercise, index) => (
+        <View
+          key={exercise.id}
+          style={[
+            styles.avatarWrapper,
+            {
+              marginLeft: index === 0 ? 0 : -size * 0.35,
+              zIndex: maxVisible - index,
+            },
+          ]}
+        >
+          <Avatar
+            name={exercise.name}
+            size={size}
+            avatarUrl={exercise.imageUrl || null}
+          />
+          {/* White ring separator between stacked avatars */}
+          {index < visibleExercises.length - 1 && (
+            <View style={[
+              styles.ring,
+              { width: size, height: size, borderWidth: 2, borderColor: colors.background },
+            ]} />
+          )}
+        </View>
+      ))}
 
       {showCount && (
         <Text style={[
@@ -95,16 +93,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    alignSelf: 'flex-start',
     maxWidth: '100%',
     flexWrap: 'nowrap',
-    overflow: 'hidden',
-  },
-  stack: {
-    flexDirection: 'row-reverse',
-    maxWidth: '100%',
-    flexWrap: 'nowrap',
-    overflow: 'hidden',
   },
   avatarWrapper: {
     position: 'relative',
@@ -118,14 +109,14 @@ const styles = StyleSheet.create({
   },
   count: {
     fontWeight: '600',
-    marginLeft: 2,
+    marginLeft: 6,
     flexShrink: 0,
   },
   overflow: {
     backgroundColor: '#E8E0D8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: -8,
+    marginLeft: -4,
     flexShrink: 0,
   },
   overflowText: {

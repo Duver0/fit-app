@@ -10,8 +10,7 @@ import { Skeleton } from '../../../src/components/ui/Skeleton'
 import { ErrorState } from '../../../src/components/ui/ErrorState'
 import { EmptyState } from '../../../src/components/ui/EmptyState'
 import { AvatarStack } from '../../../src/components/ui/AvatarStack'
-import { DAY_NAMES, DAY_NAMES_SHORT, isRestDay, DayOfWeek } from '../../../src/utils/dayHelpers'
-import { useAuthStore } from '../../../src/stores/authStore'
+import { DAY_NAMES, DAY_NAMES_SHORT, DayOfWeek } from '../../../src/utils/dayHelpers'
 
 interface RoutineExercise {
   id: string
@@ -30,7 +29,6 @@ export default function RoutineIndexScreen() {
   const { colors } = useTheme()
   const { data, loading, error, refetch } = useQuery(MY_ROUTINE_DAYS_QUERY)
   const [refreshing, setRefreshing] = useState(false)
-  const userRestDay = useAuthStore(state => state.restDay)
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -82,6 +80,11 @@ export default function RoutineIndexScreen() {
     }
   })
 
+  // Day of rest = the FIRST day of the week WITHOUT exercises (not fixed to Sunday).
+  const emptyDay = [0, 1, 2, 3, 4, 5, 6].find(
+    (d) => !(dayMap[d]?.exercises?.length > 0),
+  ) ?? 6
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Mi Rutina" showBack={false} />
@@ -112,7 +115,7 @@ export default function RoutineIndexScreen() {
             const dayData = dayMap[dayOfWeek]
             const exercises = dayData?.exercises || []
             const hasExercises = exercises.length > 0
-            const restDay = isRestDay(dayOfWeek, userRestDay)
+            const restDay = dayOfWeek === emptyDay
 
             // Display name: ALWAYS use short name in grid (DAY_NAMES_SHORT), never custom name
             const displayName = DAY_NAMES_SHORT[dayOfWeek]
@@ -156,9 +159,9 @@ export default function RoutineIndexScreen() {
                   {displayName}
                 </Text>
 
-                {/* Work day: AvatarStack + count */}
+                {/* Work day: AvatarStack + count, left-aligned below the day name */}
                 {!restDay && hasExercises && (
-                  <View style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                  <View style={{ alignItems: 'flex-start' }}>
                     <AvatarStack
                       exercises={exercises.map((ex: RoutineExercise) => ({
                         id: ex.id,
