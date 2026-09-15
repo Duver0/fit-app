@@ -1575,9 +1575,11 @@ export default function RoutineDayScreen() {
                         textAlign: 'center',
                         paddingVertical: 14,
                         minWidth: 0,
+                        // @ts-ignore — outlineStyle es soportado por RN Web pero no está en los tipos RN core
+                        outlineStyle: 'none',
                       }}
                     />
-                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '700', paddingRight: 4 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
                       kg
                     </Text>
                   </Pressable>
@@ -1613,9 +1615,11 @@ export default function RoutineDayScreen() {
                         textAlign: 'center',
                         paddingVertical: 14,
                         minWidth: 0,
+                        // @ts-ignore — outlineStyle es soportado por RN Web pero no está en los tipos RN core
+                        outlineStyle: 'none',
                       }}
                     />
-                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '700', paddingRight: 4 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
                       lb
                     </Text>
                   </Pressable>
