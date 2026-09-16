@@ -88,37 +88,34 @@ La aplicación corre en servicios cloud gratuitos:
 
 | Servicio | URL / Acceso | Plan |
 |----------|-------------|------|
-| **API (Render)** | [https://fit-app-api-3zds.onrender.com](https://fit-app-api-3zds.onrender.com) | Free (512MB RAM, 0.1 CPU) |
-| **Dashboard Render** | [https://dashboard.render.com/web/srv-d9chm6favr4c73a9qlag](https://dashboard.render.com/web/srv-d9chm6favr4c73a9qlag) | — |
+| **API (Vercel)** | [https://fit-app-lake-gamma.vercel.app](https://fit-app-lake-gamma.vercel.app) | Hobby (serverless) |
 | **Frontend (GitHub Pages)** | [https://duver0.github.io/fit-app](https://duver0.github.io/fit-app) | Free |
-| **Base de datos (Neon)** | [https://console.neon.tech](https://console.neon.tech) → project `fit-app` | Free (0.5GB, 100 CU-hrs/mes) |
-| **Redis (Redis Cloud)** | `discovery-swim-ultraclean-41976.db.redis.io:12571` | Free (30MB) |
+| **Base de datos (Neon)** | [https://console.neon.tech](https://console.neon.tech) → project `fit-app` | Free (0.5GB) |
 | **Repositorio** | [https://github.com/Duver0/fit-app](https://github.com/Duver0/fit-app) | — |
-| **CI/CD** | GitHub Actions (frontend) + Render Auto-Deploy (backend) | — |
+| **CI/CD** | GitHub Actions (frontend) + Vercel Auto-Deploy (backend) | — |
+
+> **Nota:** El backend migró de Render a Vercel Serverless (sin Redis, sin WebSockets, polling en cliente).
 
 ### Endpoints de la API
 
 | Endpoint | URL |
 |----------|-----|
-| GraphQL | `https://fit-app-api-3zds.onrender.com/graphql` |
-| Health | `https://fit-app-api-3zds.onrender.com/health` |
-| Upload avatar | `POST https://fit-app-api-3zds.onrender.com/upload/avatar` |
+| GraphQL | `https://fit-app-lake-gamma.vercel.app/graphql` |
+| Health | `https://fit-app-lake-gamma.vercel.app/health` |
 
 ### Variables de entorno (producción)
 
-Están configuradas en [render.yaml](./render.yaml) y el dashboard de Render. No commits de secrets.
+Están configuradas en el dashboard de Vercel → Settings → Environment Variables. No commits de secrets.
 
-| Variable | Valor |
-|----------|-------|
+| Variable | Descripción |
+|----------|-------------|
 | `DATABASE_URL` | Pooled connection → Neon (Prisma Client) |
 | `DIRECT_URL` | Direct connection → Neon (Prisma Migrate) |
-| `REDIS_HOST` | `discovery-swim-ultraclean-41976.db.redis.io` |
-| `REDIS_PORT` | `12571` |
-| `REDIS_PASSWORD` | `UIdocmTtLMAgTpbwzCfslJuXdIDRpDuO` |
-| `JWT_SECRET` | `Ne9vfL3AJk0mlZQOJ+Bv9Qs/TAHpNzipP7ao0B2TMVM=` |
+| `JWT_SECRET` | Secret para JWT |
 | `CORS_ORIGIN` | `https://duver0.github.io` |
-
-> ⚠️ Los secrets anteriores son solo para referencia del equipo. No exponer en forks públicos.
+| `VAPID_PUBLIC_KEY` | Clé pública Web Push (VAPID) |
+| `VAPID_PRIVATE_KEY` | Clé privada Web Push (VAPID) |
+| `VAPID_EMAIL` | Email para VAPID |
 
 ## Ejecutar en local (desarrollo)
 
