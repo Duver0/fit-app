@@ -99,11 +99,14 @@ async function registerWebPush(): Promise<string | null> {
   }
   console.log('[Push] VAPID public key obtained:', vapidPublicKey.substring(0, 20) + '...')
 
-  // Register Service Worker
-  console.log('[Push] Registering Service Worker...')
+  // Register Service Worker (detect base path for subpath deployments like GitHub Pages)
+  const swPath = window.location.pathname.includes('/fit-app/')
+    ? '/fit-app/sw.js'
+    : '/sw.js'
+  console.log('[Push] Registering Service Worker at:', swPath)
   let registration: ServiceWorkerRegistration
   try {
-    registration = await navigator.serviceWorker.register('/sw.js')
+    registration = await navigator.serviceWorker.register(swPath)
     console.log('[Push] Service Worker registered:', registration.scope)
     await navigator.serviceWorker.ready
     console.log('[Push] Service Worker ready')
