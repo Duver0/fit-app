@@ -49,14 +49,26 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
+ * Diagnose why push subscription might fail.
+ */
+function diagnosePushSupport(): string | null {
+  if (!('serviceWorker' in navigator)) return 'Service Workers not supported'
+  if (!('PushManager' in window)) return 'Push API not supported by this browser'
+  if (!('Notification' in window)) return 'Notifications API not supported'
+  if (!window.isSecureContext) return 'Not a secure context (must be HTTPS)'
+  return null
+}
+
+/**
  * Register for Web Push notifications (PWA in browser).
- * Returns the endpoint string on success, null on failure.
  */
 async function registerWebPush(): Promise<string | null> {
   console.log('[Push] Starting registration...')
 
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.warn('[Push] Web Push not supported')
+  // Feature detection
+  const notSupported = diagnosePushSupport()
+  if (notSupported) {
+    console.warn('[Push]', notSupported)
     return null
   }
 
@@ -92,18 +104,14 @@ async function registerWebPush(): Promise<string | null> {
     return null
   }
 
-  // Register Service Worker (detect base path for GitHub Pages subpath)
-  const swPath = window.location.pathname.includes('/fit-app/')
-    ? '/fit-app/sw.js'
-    : '/sw.js'
-
+  // Use the already-active Service Worker (registered by Expo or previously)
+  // Do NOT re-register — it can cause scope conflicts
   let registration: ServiceWorkerRegistration
   try {
-    registration = await navigator.serviceWorker.register(swPath)
-    await navigator.serviceWorker.ready
-    console.log('[Push] Service Worker ready')
+    registration = await navigator.serviceWorker.ready
+    console.log('[Push] SW active, scope:', registration.scope)
   } catch (error) {
-    console.error('[Push] SW registration failed:', error)
+    console.error('[Push] No active Service Worker:', error)
     return null
   }
 
@@ -112,13 +120,34 @@ async function registerWebPush(): Promise<string | null> {
   if (!subscription) {
     try {
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
+      console.log('[Push] Key length:', applicationServerKey.length, 'bytes (expect 65)')
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
       })
-      console.log('[Push] Subscription created')
-    } catch (error) {
-      console.error('[Push] Subscribe failed:', error)
+      console.log('[Push] Subscription created successfully')
+    } catch (error: any) {
+      // Provide specific diagnosis for common errors
+      const name = error?.name || 'Unknown'
+      const msg = error?.message || String(error)
+
+      if (name === 'AbortError') {
+        console.error(
+          '[Push] ❌ Push service error — your browser/device could not reach the push service (FCM).',
+          '\n  • Are you using Chrome for Android? Other browsers may not work.',
+          '\n  • Does your device have Google Play Services?',
+          '\n  • Is your network blocking FCM connections?',
+          '\n  Error:', msg,
+        )
+      } else if (name === 'NotAllowedError') {
+        console.error('[Push] Permission denied or no user gesture:', msg)
+      } else if (name === 'InvalidStateError') {
+        console.error('[Push] Service Worker not ready:', msg)
+      } else if (name === 'SecurityError') {
+        console.error('[Push] Security error (HTTPS required):', msg)
+      } else {
+        console.error(`[Push] Subscribe failed (${name}):`, msg)
+      }
       return null
     }
   } else {
@@ -144,7 +173,7 @@ async function registerWebPush(): Promise<string | null> {
       console.error('[Push] Backend registration failed:', errors)
       return null
     }
-    console.log('[Push] Registered in backend, id:', data?.registerWebPushSubscription?.id)
+    console.log('[Push] ✅ Registered in backend, id:', data?.registerWebPushSubscription?.id)
   } catch (error) {
     console.error('[Push] Error sending to backend:', error)
     return null
