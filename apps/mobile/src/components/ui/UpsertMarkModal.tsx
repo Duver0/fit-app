@@ -182,7 +182,7 @@ export default function UpsertMarkModal({
             outlineStyle: 'none',
           }}
         />
-        <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4, marginRight: 4 }}>
           kg
         </Text>
       </Pressable>
@@ -222,7 +222,7 @@ export default function UpsertMarkModal({
             outlineStyle: 'none',
           }}
         />
-        <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '900', paddingRight: 4, marginRight: 4 }}>
           lb
         </Text>
       </Pressable>
