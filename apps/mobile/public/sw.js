@@ -114,3 +114,66 @@ self.addEventListener('fetch', (event) => {
       }),
   )
 })
+
+// ----- PUSH: handle incoming push notifications -----
+self.addEventListener('push', (event) => {
+  console.log('[PWA SW] Push received:', event)
+
+  let data = { title: 'Notificación', body: '', data: {} }
+
+  if (event.data) {
+    try {
+      data = event.data.json()
+    } catch (e) {
+      console.warn('[PWA SW] Failed to parse push data:', e)
+      data.body = event.data.text()
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: BASE_PATH + '/icon-192x192.png',
+    badge: BASE_PATH + '/badge-72x72.png',
+    vibrate: [200, 100, 200],
+    data: data.data,
+    actions: [],
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  )
+})
+
+// ----- NOTIFICATIONCLICK: handle notification tap -----
+self.addEventListener('notificationclick', (event) => {
+  console.log('[PWA SW] Notification clicked:', event)
+
+  event.notification.close()
+
+  const data = event.notification.data
+
+  // Determine the URL to open
+  let url = BASE_PATH + '/'
+  if (data?.groupId && data?.exerciseId) {
+    url = BASE_PATH + `/groups/${data.groupId}/exercises/${data.exerciseId}`
+  } else if (data?.groupId) {
+    url = BASE_PATH + `/groups/${data.groupId}`
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Check if there's already a window open
+      for (const client of windowClients) {
+        if (client.url.includes(BASE_PATH) && 'focus' in client) {
+          // Navigate to the relevant page and focus
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      // Open a new window if none is open
+      if (clients.openWindow) {
+        return clients.openWindow(url)
+      }
+    })
+  )
+})

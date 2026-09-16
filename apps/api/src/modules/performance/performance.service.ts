@@ -1,11 +1,14 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ExerciseUnit } from '@prisma/client'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { PerformanceUpdatedEvent } from '../notifications/observers/events/performance-updated.event'
 
 @Injectable()
 export class PerformanceService {
   constructor(
     private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async upsert(userId: string, input: { exerciseId: string; value?: number; reps?: number; weight?: number }) {
@@ -68,6 +71,19 @@ export class PerformanceService {
         },
       })
     }
+
+    // Emit event for push notifications
+    this.eventEmitter.emit(
+      'performance.updated',
+      new PerformanceUpdatedEvent(
+        userId,
+        input.exerciseId,
+        exercise.groupId,
+        input.value,
+        input.reps,
+        input.weight,
+      ),
+    )
 
     return record
   }

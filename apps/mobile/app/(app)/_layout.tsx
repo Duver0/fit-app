@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../src/theme/ThemeProvider'
 import { useAuthStore } from '../../src/stores/authStore'
 import TabBarButton from '../../src/components/ui/TabBarButton'
+import { useNotifications } from '../../src/hooks/useNotifications'
 
 export default function AppLayout() {
   const { colors } = useTheme()
@@ -12,6 +13,9 @@ export default function AppLayout() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
   const user = useAuthStore(state => state.user)
   const isAdmin = user?.role === 'SUPER_ADMIN'
+
+  // Initialize push notifications
+  useNotifications()
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />

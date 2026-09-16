@@ -17,6 +17,8 @@ import { AdminModule } from './modules/admin/admin.module'
 import { RoutinesModule } from './modules/routines/routines.module'
 import { HealthModule } from './health/health.module'
 import { CommonServicesModule } from './common/services/common-services.module'
+import { EventsModule } from './modules/events/events.module'
+import { NotificationsModule } from './modules/notifications/notifications.module'
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { CommonServicesModule } from './common/services/common-services.module'
     GroupImagesModule,
     AdminModule,
     RoutinesModule,
+    EventsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
