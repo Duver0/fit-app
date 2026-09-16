@@ -2,7 +2,7 @@ import { Platform } from 'react-native'
 import { gql } from '@apollo/client'
 import { client } from './apollo'
 
-// GraphQL mutations
+// GraphQL queries and mutations
 const VAPID_PUBLIC_KEY_QUERY = gql`
   query VapidPublicKey {
     vapidPublicKey
@@ -53,57 +53,110 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
  * Register for Web Push notifications (PWA in browser)
  */
 async function registerWebPush(): Promise<string | null> {
+  console.log('[Push] Starting Web Push registration...')
+
   // Check if Service Workers and Push API are supported
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('Web Push not supported in this browser')
+    console.warn('[Push] Web Push not supported in this browser')
     return null
   }
+  console.log('[Push] Service Worker and Push API supported')
 
-  // Request notification permission
-  const permission = await Notification.requestPermission()
+  // Check notification permission
+  let permission = Notification.permission
+  if (permission === 'default') {
+    console.log('[Push] Requesting notification permission...')
+    permission = await Notification.requestPermission()
+  }
+  console.log('[Push] Notification permission:', permission)
+
   if (permission !== 'granted') {
-    console.log('Notification permission not granted')
+    console.warn('[Push] Notification permission not granted')
     return null
   }
 
   // Get VAPID public key from backend
-  const { data } = await client.query({
-    query: VAPID_PUBLIC_KEY_QUERY,
-    fetchPolicy: 'network-only',
-  })
-
-  const vapidPublicKey = data?.vapidPublicKey
-  if (!vapidPublicKey) {
-    console.log('VAPID public key not configured')
+  console.log('[Push] Fetching VAPID public key...')
+  let vapidPublicKey: string | null = null
+  try {
+    const { data, errors } = await client.query({
+      query: VAPID_PUBLIC_KEY_QUERY,
+      fetchPolicy: 'network-only',
+    })
+    if (errors) {
+      console.error('[Push] GraphQL errors fetching VAPID key:', errors)
+      return null
+    }
+    vapidPublicKey = data?.vapidPublicKey
+  } catch (error) {
+    console.error('[Push] Error fetching VAPID key:', error)
     return null
   }
 
-  // Register Service Worker
-  const registration = await navigator.serviceWorker.register('/sw.js')
-  await navigator.serviceWorker.ready
+  if (!vapidPublicKey) {
+    console.warn('[Push] VAPID public key not configured on backend')
+    return null
+  }
+  console.log('[Push] VAPID public key obtained:', vapidPublicKey.substring(0, 20) + '...')
 
-  // Subscribe to push notifications
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  })
+  // Register Service Worker
+  console.log('[Push] Registering Service Worker...')
+  let registration: ServiceWorkerRegistration
+  try {
+    registration = await navigator.serviceWorker.register('/sw.js')
+    console.log('[Push] Service Worker registered:', registration.scope)
+    await navigator.serviceWorker.ready
+    console.log('[Push] Service Worker ready')
+  } catch (error) {
+    console.error('[Push] Error registering Service Worker:', error)
+    return null
+  }
+
+  // Check if already subscribed
+  let subscription = await registration.pushManager.getSubscription()
+  if (subscription) {
+    console.log('[Push] Already subscribed, sending to backend...')
+  } else {
+    // Subscribe to push notifications
+    console.log('[Push] Creating new push subscription...')
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      })
+      console.log('[Push] Push subscription created')
+    } catch (error) {
+      console.error('[Push] Error creating push subscription:', error)
+      return null
+    }
+  }
 
   // Send subscription to backend
   const subscriptionJson = subscription.toJSON()
-  await client.mutate({
-    mutation: REGISTER_WEB_PUSH_SUBSCRIPTION_MUTATION,
-    variables: {
-      input: {
-        endpoint: subscriptionJson.endpoint,
-        keys: {
-          p256dh: subscriptionJson.keys?.p256dh || '',
-          auth: subscriptionJson.keys?.auth || '',
+  console.log('[Push] Sending subscription to backend...')
+  try {
+    const { data, errors } = await client.mutate({
+      mutation: REGISTER_WEB_PUSH_SUBSCRIPTION_MUTATION,
+      variables: {
+        input: {
+          endpoint: subscriptionJson.endpoint,
+          keys: {
+            p256dh: subscriptionJson.keys?.p256dh || '',
+            auth: subscriptionJson.keys?.auth || '',
+          },
         },
       },
-    },
-  })
+    })
+    if (errors) {
+      console.error('[Push] GraphQL errors registering subscription:', errors)
+      return null
+    }
+    console.log('[Push] Subscription registered in backend:', data?.registerWebPushSubscription?.id)
+  } catch (error) {
+    console.error('[Push] Error sending subscription to backend:', error)
+    return null
+  }
 
-  console.log('Web Push subscription registered successfully')
   return subscriptionJson.endpoint || null
 }
 

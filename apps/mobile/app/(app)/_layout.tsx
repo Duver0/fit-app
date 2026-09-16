@@ -14,7 +14,7 @@ export default function AppLayout() {
   const user = useAuthStore(state => state.user)
   const isAdmin = user?.role === 'SUPER_ADMIN'
 
-  // Initialize push notifications
+  // Initialize push notifications (only when authenticated)
   useNotifications()
 
   if (!isAuthenticated) {
