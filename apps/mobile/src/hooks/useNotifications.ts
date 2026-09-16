@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import * as Notifications from 'expo-notifications'
+import { Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { registerForPushNotificationsAsync } from '../lib/notifications'
 import { useAuthStore } from '../stores/authStore'
@@ -7,7 +7,8 @@ import { useAuthStore } from '../stores/authStore'
 /**
  * Hook to handle push notifications.
  * - Registers for push notifications on mount (only when authenticated)
- * - Handles notification taps (deep linking to group/exercise)
+ * - On native: handles notification taps (deep linking)
+ * - On web: notification clicks are handled by the Service Worker (sw.js)
  */
 export function useNotifications() {
   const router = useRouter()
@@ -27,27 +28,35 @@ export function useNotifications() {
     registerForPushNotificationsAsync()
       .then((token) => {
         if (token) {
-          console.log('Push notifications registered:', token)
+          console.log('[Push] Registration completed:', token.substring(0, 30) + '...')
         }
       })
       .catch((error) => {
-        console.error('Failed to register push notifications:', error)
+        console.error('[Push] Registration failed in hook:', error)
       })
+  }, [isAuthenticated])
 
-    // Handle notification taps (when app is in background/killed)
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data
+  // Handle notification taps — only on native (expo-notifications)
+  // On web, the Service Worker handles notificationclick events
+  useEffect(() => {
+    if (Platform.OS === 'web') return
 
-      // Navigate to the corresponding group/exercise
-      if (data.groupId && data.exerciseId) {
-        router.push(`/groups/${data.groupId}/exercises/${data.exerciseId}`)
-      } else if (data.groupId) {
-        router.push(`/groups/${data.groupId}`)
-      }
+    let responseSubscription: any = null
+
+    import('expo-notifications').then((Notifications) => {
+      responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+        const data = response.notification.request.content.data
+
+        if (data.groupId && data.exerciseId) {
+          router.push(`/groups/${data.groupId}/exercises/${data.exerciseId}`)
+        } else if (data.groupId) {
+          router.push(`/groups/${data.groupId}`)
+        }
+      })
     })
 
     return () => {
-      responseSubscription.remove()
+      responseSubscription?.remove()
     }
-  }, [isAuthenticated])
+  }, [router])
 }
