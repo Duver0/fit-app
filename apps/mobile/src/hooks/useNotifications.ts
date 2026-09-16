@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { gql } from '@apollo/client'
@@ -20,8 +20,8 @@ const REGISTER_WEB_PUSH_MUTATION = gql`
 `
 
 /**
- * Simplified push notification hook for PWA only.
- * Uses Web Push API with VAPID keys via Service Worker.
+ * Push notification hook for PWA.
+ * Registers the Service Worker + Web Push subscription.
  */
 export function useNotifications() {
   const router = useRouter()
@@ -36,8 +36,7 @@ export function useNotifications() {
     registerWebPush()
   }, [isAuthenticated])
 
-  // Handle notification clicks — the SW handles this on web,
-  // but we can listen for messages from the SW
+  // Handle notification clicks from the SW
   useEffect(() => {
     if (Platform.OS !== 'web') return
 
@@ -58,66 +57,85 @@ export function useNotifications() {
 }
 
 async function registerWebPush() {
-  console.log('[Push] Starting Web Push registration...')
+  console.log('[Push] ===== Starting registration =====')
 
   // Feature detection
   if (!('serviceWorker' in navigator)) {
-    console.warn('[Push] Service Workers not supported')
+    console.error('[Push] ❌ Service Workers NOT supported')
     return
   }
   if (!('PushManager' in window)) {
-    console.warn('[Push] Push API not supported')
+    console.error('[Push] ❌ Push API NOT supported')
     return
   }
   if (!('Notification' in window)) {
-    console.warn('[Push] Notifications API not supported')
+    console.error('[Push] ❌ Notifications API NOT supported')
     return
   }
   if (!window.isSecureContext) {
-    console.warn('[Push] Not a secure context (HTTPS required)')
+    console.error('[Push] ❌ Not a secure context (need HTTPS)')
     return
   }
+  console.log('[Push] ✓ Browser supports Web Push')
 
-  console.log('[Push] Browser supports Web Push ✓')
-
-  // Request notification permission
+  // Permission
   let permission = Notification.permission
-  console.log('[Push] Current permission:', permission)
+  console.log('[Push] Permission:', permission)
 
   if (permission === 'default') {
-    console.log('[Push] Requesting permission...')
     permission = await Notification.requestPermission()
-    console.log('[Push] Permission result:', permission)
+    console.log('[Push] Permission after request:', permission)
   }
 
   if (permission !== 'granted') {
-    console.warn('[Push] Permission not granted:', permission)
+    console.warn('[Push] ❌ Permission not granted:', permission)
     return
   }
+  console.log('[Push] ✓ Permission granted')
 
-  console.log('[Push] Permission granted ✓')
-
-  // Wait for Service Worker to be ready
+  // Register Service Worker explicitly (don't depend on registerSW timing)
   let registration: ServiceWorkerRegistration
   try {
-    registration = await navigator.serviceWorker.ready
-    console.log('[Push] SW ready, scope:', registration.scope)
-  } catch (error) {
-    console.error('[Push] Service Worker not ready:', error)
+    // First check if there's already a registered SW
+    const existingReg = await navigator.serviceWorker.getRegistration('/fit-app/')
+    if (existingReg) {
+      console.log('[Push] ✓ Found existing SW registration, scope:', existingReg.scope)
+      registration = existingReg
+    } else {
+      console.log('[Push] No existing SW, registering /fit-app/sw.js ...')
+      registration = await navigator.serviceWorker.register('/fit-app/sw.js', {
+        scope: '/fit-app/',
+      })
+      console.log('[Push] ✓ SW registered, scope:', registration.scope)
+    }
+
+    // Make sure the SW is active (not just installing)
+    if (registration.installing) {
+      console.log('[Push] SW is installing, waiting...')
+      await waitForSWActive(registration)
+    } else if (registration.waiting) {
+      console.log('[Push] SW is waiting, activating...')
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+      await waitForSWActive(registration)
+    }
+
+    console.log('[Push] ✓ SW active and ready')
+  } catch (error: any) {
+    console.error('[Push] ❌ SW registration failed:', error?.name, error?.message)
     return
   }
 
-  // Check existing subscription
+  // Check existing push subscription
   let subscription = await registration.pushManager.getSubscription()
   if (subscription) {
-    console.log('[Push] Existing subscription found, sending to backend...')
+    console.log('[Push] ✓ Existing push subscription found')
     await sendSubscriptionToBackend(subscription)
     return
   }
 
-  console.log('[Push] No existing subscription, creating new one...')
+  console.log('[Push] No push subscription, creating one...')
 
-  // Get VAPID public key from backend
+  // Get VAPID key from backend
   let vapidKey: string | null = null
   try {
     const { data, errors } = await client.query({
@@ -125,50 +143,84 @@ async function registerWebPush() {
       fetchPolicy: 'network-only',
     })
     if (errors) {
-      console.error('[Push] Failed to fetch VAPID key:', errors)
+      console.error('[Push] ❌ Failed to fetch VAPID key:', errors)
       return
     }
     vapidKey = data?.vapidPublicKey
   } catch (error) {
-    console.error('[Push] Error fetching VAPID key:', error)
+    console.error('[Push] ❌ Error fetching VAPID key:', error)
     return
   }
 
   if (!vapidKey) {
-    console.warn('[Push] VAPID public key not configured on backend')
+    console.error('[Push] ❌ VAPID public key not configured on backend!')
+    console.error('[Push]    Check VAPID_PUBLIC_KEY in .env')
     return
   }
+  console.log('[Push] ✓ VAPID key obtained:', vapidKey.substring(0, 20) + '...')
 
-  console.log('[Push] VAPID key obtained ✓')
-
-  // Create push subscription
+  // Subscribe to push
   try {
     const applicationServerKey = urlBase64ToUint8Array(vapidKey)
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey,
     })
-    console.log('[Push] New subscription created ✓')
+    console.log('[Push] ✓ Push subscription created!')
     await sendSubscriptionToBackend(subscription)
   } catch (error: any) {
     const name = error?.name || 'Unknown'
-    console.error(`[Push] Subscribe failed (${name}):`, error?.message)
+    console.error(`[Push] ❌ Subscribe failed (${name}):`, error?.message)
 
     if (name === 'AbortError') {
-      console.error('[Push] The push service (FCM) could not be reached.')
-      console.error('[Push] Check: HTTPS, Google Play Services, network')
+      console.error('[Push]    Push service (FCM) unreachable — check HTTPS & network')
     } else if (name === 'NotAllowedError') {
-      console.error('[Push] Permission denied or no user gesture')
+      console.error('[Push]    Permission denied or missing user gesture')
+    } else if (name === 'InvalidStateError') {
+      console.error('[Push]    Subscription already exists or SW not ready')
+    } else if (name === 'SecurityError') {
+      console.error('[Push]    Security error — must be HTTPS')
     }
   }
+
+  console.log('[Push] ===== Registration finished =====')
+}
+
+function waitForSWActive(registration: ServiceWorkerRegistration): Promise<void> {
+  return new Promise((resolve) => {
+    const sw = registration.installing || registration.waiting
+    if (!sw) {
+      resolve()
+      return
+    }
+
+    const onStateChange = () => {
+      console.log('[Push] SW state:', sw.state)
+      if (sw.state === 'activated') {
+        sw.removeEventListener('statechange', onStateChange)
+        resolve()
+      }
+    }
+
+    sw.addEventListener('statechange', onStateChange)
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      sw.removeEventListener('statechange', onStateChange)
+      console.warn('[Push] ⚠️ SW activation timed out, continuing anyway')
+      resolve()
+    }, 10000)
+  })
 }
 
 async function sendSubscriptionToBackend(subscription: PushSubscription) {
   const sub = subscription.toJSON()
   if (!sub.endpoint) {
-    console.error('[Push] Subscription has no endpoint')
+    console.error('[Push] ❌ Subscription has no endpoint')
     return
   }
+  console.log('[Push] Sending subscription to backend...')
+  console.log('[Push]   Endpoint:', sub.endpoint.substring(0, 60) + '...')
 
   try {
     const { data, errors } = await client.mutate({
@@ -184,12 +236,12 @@ async function sendSubscriptionToBackend(subscription: PushSubscription) {
       },
     })
     if (errors) {
-      console.error('[Push] Backend registration failed:', errors)
+      console.error('[Push] ❌ Backend registration failed:', errors)
       return
     }
     console.log('[Push] ✅ Subscription registered in backend, id:', data?.registerWebPushSubscription?.id)
   } catch (error) {
-    console.error('[Push] Error sending to backend:', error)
+    console.error('[Push] ❌ Error sending to backend:', error)
   }
 }
 
