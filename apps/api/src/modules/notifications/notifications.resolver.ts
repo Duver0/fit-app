@@ -5,7 +5,6 @@ import { GqlAuthGuard } from '../auth/guards/gql-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { User } from '../../common/models'
 import { DeviceToken } from './dto/device-token.type'
-import { RegisterDeviceTokenInput } from './dto/register-device.input'
 import { RegisterWebPushSubscriptionInput } from './dto/register-web-push.input'
 
 @Resolver()
@@ -13,7 +12,7 @@ export class NotificationsResolver {
   constructor(private notificationsService: NotificationsService) {}
 
   /**
-   * Get VAPID public key (no auth required - needed before subscribing)
+   * Get VAPID public key (no auth required — needed before subscribing)
    */
   @Query(() => String)
   vapidPublicKey(): string {
@@ -21,19 +20,7 @@ export class NotificationsResolver {
   }
 
   /**
-   * Register a native device token (Expo)
-   */
-  @Mutation(() => DeviceToken)
-  @UseGuards(GqlAuthGuard)
-  async registerDeviceToken(
-    @CurrentUser() user: User,
-    @Args('input') input: RegisterDeviceTokenInput,
-  ) {
-    return this.notificationsService.registerToken(user.id, input.token, input.platform)
-  }
-
-  /**
-   * Register a web push subscription (from browser)
+   * Register a web push subscription (from browser PWA)
    */
   @Mutation(() => DeviceToken)
   @UseGuards(GqlAuthGuard)
@@ -45,7 +32,7 @@ export class NotificationsResolver {
   }
 
   /**
-   * Remove a device token
+   * Remove/deactivate a device token
    */
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)

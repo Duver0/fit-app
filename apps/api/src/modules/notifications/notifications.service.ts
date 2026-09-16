@@ -12,6 +12,11 @@ interface WebPushSubscription {
   }
 }
 
+/**
+ * Notifications service — Web Push only (PWA).
+ * Uses VAPID keys + web-push library to send push notifications
+ * to the browser's Service Worker.
+ */
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name)
@@ -26,74 +31,69 @@ export class NotificationsService {
     this.vapidPrivateKey = this.configService.get('VAPID_PRIVATE_KEY', '')
     const vapidEmail = this.configService.get('VAPID_EMAIL', 'mailto:fit-app@fitapp.com')
 
-    // Initialize web-push with VAPID keys
     if (this.vapidPublicKey && this.vapidPrivateKey) {
       webPush.setVapidDetails(
         vapidEmail,
         this.vapidPublicKey,
         this.vapidPrivateKey,
       )
-      this.logger.log('Web Push (VAPID) initialized successfully')
+      this.logger.log('✅ Web Push (VAPID) initialized')
     } else {
-      this.logger.warn('VAPID keys not configured. Web Push notifications will not work.')
+      this.logger.error('❌ VAPID keys NOT configured — Web Push will NOT work!')
+      this.logger.error('   Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in .env')
     }
   }
 
-  /**
-   * Get VAPID public key for the frontend
-   */
   getVapidPublicKey(): string {
     return this.vapidPublicKey
   }
 
   /**
-   * Register a web push subscription (from browser)
+   * Register a web push subscription from the browser.
+   * The endpoint is used as the unique token identifier.
    */
   async registerWebPushSubscription(userId: string, subscription: WebPushSubscription) {
-    this.logger.log(`Registering web push subscription for user ${userId}`)
+    this.logger.log(`📝 Registering web push for user ${userId}`)
+    this.logger.log(`   Endpoint: ${subscription.endpoint?.substring(0, 60)}...`)
 
-    // Convert to Prisma Json input
     const subscriptionJson = subscription as unknown as Prisma.InputJsonValue
 
-    return this.prisma.deviceToken.upsert({
-      where: { token: subscription.endpoint },
-      update: {
-        active: true,
-        platform: 'web',
-        userId,
-        subscriptionData: subscriptionJson,
-      },
-      create: {
-        userId,
-        token: subscription.endpoint,
-        platform: 'web',
-        subscriptionData: subscriptionJson,
-      },
-    })
-  }
-
-  /**
-   * Register a native device token (from Expo)
-   */
-  async registerToken(userId: string, token: string, platform: string) {
-    this.logger.log(`Registering device token for user ${userId}`)
-
-    return this.prisma.deviceToken.upsert({
-      where: { token },
-      update: { active: true, platform, userId },
-      create: { userId, token, platform },
-    })
+    try {
+      const result = await this.prisma.deviceToken.upsert({
+        where: { token: subscription.endpoint },
+        update: {
+          active: true,
+          platform: 'web',
+          userId,
+          subscriptionData: subscriptionJson,
+        },
+        create: {
+          userId,
+          token: subscription.endpoint,
+          platform: 'web',
+          subscriptionData: subscriptionJson,
+        },
+      })
+      this.logger.log(`✅ Web push registered, id: ${result.id}`)
+      return result
+    } catch (error) {
+      this.logger.error('❌ Failed to register web push:', error)
+      throw error
+    }
   }
 
   async removeToken(token: string) {
-    this.logger.log(`Removing device token`)
-
+    this.logger.log(`🗑️ Deactivating token`)
     return this.prisma.deviceToken.updateMany({
       where: { token },
       data: { active: false },
     })
   }
 
+  /**
+   * Send a push notification to all group members (except the author).
+   * Only sends to active web push subscriptions.
+   */
   async sendPushToGroup(params: {
     excludeUserId: string
     groupId: string
@@ -101,12 +101,15 @@ export class NotificationsService {
     body: string
     data?: Record<string, unknown>
   }) {
-    this.logger.log(`Sending push notification to group ${params.groupId}`)
+    this.logger.log(`📤 Sending push to group ${params.groupId}`)
+    this.logger.log(`   "${params.title}" — ${params.body}`)
 
-    // Get all active tokens for group members (except the author)
+    // Get all active web push subscriptions for group members (except author)
     const tokens = await this.prisma.deviceToken.findMany({
       where: {
         active: true,
+        platform: 'web',
+        subscriptionData: { not: Prisma.JsonNull },
         user: {
           memberships: {
             some: { groupId: params.groupId, isActive: true },
@@ -114,14 +117,21 @@ export class NotificationsService {
           id: { not: params.excludeUserId },
         },
       },
+      include: {
+        user: { select: { name: true } },
+      },
     })
 
     if (tokens.length === 0) {
-      this.logger.log('No device tokens found for group members')
+      this.logger.warn('⚠️ No active web push subscriptions found for group members')
+      this.logger.warn('   Members need to open the PWA in their browser and allow notifications')
       return { sent: 0 }
     }
 
-    this.logger.log(`Found ${tokens.length} device tokens to send notifications`)
+    this.logger.log(`   Found ${tokens.length} subscription(s):`)
+    tokens.forEach((t, i) => {
+      this.logger.log(`   ${i + 1}. ${t.user.name}`)
+    })
 
     const payload = JSON.stringify({
       title: params.title,
@@ -134,52 +144,24 @@ export class NotificationsService {
 
     for (const tokenRecord of tokens) {
       try {
-        if (tokenRecord.platform === 'web' && tokenRecord.subscriptionData) {
-          // Web Push - use stored subscription data
-          const subscription = tokenRecord.subscriptionData as unknown as WebPushSubscription
-          await webPush.sendNotification(subscription, payload)
-          sentCount++
-        } else if (tokenRecord.platform !== 'web') {
-          // Expo Push (native apps)
-          await this.sendExpoPush([{ to: tokenRecord.token, sound: 'default', ...JSON.parse(payload) }])
-          sentCount++
-        }
-      } catch (error) {
-        this.logger.error(`Failed to send push to token ${tokenRecord.token}: ${error.message}`)
-        errors.push(error.message)
+        const subscription = tokenRecord.subscriptionData as unknown as WebPushSubscription
+        await webPush.sendNotification(subscription, payload)
+        this.logger.log(`   ✅ Sent to ${tokenRecord.user.name}`)
+        sentCount++
+      } catch (error: any) {
+        const errorMsg = `${tokenRecord.user.name}: ${error.message}`
+        this.logger.error(`   ❌ Failed: ${errorMsg}`)
+        errors.push(errorMsg)
 
-        // If the subscription is expired (410 Gone), deactivate it
+        // Deactivate expired subscriptions (410 Gone)
         if (error.statusCode === 410) {
+          this.logger.warn(`   🗑️ Deactivating expired subscription for ${tokenRecord.user.name}`)
           await this.removeToken(tokenRecord.token)
         }
       }
     }
 
-    this.logger.log(`Push notifications sent: ${sentCount}/${tokens.length}`)
-
+    this.logger.log(`📊 Result: ${sentCount}/${tokens.length} sent`)
     return { sent: sentCount, total: tokens.length, errors }
-  }
-
-  /**
-   * Send push notifications via Expo Push API (for native apps)
-   */
-  private async sendExpoPush(messages: Record<string, unknown>[]) {
-    try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messages),
-      })
-
-      const result = await response.json()
-      return result
-    } catch (error) {
-      this.logger.error('Error sending Expo push notifications', error)
-      throw error
-    }
   }
 }

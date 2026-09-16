@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <base href="/fit-app/">
+  
+  <title>Fit App</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#FF6B35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FitApp">
+  <meta name="description" content="App de fitness para competir con amigos">
+  
+  <!-- Manifest for PWA -->
+  <link rel="manifest" href="/fit-app/manifest.json">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/fit-app/icon-192x192.png">
+  <link rel="apple-touch-icon" href="/fit-app/icon-192x192.png">
+  
+  <!-- Remove delayed URL cleanup script from GitHub Pages 404 redirect -->
+  <script type="text/javascript">
+    // Clean up redirect parameters from the URL
+    (function() {
+      var url = new URL(window.location.href);
+      if (url.searchParams.has('redirect')) {
+        var redirectPath = url.searchParams.get('redirect');
+        window.history.replaceState({}, '', '/fit-app' + redirectPath);
+      }
+    })();
+  </script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

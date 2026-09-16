@@ -15,38 +15,44 @@ export class ProgressUpdateObserver {
 
   @OnEvent('performance.updated')
   async handlePerformanceUpdated(event: PerformanceUpdatedEvent) {
-    this.logger.log(`Handling performance updated event for user ${event.userId}`)
+    this.logger.log(`🔔 Performance updated event received`)
+    this.logger.log(`   User ID: ${event.userId}`)
+    this.logger.log(`   Exercise ID: ${event.exerciseId}`)
+    this.logger.log(`   Group ID: ${event.groupId}`)
 
     try {
-      // 1. Obtener info del usuario que actualizó
+      // 1. Get user info
       const user = await this.prisma.user.findUnique({
         where: { id: event.userId },
       })
 
       if (!user) {
-        this.logger.warn(`User ${event.userId} not found`)
+        this.logger.warn(`⚠️ User ${event.userId} not found`)
         return
       }
 
-      // 2. Obtener info del ejercicio
+      // 2. Get exercise info
       const exercise = await this.prisma.exercise.findUnique({
         where: { id: event.exerciseId },
       })
 
       if (!exercise) {
-        this.logger.warn(`Exercise ${event.exerciseId} not found`)
+        this.logger.warn(`⚠️ Exercise ${event.exerciseId} not found`)
         return
       }
 
-      // 3. Enviar push a todos los miembros del grupo (excepto el autor)
+      // 3. Build notification
       const title = 'Actualización de progreso'
-      const body = `${user.name} ha actualizado su progreso en ${exercise.name}`
+      const body = `${user.name} ha actualizado su marca en ${exercise.name}`
       const data = {
         groupId: event.groupId,
         exerciseId: event.exerciseId,
       }
 
-      await this.notificationsService.sendPushToGroup({
+      this.logger.log(`📤 Sending notification: "${title}" - "${body}"`)
+
+      // 4. Send push to group
+      const result = await this.notificationsService.sendPushToGroup({
         excludeUserId: event.userId,
         groupId: event.groupId,
         title,
@@ -54,9 +60,13 @@ export class ProgressUpdateObserver {
         data,
       })
 
-      this.logger.log(`Progress update notification sent for exercise ${exercise.name}`)
+      this.logger.log(`✅ Notification sent: ${result.sent}/${result.total} successful`)
+      
+      if (result.errors && result.errors.length > 0) {
+        this.logger.error(`❌ Errors: ${result.errors.join('; ')}`)
+      }
     } catch (error) {
-      this.logger.error('Error handling performance updated event', error)
+      this.logger.error('❌ Error handling performance updated event', error)
     }
   }
 }

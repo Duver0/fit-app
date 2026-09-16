@@ -5,7 +5,7 @@
  * Deployed at /fit-app/sw.js on GitHub Pages.
  */
 
-const CACHE_NAME = 'fit-app-v2'
+const CACHE_NAME = 'fit-app-v3'
 const BASE_PATH = self.location.pathname.replace('/sw.js', '')
 const PRECACHE_URLS = [
   BASE_PATH + '/',
@@ -88,7 +88,6 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body,
     icon: BASE_PATH + '/icon-192x192.png',
-    badge: BASE_PATH + '/badge-72x72.png',
     vibrate: [200, 100, 200],
     data: data.data,
     actions: [],

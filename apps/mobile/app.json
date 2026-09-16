@@ -25,7 +25,8 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
       "output": "single",
-      "name": "Fit App"
+      "name": "Fit App",
+      "template": "./web/index.html"
     },
     "plugins": ["expo-router"],
     "experiments": {
