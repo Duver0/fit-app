@@ -61,15 +61,6 @@ export function AvatarStack({
         </View>
       ))}
 
-      {showCount && (
-        <Text style={[
-          styles.count,
-          { fontSize: size * 0.4, color: colors.textSecondary },
-        ]}>
-          {exercises.length}
-        </Text>
-      )}
-
       {overflowCount > 0 && (
         <View
           style={[
