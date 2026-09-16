@@ -2,7 +2,6 @@ import { Platform } from 'react-native'
 import { gql } from '@apollo/client'
 import { client } from './apollo'
 
-// GraphQL queries and mutations
 const VAPID_PUBLIC_KEY_QUERY = gql`
   query VapidPublicKey {
     vapidPublicKey
@@ -36,9 +35,9 @@ const REMOVE_DEVICE_TOKEN_MUTATION = gql`
 `
 
 /**
- * Convert a VAPID public key (base64) to Uint8Array for the Push API
+ * Convert a VAPID public key (base64url) to Uint8Array for the Push API.
  */
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
@@ -46,37 +45,32 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i)
   }
-  return outputArray.buffer
+  return outputArray
 }
 
 /**
- * Register for Web Push notifications (PWA in browser)
+ * Register for Web Push notifications (PWA in browser).
+ * Returns the endpoint string on success, null on failure.
  */
 async function registerWebPush(): Promise<string | null> {
-  console.log('[Push] Starting Web Push registration...')
+  console.log('[Push] Starting registration...')
 
-  // Check if Service Workers and Push API are supported
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.warn('[Push] Web Push not supported in this browser')
+    console.warn('[Push] Web Push not supported')
     return null
   }
-  console.log('[Push] Service Worker and Push API supported')
 
-  // Check notification permission
+  // Notification permission
   let permission = Notification.permission
   if (permission === 'default') {
-    console.log('[Push] Requesting notification permission...')
     permission = await Notification.requestPermission()
   }
-  console.log('[Push] Notification permission:', permission)
-
   if (permission !== 'granted') {
-    console.warn('[Push] Notification permission not granted')
+    console.warn('[Push] Permission not granted:', permission)
     return null
   }
 
-  // Get VAPID public key from backend
-  console.log('[Push] Fetching VAPID public key...')
+  // Fetch VAPID public key from backend
   let vapidPublicKey: string | null = null
   try {
     const { data, errors } = await client.query({
@@ -84,7 +78,7 @@ async function registerWebPush(): Promise<string | null> {
       fetchPolicy: 'network-only',
     })
     if (errors) {
-      console.error('[Push] GraphQL errors fetching VAPID key:', errors)
+      console.error('[Push] Failed to fetch VAPID key:', errors)
       return null
     }
     vapidPublicKey = data?.vapidPublicKey
@@ -97,46 +91,42 @@ async function registerWebPush(): Promise<string | null> {
     console.warn('[Push] VAPID public key not configured on backend')
     return null
   }
-  console.log('[Push] VAPID public key obtained:', vapidPublicKey.substring(0, 20) + '...')
 
-  // Register Service Worker (detect base path for subpath deployments like GitHub Pages)
+  // Register Service Worker (detect base path for GitHub Pages subpath)
   const swPath = window.location.pathname.includes('/fit-app/')
     ? '/fit-app/sw.js'
     : '/sw.js'
-  console.log('[Push] Registering Service Worker at:', swPath)
+
   let registration: ServiceWorkerRegistration
   try {
     registration = await navigator.serviceWorker.register(swPath)
-    console.log('[Push] Service Worker registered:', registration.scope)
     await navigator.serviceWorker.ready
     console.log('[Push] Service Worker ready')
   } catch (error) {
-    console.error('[Push] Error registering Service Worker:', error)
+    console.error('[Push] SW registration failed:', error)
     return null
   }
 
-  // Check if already subscribed
+  // Check existing subscription or create new one
   let subscription = await registration.pushManager.getSubscription()
-  if (subscription) {
-    console.log('[Push] Already subscribed, sending to backend...')
-  } else {
-    // Subscribe to push notifications
-    console.log('[Push] Creating new push subscription...')
+  if (!subscription) {
     try {
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey,
       })
-      console.log('[Push] Push subscription created')
+      console.log('[Push] Subscription created')
     } catch (error) {
-      console.error('[Push] Error creating push subscription:', error)
+      console.error('[Push] Subscribe failed:', error)
       return null
     }
+  } else {
+    console.log('[Push] Existing subscription found')
   }
 
   // Send subscription to backend
   const subscriptionJson = subscription.toJSON()
-  console.log('[Push] Sending subscription to backend...')
   try {
     const { data, errors } = await client.mutate({
       mutation: REGISTER_WEB_PUSH_SUBSCRIPTION_MUTATION,
@@ -151,12 +141,12 @@ async function registerWebPush(): Promise<string | null> {
       },
     })
     if (errors) {
-      console.error('[Push] GraphQL errors registering subscription:', errors)
+      console.error('[Push] Backend registration failed:', errors)
       return null
     }
-    console.log('[Push] Subscription registered in backend:', data?.registerWebPushSubscription?.id)
+    console.log('[Push] Registered in backend, id:', data?.registerWebPushSubscription?.id)
   } catch (error) {
-    console.error('[Push] Error sending subscription to backend:', error)
+    console.error('[Push] Error sending to backend:', error)
     return null
   }
 
@@ -164,18 +154,17 @@ async function registerWebPush(): Promise<string | null> {
 }
 
 /**
- * Register for native push notifications (Expo - iOS/Android)
+ * Register for native push notifications (Expo - iOS/Android).
  */
 async function registerExpoPush(): Promise<string | null> {
   const Notifications = await import('expo-notifications')
   const Device = await import('expo-device')
 
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device')
+    console.log('[Push] Physical device required for Expo push')
     return null
   }
 
-  // Configure how notifications appear when app is in foreground
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -184,26 +173,22 @@ async function registerExpoPush(): Promise<string | null> {
     }),
   })
 
-  // Check existing permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync()
   let finalStatus = existingStatus
 
-  // Request permissions if not granted
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync()
     finalStatus = status
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Permission not granted for push notifications')
+    console.warn('[Push] Expo permission not granted')
     return null
   }
 
-  // Get Expo push token
   const tokenData = await Notifications.getExpoPushTokenAsync()
   const token = tokenData.data
 
-  // Configure Android notification channel
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -212,24 +197,17 @@ async function registerExpoPush(): Promise<string | null> {
     })
   }
 
-  // Register token with backend
   await client.mutate({
     mutation: REGISTER_DEVICE_TOKEN_MUTATION,
-    variables: {
-      input: {
-        token,
-        platform: Platform.OS,
-      },
-    },
+    variables: { input: { token, platform: Platform.OS } },
   })
 
-  console.log('Expo push token registered successfully')
+  console.log('[Push] Expo token registered')
   return token
 }
 
 /**
- * Main function to register for push notifications.
- * Automatically detects platform and uses the appropriate method.
+ * Main entry point — detects platform and registers accordingly.
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   try {
@@ -239,7 +217,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       return await registerExpoPush()
     }
   } catch (error) {
-    console.error('Error registering for push notifications:', error)
+    console.error('[Push] Registration error:', error)
     return null
   }
 }
@@ -253,8 +231,7 @@ export async function removeDeviceToken(token: string): Promise<void> {
       mutation: REMOVE_DEVICE_TOKEN_MUTATION,
       variables: { token },
     })
-    console.log('Device token removed successfully')
   } catch (error) {
-    console.error('Error removing device token:', error)
+    console.error('[Push] Error removing token:', error)
   }
 }
