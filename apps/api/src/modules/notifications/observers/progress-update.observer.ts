@@ -41,9 +41,10 @@ export class ProgressUpdateObserver {
         return
       }
 
-      // 3. Build notification
-      const title = 'Actualización de progreso'
-      const body = `${user.name} ha actualizado su marca en ${exercise.name}`
+      // 3. Build notification — title is just the first name
+      const firstName = user.name.split(' ')[0]
+      const title = firstName
+      const body = `actualizó su marca en ${exercise.name}`
       const data = {
         groupId: event.groupId,
         exerciseId: event.exerciseId,
