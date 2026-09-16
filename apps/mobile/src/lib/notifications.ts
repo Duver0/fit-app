@@ -56,6 +56,14 @@ function diagnosePushSupport(): string | null {
   if (!('PushManager' in window)) return 'Push API not supported by this browser'
   if (!('Notification' in window)) return 'Notifications API not supported'
   if (!window.isSecureContext) return 'Not a secure context (must be HTTPS)'
+
+  // Brave blocks Web Push by default — check via navigator.brave
+  if ('brave' in navigator) {
+    console.warn(
+      '[Push] Brave detected. If push fails, enable "Use Google services for push messaging" in brave://settings/privacy',
+    )
+  }
+
   return null
 }
 
@@ -132,10 +140,12 @@ async function registerWebPush(): Promise<string | null> {
       const msg = error?.message || String(error)
 
       if (name === 'AbortError') {
+        const isBrave = 'brave' in navigator
         console.error(
-          '[Push] ❌ Push service error — your browser/device could not reach the push service (FCM).',
-          '\n  • Are you using Chrome for Android? Other browsers may not work.',
-          '\n  • Does your device have Google Play Services?',
+          '[Push] ❌ Push service error — browser could not reach the push service (FCM).',
+          isBrave
+            ? '\n  🔹 Brave detected! Enable "Use Google services for push messaging" in brave://settings/privacy, then restart the browser.'
+            : '\n  • Does your device have Google Play Services?',
           '\n  • Is your network blocking FCM connections?',
           '\n  Error:', msg,
         )
